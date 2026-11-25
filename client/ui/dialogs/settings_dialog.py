@@ -807,6 +807,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         speech_sizer.Add(self._announce_recording_check, 0, wx.ALL, 8)
 
+        # "Pinned messages in this chat: N" when a chat opens (issue #848).
+        self._announce_pinned_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_pinned_label")
+        )
+        speech_sizer.Add(self._announce_pinned_check, 0, wx.ALL, 8)
+
         self._announce_group_multiple_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_announce_group_multiple_label")
         )
@@ -2929,6 +2935,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "speech"):
             self._announce_typing_check.SetValue(speech.get("announce_typing", True))
             self._announce_recording_check.SetValue(speech.get("announce_recording", True))
+            self._announce_pinned_check.SetValue(speech.get("announce_pinned_messages", True))
             self._announce_group_multiple_check.SetValue(
                 speech.get("announce_group_multiple_activity", True)
             )
@@ -4490,6 +4497,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "announce_recording"
             ] = self._announce_recording_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
+                "announce_pinned_messages"
+            ] = self._announce_pinned_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
                 "announce_group_multiple_activity"
             ] = self._announce_group_multiple_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
@@ -5200,6 +5210,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "speech"):
             self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
             self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
+            self._announce_pinned_check.SetLabel(i18n.t("speech_announce_pinned_label"))
             self._announce_group_multiple_check.SetLabel(
                 i18n.t("speech_announce_group_multiple_label")
             )

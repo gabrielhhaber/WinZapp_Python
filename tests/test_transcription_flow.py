@@ -1374,7 +1374,7 @@ class TestAltShiftTIsOurs:
         assert [m["key"]["id"] for m in seen] == ["B"]
 
     def test_the_menu_item_is_guarded_by_is_transcribable_and_shows_the_shortcut(self):
-        source = inspect.getsource(ConversationsPanel.on_messages_context_menu)
+        source = inspect.getsource(ConversationsPanel._message_context_menu)
         tree = ast.parse(source.lstrip())
         guarded = [
             n for n in ast.walk(tree)
@@ -1876,7 +1876,7 @@ class TestDeletingAStoredTranscription:
 
 class TestTheMenuOffersWhatIsStored:
     def _branch(self):
-        source = inspect.getsource(ConversationsPanel.on_messages_context_menu)
+        source = inspect.getsource(ConversationsPanel._message_context_menu)
         tree = ast.parse(source.lstrip())
         [guarded] = [
             n for n in ast.walk(tree)

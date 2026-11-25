@@ -62,6 +62,7 @@ Where to look (and where new code goes):
     bookmarks                message bookmarks
     reading_position         "continue where you left off": the row each conversation was left on
     pinned_messages          pinned-message overview and history navigation
+    message_list_proxy       the message list's menu and shortcuts run on a message from a window over it
     channel_conversation     a channel's role (who posts and pins) and its pinned updates
     message_search           search inside the conversation
     chat_menu                conversations-list context menu and chat actions

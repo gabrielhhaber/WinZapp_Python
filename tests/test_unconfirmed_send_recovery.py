@@ -511,7 +511,7 @@ class TestResendMenuItemIsGatedCorrectly:
     def test_resend_is_gated_on_something_to_send_again(self):
         """Failed or unconfirmed, text or attachment: core/message_resend.py
         decides (tests/test_message_resend.py), and the menu only asks it."""
-        src = inspect.getsource(ConversationsPanel.on_messages_context_menu)
+        src = inspect.getsource(ConversationsPanel._message_context_menu)
         assert "if resend_request(msg) is not None:" in src
         assert "resend_message" in src and "\\tCtrl+Shift+Y" in src
 

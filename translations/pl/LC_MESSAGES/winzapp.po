@@ -5405,8 +5405,9 @@ msgstr "Wyczyść zaznaczone czaty"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -11849,12 +11850,10 @@ msgid "Pin selected"
 msgstr "Przypnij zaznaczone"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Wybierz przypiętą wiadomość i naciśnij Enter, aby przejść do niej w "
-"historii."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "Przej&dź do wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11884,6 +11883,12 @@ msgstr ""
 "Nie udało się wczytać przypiętych wiadomości. Spróbuj ponownie za chwilę."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Przypięte wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 #| msgctxt "no_unread_in_conv"
@@ -11894,6 +11899,7 @@ msgstr "Przypięte wiadomości w tym czacie: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 #| msgctxt "pin_message"
 #| msgid "&Pin message"
 msgctxt "pinned_messages_title"
@@ -15338,6 +15344,12 @@ msgstr "Ogłaszaj &co kilka sekund postęp pobierania multimediów"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Ogłaszaj &liczbę przypiętych wiadomości po otwarciu czatu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_recording_label"
 msgid "Announce when a contact &is recording an audio message in a chat"
 msgstr "Ogłaszaj, gdy kontakt &nagrywa wiadomość głosową w czacie"
@@ -17565,6 +17577,12 @@ msgstr "Wiadomości przypięte."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Czaty przywrócone z archiwum."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Wiadomości odpięte."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21951,9 +21969,16 @@ msgid "&Unpin message"
 msgstr "&Odepnij wiadomość"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Nie udało się odpiąć tej wiadomości. Spróbuj ponownie za chwilę."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Odepnij zaznaczone"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23595,6 +23620,12 @@ msgstr "&Tak"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Wczoraj o {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Wybierz przypiętą wiadomość i naciśnij Enter, aby przejść do niej w "
+#~ "historii."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

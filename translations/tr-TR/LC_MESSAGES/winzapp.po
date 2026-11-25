@@ -5348,8 +5348,9 @@ msgstr "Seçili sohbetleri temizle"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -11733,12 +11734,10 @@ msgid "Pin selected"
 msgstr "Seçilenleri sabitle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Sabitlenen bir mesajı seçin ve geçmişte o mesaja gitmek için Enter tuşuna "
-"basın."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "&Mesaja git"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11760,6 +11759,12 @@ msgid "Pinned messages could not be loaded. Please try again in a moment."
 msgstr "Sabitlenen mesajlar yüklenemedi. Lütfen birazdan tekrar deneyin."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Sabitlenen mesajlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 msgctxt "pinned_messages_notice"
@@ -11768,6 +11773,7 @@ msgstr "Bu sohbetteki sabitlenen mesajlar: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 msgctxt "pinned_messages_title"
 msgid "Pinned messages"
 msgstr "Sabitlenen mesajlar"
@@ -15167,6 +15173,12 @@ msgstr "&Medya indirme ilerlemesini birkaç saniyede bir duyur"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Bir sohbet &açılınca kaç mesajın sabitlendiğini duyur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_recording_label"
 msgid "Announce when a contact &is recording an audio message in a chat"
 msgstr "Bir &kişi bir sohbette sesli mesaj kaydederken duyur"
@@ -17337,6 +17349,12 @@ msgstr "Mesajlar sabitlendi."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Sohbetler arşivden çıkarıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Mesajların sabitlemesi kaldırıldı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21520,9 +21538,16 @@ msgid "&Unpin message"
 msgstr "Mesajın sabitlemesini &kaldır"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Bu mesajın sabitlemesi kaldırılamadı. Lütfen birazdan tekrar deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Seçilenlerin sabitlemesini kaldır"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23144,6 +23169,12 @@ msgstr "&Evet"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Dün {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Sabitlenen bir mesajı seçin ve geçmişte o mesaja gitmek için Enter tuşuna "
+#~ "basın."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

@@ -381,7 +381,7 @@ class TestThreeEntryPointsStayInStep:
         ) < source.index("self._action_show_in_folder_btn =")
 
     def test_context_menu_checks_the_same_path_helper(self):
-        source = inspect.getsource(ConversationsPanel.on_messages_context_menu)
+        source = inspect.getsource(ConversationsPanel._message_context_menu)
         assert "self._saved_media_path(msg)" in source
         assert "show_in_folder" in source
         assert "Ctrl+Enter" in source

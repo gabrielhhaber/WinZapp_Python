@@ -80,11 +80,11 @@ class BulkMessagesMixin:
         self._refresh_message_rows_by_ids(copied_ids)
         self.main_window.output(i18n.t("messages_copied_bulk"), interrupt=True)
 
-    def _mass_message_targets(self, flag: str) -> "tuple[list, list]":
+    def _mass_message_targets(self, flag: str, carrying: bool = False) -> "tuple[list, list]":
         """(messages to act on, all selected ids) for a mass message action.
 
         Targets are real messages in the current selection that don't already
-        carry *flag* — system events are filtered here rather than left to
+        carry *flag* (or, with *carrying*, that do: the ones to undo it on) — system events are filtered here rather than left to
         each single-message handler's own _reject_system_event_action guard,
         so a mixed selection doesn't announce "unavailable" once per system
         event. Order follows _sorted_messages, not set iteration order, same
@@ -95,7 +95,7 @@ class BulkMessagesMixin:
             if not self._is_separator(m)
             and not self._is_system_event(m)
             and m.get("key", {}).get("id") in self.selected_messages
-            and not m.get(flag)
+            and bool(m.get(flag)) is carrying
         ]
         return targets, list(self.selected_messages)
 
@@ -123,7 +123,22 @@ class BulkMessagesMixin:
         self._sync_message_stars(jid, to_star, True)
 
     def _on_mass_pin_messages(self, event):
-        """Pin every not-yet-pinned selected message via WhatsApp's own
+        """Pin every not-yet-pinned selected message (see _mass_set_pinned)."""
+        self._mass_set_pinned(True)
+
+    def _on_mass_unpin_messages(self, event):
+        """Unpin every pinned selected message (see _mass_set_pinned)."""
+        self._mass_set_pinned(False)
+
+    def _selection_all_pinned(self) -> bool:
+        """True when there is a selection and every real message in it is
+        pinned: Ctrl+Shift+P then unpins them instead of pinning."""
+        to_pin, _ids = self._mass_message_targets("pinInChat")
+        pinned, _ids = self._mass_message_targets("pinInChat", carrying=True)
+        return bool(self.selected_messages) and bool(pinned) and not to_pin
+
+    def _mass_set_pinned(self, pin: bool):
+        """Pin (or unpin) the selected messages via WhatsApp's own
         message-pin feature (visible to everyone in the chat, unlike star).
 
         Applies the optimistic update to the whole batch and repaints once.
@@ -138,25 +153,32 @@ class BulkMessagesMixin:
         """
         if not self.selected_messages: return
         i18n = self.main_window.i18n
-        to_pin, ids = self._mass_message_targets("pinInChat")
+        to_pin, ids = self._mass_message_targets("pinInChat", carrying=not pin)
+        jid = self.conversation.get("remoteJid", "") if self.conversation else ""
+        channel = jid.endswith("@newsletter")
+        if channel:
+            # Only a channel's owner and admins pin its updates, through the
+            # channel's own write (channel_conversation.py).
+            to_pin = [m for m in to_pin if self._can_pin_channel_update(m)]
         self.selected_messages.clear()
         if not to_pin:
             self._refresh_message_rows_by_ids(ids)
             self.main_window.output(i18n.t("mass_nothing_to_do"), interrupt=True)
             return
 
-        jid = self.conversation.get("remoteJid", "") if self.conversation else ""
         if not jid:
             self._refresh_message_rows_by_ids(ids)
             return
 
         for m in to_pin:
-            m["pinInChat"] = True
+            m["pinInChat"] = pin
         self._pinned_messages_state_changed(to_pin, jid)
         self._persist_message_local_flags(jid, to_pin)
         self.main_window._schedule_save()
         self._repaint_or_repopulate(ids)   # see _on_mass_star_messages on `ids`
-        self.main_window.output(i18n.t("success_pin_bulk"), interrupt=True)
+        self.main_window.output(
+            i18n.t("success_pin_bulk") if pin else i18n.t("success_unpin_bulk"),
+            interrupt=True)
 
         # Keys are copied now: the message dicts can be replaced underneath us
         # by a resync while the requests are still in flight.
@@ -168,7 +190,8 @@ class BulkMessagesMixin:
             failed = []
             for m, k in items:
                 try:
-                    ok = self.main_window.pin_message(j, k, True)
+                    ok = (self._write_channel_pin(j, m, pin) if channel
+                          else self.main_window.pin_message(j, k, pin))
                 except Exception as exc:
                     logging.warning("[_on_mass_pin_messages] pin_message raised for %s: %s",
                                     k.get("id", ""), exc)
@@ -176,17 +199,17 @@ class BulkMessagesMixin:
                 if not ok:
                     failed.append(m)
             if failed:
-                wx.CallAfter(self._on_mass_pin_failed, failed, j, n)
+                wx.CallAfter(self._on_mass_pin_failed, failed, j, n, pin)
             wx.CallAfter(self._finish_pinned_message_write, job)
 
         threading.Thread(target=_do, daemon=True).start()
 
-    def _on_mass_pin_failed(self, failed: list, jid: str, total: int):
+    def _on_mass_pin_failed(self, failed: list, jid: str, total: int, attempted_pin=True):
         """Roll back the optimistic pins the server rejected, all at once
         (main thread) — one repaint and one dialog carrying the count, rather
         than _on_pin_message_failed()'s per-message repaint + modal."""
         for m in failed:
-            m["pinInChat"] = False
+            m["pinInChat"] = not attempted_pin
         self._pinned_messages_state_changed(failed, jid)
         self._persist_message_local_flags(jid, failed)
         self.main_window._schedule_save()
@@ -194,7 +217,8 @@ class BulkMessagesMixin:
             self._repaint_or_repopulate([m.get("key", {}).get("id", "") for m in failed])
         i18n = self.main_window.i18n
         wx.MessageBox(
-            f"{i18n.t('pin_message_failed')} ({len(failed)}/{total})",
+            (i18n.t("pin_message_failed") if attempted_pin
+             else i18n.t("unpin_message_failed")) + f" ({len(failed)}/{total})",
             i18n.t("pin_message"),
             wx.OK | wx.ICON_WARNING,
         )

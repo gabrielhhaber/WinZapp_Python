@@ -1382,6 +1382,8 @@ DEFAULT_SETTINGS = {
         "typing_sound_interval": 3,
         "typing_sound_silence_capture": True,
         "announce_recording": True,
+        # "Pinned messages in this chat: N" when a chat opens (issue #848).
+        "announce_pinned_messages": True,
         # Groups: name everyone typing/recording at once; off = the old
         # one-participant preview, speech and Alt+T.
         "announce_group_multiple_activity": True,

@@ -103,6 +103,17 @@ class TestPinnedOverview:
         panel._pinned_messages_btn.SetLabel.assert_called_with("Pinned messages (0)")
         panel.main_window.output.assert_not_called()
 
+    def test_the_count_is_not_announced_when_the_setting_is_off(self):
+        """Issue #848: Settings > Spoken content can silence "Pinned messages
+        in this chat: N" on opening a chat; the button still shows it."""
+        panel = Panel()
+        panel.main_window.settings = {"speech_content": {"announce_pinned_messages": False}}
+        panel.main_window.get_pinned_messages.return_value = [message("old")]
+        panel._load_pinned_messages(announce=True)
+        panel.work.pop()()
+        panel._pinned_messages_btn.SetLabel.assert_called_with("Pinned messages (1)")
+        panel.main_window.output.assert_not_called()
+
     def test_background_open_can_suppress_the_notice(self):
         panel = Panel()
         panel.main_window.get_pinned_messages.return_value = [message("old")]
@@ -243,27 +254,82 @@ class TestPinnedNavigation:
         panel._begin_pinned_messages_visit()
         assert not panel._pinned_extra_history_ids
 
+    @staticmethod
+    def fake_dialog(monkeypatch, result, target=None, then=None):
+        import ui.dialogs.pinned_messages_dialog as module
+        made = []
+
+        class Dialog:
+            def __init__(self, panel, main_window):
+                made.append(self)
+                self.target, self.then = target, then
+                self.Destroy = Mock()
+
+            def ShowModal(self):
+                return result
+
+        monkeypatch.setattr(module, "PinnedMessagesDialog", Dialog)
+        return made
+
     @pytest.mark.parametrize("result", [wx.ID_OK, wx.ID_CANCEL])
-    def test_picker_enter_jumps_and_escape_preserves_focus(self, monkeypatch, result):
+    def test_window_enter_jumps_and_escape_preserves_focus(self, monkeypatch, result):
         panel = Panel([message("old")])
         panel._pinned_messages = [message("old")]
-        dialog = Mock()
-        dialog.ShowModal.return_value = result
-        dialog.GetSelection.return_value = 0
-        factory = Mock(return_value=dialog)
-        monkeypatch.setattr(wx, "SingleChoiceDialog", factory)
+        made = self.fake_dialog(monkeypatch, result, target=message("old"))
         panel._show_pinned_messages_picker()
-        assert factory.call_args.args[-1] == ["Author: Content old"]
-        dialog.Destroy.assert_called_once()
+        made[0].Destroy.assert_called_once()
         assert panel._focus_message_row.called == (result == wx.ID_OK)
+
+    def test_an_action_of_the_conversation_runs_after_the_jump(self, monkeypatch):
+        """Reply, edit...: the window closes on the message, the panel
+        focuses it and only then runs the action there."""
+        panel = Panel([message("old")])
+        panel._pinned_messages = [message("old")]
+        order = []
+        panel._focus_message_row = lambda index: order.append(("focus", index))
+        self.fake_dialog(monkeypatch, wx.ID_OK, target=message("old"),
+                         then=lambda: order.append("reply"))
+        panel._show_pinned_messages_picker()
+        assert order == [("focus", 0), "reply"]
+
+    def test_a_window_closed_after_the_visit_changed_does_nothing(self, monkeypatch):
+        panel = Panel([message("old")])
+        panel._pinned_messages = [message("old")]
+        then = Mock()
+        import ui.dialogs.pinned_messages_dialog as module
+
+        class Dialog:
+            def __init__(self, panel_, main_window):
+                self.target, self.then = message("old"), then
+                self.Destroy = Mock()
+
+            def ShowModal(self):
+                panel._begin_pinned_messages_visit()
+                return wx.ID_OK
+
+        monkeypatch.setattr(module, "PinnedMessagesDialog", Dialog)
+        panel._show_pinned_messages_picker()
+        panel._focus_message_row.assert_not_called()
+        then.assert_not_called()
 
     def test_empty_picker_does_not_create_a_dialog(self, monkeypatch):
         panel = Panel()
-        factory = Mock()
-        monkeypatch.setattr(wx, "SingleChoiceDialog", factory)
+        made = self.fake_dialog(monkeypatch, wx.ID_OK)
         panel._show_pinned_messages_picker()
-        factory.assert_not_called()
+        assert made == []
         panel.main_window.output.assert_called_once_with("pinned_messages_empty")
+
+    def test_resident_index_adds_an_old_pin_without_moving_focus(self):
+        panel = Panel([message(str(i), False, i) for i in range(10, 14)])
+        assert panel._resident_message_index(message("ancient", timestamp=1)) == 0
+        panel._focus_message_row.assert_not_called()
+        assert panel._resident_message_index({"key": {}}) == -1
+
+    def test_the_window_rows_leave_out_the_pin_marker(self):
+        panel = RenderStub()
+        panel.main_window.i18n._STRINGS = {**panel.main_window.i18n._STRINGS, "message_pinned": "Fixada"}
+        line = panel._render_message_line(message("old"), pin_marker=False)
+        assert "Fixada" not in line and line.startswith("Fulano:")
 
     @pytest.mark.parametrize("mode", ["classic", "listbox"])
     def test_history_has_a_readable_pin_label_in_both_list_modes(self, mode):
