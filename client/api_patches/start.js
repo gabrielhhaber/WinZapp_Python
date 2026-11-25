@@ -955,6 +955,44 @@ const whatsappVersion = resolveWhatsappVersion();
 // startup, this wrapper is broken and the blanket interception is back: the
 // pin resolved fine seconds earlier, so the same lookup cannot legitimately
 // fail here.
+// WhatsApp Web's login-only document (docs/traps/whatsapp-web-version-pin.md,
+// "Login-only documents"). For a browser without a login, Meta answers `/`
+// with a 302 to `/login/`, and the wa-version crawler stores that page under
+// `/` for every build since 2.3000.1055857453. It registers the QR screen and
+// nothing else.
+const LOGIN_ONLY_DOCUMENT_MARKER = 'WAWebLoggedOutBootstrap';
+
+function isLoginOnlyDocument(html) {
+  return typeof html === 'string' && html.includes(LOGIN_ONLY_DOCUMENT_MARKER);
+}
+
+// The document the interception answers `/` with, or null to let WhatsApp
+// answer `/` itself.
+//
+// Never the login-only document. Served at `/` to a profile that is signed in,
+// it can only show the QR screen and WhatsApp Web drops the stored login: an
+// account that was connected comes back logged out on its next start (three
+// times on one Mac on 2026-11-25, pinned 2.3000.1056179073, while the same
+// profile reached inChat on the full documents of 1048711051 and 1055837054).
+// The page a phone has just linked is sent back to `/` for the full app, and
+// re-serving it the login document there is the "linked, then a new QR /
+// Phone not connected" failure (2026-11-24).
+//
+// Meta's own answer is right in both cases: the full app for a signed-in
+// browser, the 302 to `/login/` for a signed-out one (not intercepted; the
+// wa-js loader patch gives the QR code there). The build selection is left as
+// it is; only a document that would log the user out is not served.
+function pinnedDocumentForRoot(body, version, logger) {
+  if (!isLoginOnlyDocument(body)) return body;
+  (logger || console).warn(
+    `[WinZapp] The catalogue's document for ${version} is WhatsApp's login-only ` +
+    'page. Not serving it at / (it logs a signed-in or just-linked session out): ' +
+    'WhatsApp answers / itself, with the full app when the profile has a login ' +
+    'and the login page when it does not.'
+  );
+  return null;
+}
+
 const WA_WEB_URL = 'https://web.whatsapp.com/';
 const WA_CHECK_UPDATE = 'https://web.whatsapp.com/check-update';
 
@@ -1027,6 +1065,11 @@ async function installPinnedPageInterception(page, body, log) {
       if (request.url.startsWith(WA_CHECK_UPDATE)) {
         console.log('[WinZapp] check-update aborted by the interception.');
         await cdp.send('Fetch.failRequest', { requestId, errorReason: 'Aborted' });
+      } else if (request.url === WA_WEB_URL && body === null) {
+        // pinnedDocumentForRoot() refused a login-only document: WhatsApp
+        // answers `/` (full app when signed in, 302 to /login/ when not).
+        console.log(`[WinZapp] / left to WhatsApp (login-only pin) for ${request.url}`);
+        await cdp.send('Fetch.continueRequest', { requestId });
       } else if (request.url === WA_WEB_URL) {
         documentsServed += 1;
         console.log(
@@ -1123,8 +1166,10 @@ function patchWppconnectVersionPinning() {
         }
       }
       if (body) {
+        const rootBody = pinnedDocumentForRoot(body, version);
+        if (rootBody === null) source = `${source}, login-only: / left to WhatsApp`;
         try {
-          await installPinnedPageInterception(page, body, log);
+          await installPinnedPageInterception(page, rootBody, log);
           console.log(
             `[WinZapp] Serving WhatsApp Web (${source}) via a document-only ` +
             'interception (worker requests left alone).'
