@@ -6629,8 +6629,8 @@ msgstr "&Motore di connessione:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_neonize"
-msgid "Neonize (direct connection, experimental)"
-msgstr "Neonize (connessione diretta, sperimentale)"
+msgid "Neonize (direct connection, default)"
+msgstr "Neonize (connessione diretta, default)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"

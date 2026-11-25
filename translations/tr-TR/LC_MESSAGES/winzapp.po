@@ -6564,8 +6564,8 @@ msgstr "Bağlantı &motoru:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_neonize"
-msgid "Neonize (direct connection, experimental)"
-msgstr "Neonize (doğrudan bağlantı, deneysel)"
+msgid "Neonize (direct connection, default)"
+msgstr "Neonize (doğrudan bağlantı, varsayılan)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "connection_engine_wppconnect"

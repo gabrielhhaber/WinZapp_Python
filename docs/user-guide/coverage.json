@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "ac57412a7289": "Motor Neonize: na janela de pareamento e nas Configurações, o rótulo do Neonize ",
     "50124539cd71": "Chamadas Neonize: corrigida a retomada do áudio compatível quando a saída exclus",
     "e0e120233448": "Chamadas individuais Neonize: reprodução com NetEQ para suavizar variações de re",
     "452e70867219": "Chamadas Neonize: o áudio usa uma conexão local direta com o motor nativo, com r",

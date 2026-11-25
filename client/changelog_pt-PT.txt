@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Motor Neonize: na janela de emparelhamento e nas Definições, a etiqueta do Neonize deixou de dizer "experimental" e passou a dizer "padrão".
+
 - Chamadas Neonize: corrigido o regresso ao áudio compatível quando a saída exclusiva usa uma frequência não suportada pelo NetEQ, preservando a ocultação de perdas.
 
 - Chamadas individuais Neonize: reprodução com NetEQ para suavizar variações de rede e perdas de áudio, com regresso automático ao modo compatível.
