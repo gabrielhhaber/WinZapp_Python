@@ -4,6 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- macOS: wybranie innego silnika połączenia w oknie łączenia uruchamia teraz WinZapp ponownie z tym silnikiem. Wcześniej pojawiał się komunikat, że WinZapp nie mógł uruchomić się ponownie samodzielnie, a silnik nie był zmieniany.
 - Gdy wybrane w Ustawieniach urządzenie odtwarzające lub nagrywające, na przykład słuchawki, nie jest podłączone przy uruchamianiu WinZapp, WinZapp teraz informuje o tym jeden raz mową i używa domyślnego urządzenia systemu, zamiast pokazywać okno komunikatu przy każdym uruchomieniu. Okno wstrzymywało uruchamianie do czasu odpowiedzi, więc uruchomienie bez nikogo przy komputerze kończyło się błędem, że API WinZapp nie uruchomiło się na czas, i program się zamykał. Wybrane urządzenie zostaje zachowane i jest znowu używane, gdy tylko zostanie podłączone.
 
 - macOS: sprawdzanie nowszych wersji WhatsApp Web działa teraz na Macach bez zainstalowanego Pythona z python.org. Wcześniej kończyło się błędem certyfikatu, który dziennik zapisywał jako "offline", więc lista wersji nigdy się nie aktualizowała, a gdy WhatsApp przestawał udostępniać wersję używaną przez WinZapp, WPPConnect nie mógł się już połączyć.

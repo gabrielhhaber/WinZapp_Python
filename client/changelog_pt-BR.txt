@@ -4,6 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- macOS: escolher outro motor de conexão na janela de pareamento agora reinicia o WinZapp nele. Antes aparecia que o WinZapp não conseguiu se reiniciar sozinho, e o motor não era alterado.
 - Quando o dispositivo de reprodução ou de gravação escolhido nas Configurações, como um fone de ouvido, não está conectado ao iniciar o WinZapp, o WinZapp agora avisa uma única vez por voz e usa o dispositivo padrão do sistema, em vez de mostrar uma caixa de mensagem a cada inicialização. A caixa travava a inicialização até ser respondida, então um início sem ninguém no computador terminava num erro dizendo que a API do WinZapp não iniciou a tempo, e o programa fechava. O dispositivo escolhido é mantido e volta a ser usado assim que estiver conectado.
 
 - macOS: a verificação de versões mais novas do WhatsApp Web agora funciona em Macs sem o Python do python.org instalado. Ela falhava com um erro de certificado que o log registrava como "offline", então a lista de versões nunca era atualizada e, quando o WhatsApp deixava de servir a versão que o WinZapp usava, o WPPConnect não conseguia mais conectar.
