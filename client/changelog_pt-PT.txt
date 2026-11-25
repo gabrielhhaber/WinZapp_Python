@@ -4,6 +4,8 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
+- Quando o dispositivo de reprodução ou de gravação escolhido nas Definições, como uns auscultadores, não está ligado ao iniciar o WinZapp, o WinZapp avisa agora uma única vez por voz e usa o dispositivo predefinido do sistema, em vez de mostrar uma caixa de mensagem em cada arranque. A caixa bloqueava o arranque até ser respondida, pelo que um arranque sem ninguém ao computador terminava num erro a dizer que a API do WinZapp não iniciou a tempo, e o programa fechava. O dispositivo escolhido é mantido e volta a ser usado assim que estiver ligado.
+
 - macOS: a verificação de versões mais recentes do WhatsApp Web funciona agora em Macs sem o Python do python.org instalado. Falhava com um erro de certificado que o registo indicava como "offline", pelo que a lista de versões nunca era atualizada e, quando o WhatsApp deixava de servir a versão que o WinZapp usava, o WPPConnect já não conseguia ligar.
 
 - Motor Neonize: na janela de emparelhamento e nas Definições, a etiqueta do Neonize deixou de dizer "experimental" e passou a dizer "padrão".
