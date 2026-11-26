@@ -199,6 +199,9 @@ class _HistoricalStub:
     def _fill_group_name(self, remote_jid):
         return ""
 
+    def _resolve_group_name_async(self, remote_jid):
+        pass
+
     def _is_cleared_message(self, remote_jid, msg):
         return False
 
@@ -223,6 +226,41 @@ def _historical_msg(remote_jid, participant="", from_me=False, msg_id="H1"):
 
 
 class TestOnHistoricalMessageAppliesTheGuard:
+    def test_new_group_history_never_fetches_metadata_on_the_ui_thread(self):
+        stub = _HistoricalStub()
+        jid = "120363409931936700@g.us"
+        requested = []
+
+        def blocking_lookup(_jid):
+            raise AssertionError("HTTP lookup on the history/UI thread")
+
+        def schedule_lookup(group_jid):
+            # A fast worker must already have a destination for its result.
+            assert group_jid in stub.chats
+            requested.append(group_jid)
+
+        stub._fill_group_name = blocking_lookup
+        stub._resolve_group_name_async = schedule_lookup
+        stub.on_historical_message(_historical_msg(jid))
+        stub.on_historical_message(_historical_msg(jid, msg_id="H2"))
+
+        assert requested == [jid]
+        assert len(stub.chats[jid]["messages"]["messages"]["records"]) == 2
+
+    def test_new_group_history_reuses_a_cached_name_without_a_request(self):
+        stub = _HistoricalStub()
+        jid = "120363409931936700@g.us"
+        stub._group_name_cache = {jid: "Cached group"}
+
+        def unexpected_lookup(_jid):
+            raise AssertionError("Cached group needs no metadata request")
+
+        stub._fill_group_name = unexpected_lookup
+        stub._resolve_group_name_async = unexpected_lookup
+        stub.on_historical_message(_historical_msg(jid))
+
+        assert stub.chats[jid]["name"] == "Cached group"
+
     def test_no_phantom_chat_is_created_under_the_fake_jid(self):
         stub = _HistoricalStub(my_jid=MY_PHONE)
         msg = _historical_msg("5511999999999@g.us", participant="5511999999999@lid")

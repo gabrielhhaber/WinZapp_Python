@@ -1672,9 +1672,13 @@ class MessageEventsMixin:
                 "archive": False,
                 "type": "group" if remote_jid.endswith("@g.us") else "chat",
             }
-            if remote_jid.endswith("@g.us"):
-                chat["name"] = self._fill_group_name(remote_jid)
             self.chats[remote_jid] = chat
+            if remote_jid.endswith("@g.us"):
+                chat["name"] = getattr(self, "_group_name_cache", {}).get(remote_jid, "")
+                if not chat["name"]:
+                    # History events run on wx too. Register the chat before
+                    # starting the worker so even a fast lookup can update it.
+                    self._resolve_group_name_async(remote_jid)
 
         self._apply_group_subject_change(remote_jid, chat, msg)
 
