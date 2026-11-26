@@ -5,6 +5,7 @@ This release brings communities and a reorganized settings window, on top of eve
 WHAT'S NEW
 
 - macOS: choosing another connection engine in the pairing window now restarts WinZapp on it. It used to say that WinZapp could not restart by itself, and the engine was not changed.
+- History of unknown groups: WinZapp no longer freezes its interface when it recovers old messages of a group it did not know yet. It used to look up the group's name on the interface thread, and each lookup could take up to 10 seconds during which WinZapp did not respond. The name is now looked up in the background and appears as soon as it arrives.
 - When the playback or recording device chosen in Settings, such as headphones, is not connected as WinZapp starts, WinZapp now says so once and uses the system default device, instead of showing a message box at every launch. The box held up startup until it was answered, so a launch with no one at the computer ended in an error saying the WinZapp API had failed to start in time, and the program closed. The chosen device is kept and used again once it is connected.
 
 - macOS: WinZapp's check for newer WhatsApp Web versions now works on Macs without Python from python.org installed. It used to fail with a certificate error that the log reported as "offline", so the list of versions never updated and, once WhatsApp stopped serving the build WinZapp was using, WPPConnect could no longer connect.
