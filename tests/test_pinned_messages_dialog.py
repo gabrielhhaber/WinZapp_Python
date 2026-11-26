@@ -131,7 +131,7 @@ class ProxyPanel(MessageListProxyMixin):
 
     def _find_index_by_msg_id(self, mid):
         return next((i for i, m in enumerate(self._sorted_messages)
-                     if m["key"]["id"] == mid), -1)
+                     if mid and m["key"].get("id") == mid), -1)
 
     def _resident_message_index(self, msg):
         return self._find_index_by_msg_id(msg["key"]["id"])
@@ -168,6 +168,14 @@ class TestProxy:
         panel.handler.ProcessEvent = delete_first
         panel.forward_message_menu_event(message("b"), 77)
         assert panel.messages_list.selected == {0}       # "a", now first
+
+    def test_a_selected_row_without_an_id_comes_back(self):
+        """The unread separator has no message id: it is found as the same row."""
+        separator = {"key": {}, "messageType": "unread_separator"}
+        panel = ProxyPanel([message("a"), separator, message("b")], selected=1)
+        panel.run_message_command(message("b"), "ID_ALT_SHIFT_D")
+        assert panel.messages_list.selected == {1}
+        assert panel.messages_list.focused == 1
 
     def test_a_message_that_cannot_be_shown_runs_nothing(self):
         panel = ProxyPanel([message("a")])

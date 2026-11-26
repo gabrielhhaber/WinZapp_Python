@@ -47,9 +47,10 @@ class MessageListProxyMixin:
             return
         messages_list = self.messages_list
         previous = messages_list.GetFirstSelected()
-        previous_id = ""
+        previous_id, previous_row = "", None
         if 0 <= previous < len(self._sorted_messages):
-            previous_id = (self._sorted_messages[previous].get("key") or {}).get("id", "")
+            previous_row = self._sorted_messages[previous]
+            previous_id = (previous_row.get("key") or {}).get("id", "")
         mid = (message.get("key") or {}).get("id", "")
         suppressed = getattr(self, "_suppress_selection_side_effects", False)
         self._suppress_selection_side_effects = True
@@ -61,20 +62,25 @@ class MessageListProxyMixin:
             yield index
         finally:
             try:
-                self._restore_proxy_selection(mid, previous_id)
+                self._restore_proxy_selection(mid, previous_id, previous_row)
             finally:
                 self._suppress_selection_side_effects = suppressed
 
-    def _restore_proxy_selection(self, mid, previous_id):
+    def _restore_proxy_selection(self, mid, previous_id, previous_row=None):
         """Put the list's selection back by message id: the action may have
-        deleted rows or rebuilt the list under the indexes."""
+        deleted rows or rebuilt the list under the indexes. A row with no id
+        (the unread separator, a date line) is found again as the same row."""
         if mid == previous_id:
             return
         messages_list = self.messages_list
         current = self._message_id_index(mid)
         if current >= 0:
             messages_list.Select(current, False)
-        restored = self._message_id_index(previous_id)
+        if previous_id:
+            restored = self._message_id_index(previous_id)
+        else:
+            restored = next((i for i, row in enumerate(self._sorted_messages)
+                             if previous_row is not None and row is previous_row), -1)
         if restored >= 0:
             messages_list.Select(restored, True)
             messages_list.Focus(restored)
