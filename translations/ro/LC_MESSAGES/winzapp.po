@@ -14938,6 +14938,16 @@ msgid "Chat search"
 msgstr "Căutare în conversație"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"Comenzile rapide ale tuturor conturilor nu au putut fi salvate. Vă rugăm să "
+"încercați din nou peste un moment."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
 msgid "Status panel"
 msgstr "Panou de stare"

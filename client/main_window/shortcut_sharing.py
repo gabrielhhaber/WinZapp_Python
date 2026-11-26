@@ -152,7 +152,15 @@ class ShortcutSharingMixin:
         (apply_changes()), written at once and atomically, so a change another
         account made since the page opened is kept. The account's own part and
         the check boxes are this account's settings; the caller saves them.
+
+        Returns False when the install's part could not be written (another
+        account held the file's lock past its timeout, or the disk refused):
+        the mirror and snapshot keep what the file holds, the keys compose
+        from that, the user hears it, and the caller keeps the page's loaded
+        state so the next OK tries again. Letting it escape used to skip the
+        account's own save and leave the dialog open on half-applied memory.
         """
+        written_ok = True
         with self._save_lock:
             settings = self.settings
             settings.setdefault("general", {})[sharing.SHARED_FLAG] = bool(state["default_shared"])
@@ -160,11 +168,19 @@ class ShortcutSharingMixin:
                                            if isinstance(v, bool)}
             settings[sharing.OWN_KEY] = sanitize_overrides(state["own"], SHORTCUTS)
             if state["shared"] != shared_before:
-                written = self._app_settings.update(SECTION, lambda current: sanitize_overrides(
-                    sharing.apply_changes(sanitize_overrides(current, SHORTCUTS),
-                                          shared_before, state["shared"]), SHORTCUTS))
-                self._shared_shortcut_mirror()[SECTION] = written
-                snapshot = getattr(self, "_global_settings_snapshot", None)
-                if snapshot is not None:
-                    snapshot[SECTION] = copy.deepcopy(written)
+                try:
+                    written = self._app_settings.update(SECTION, lambda current: sanitize_overrides(
+                        sharing.apply_changes(sanitize_overrides(current, SHORTCUTS),
+                                              shared_before, state["shared"]), SHORTCUTS))
+                except Exception:
+                    logging.exception("[shortcuts] writing the install's shortcuts failed")
+                    written_ok = False
+                else:
+                    self._shared_shortcut_mirror()[SECTION] = written
+                    snapshot = getattr(self, "_global_settings_snapshot", None)
+                    if snapshot is not None:
+                        snapshot[SECTION] = copy.deepcopy(written)
             self._compose_shortcuts()
+        if not written_ok:
+            self.output(self.i18n.t("shortcuts_shared_save_failed"), interrupt=True)
+        return written_ok

@@ -237,6 +237,26 @@ def test_ok_hands_the_change_to_the_window_once(monkeypatch):
     assert len(chosen) == 1
 
 
+def test_ok_tries_again_after_the_install_part_was_not_written(monkeypatch):
+    """choose_keyboard_shortcuts() returns False when the shared file was
+    locked or refused; marking the page as applied then would make the next
+    OK read "unchanged" and drop the change for good."""
+    monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)
+    dialog = _shared_stub()
+    answers = [False, True]
+    chosen = []
+
+    def choose(state, before):
+        chosen.append(state)
+        return answers.pop(0)
+    dialog.main_window.choose_keyboard_shortcuts = choose
+    dialog._stage_shortcut('main.account[1]', None)
+    dialog._apply_shortcut_values()
+    dialog._apply_shortcut_values()
+    dialog._apply_shortcut_values()
+    assert len(chosen) == 2
+
+
 def test_ok_on_an_untouched_shortcuts_page_writes_nothing(monkeypatch):
     """Writing it would undo a change another account made since."""
     monkeypatch.setattr('ui.dialogs.shortcuts_tab.refresh_shortcuts', lambda _: None)

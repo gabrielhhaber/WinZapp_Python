@@ -597,10 +597,12 @@ class ShortcutsTabMixin:
             # something: an untouched page never undoes another account's
             # change.
             if self._sharing != self._sharing_loaded:
-                self.main_window.choose_keyboard_shortcuts(
-                    copy.deepcopy(self._sharing), self._sharing_loaded['shared'])
-                self._sharing_loaded = copy.deepcopy(self._sharing)
-                self._shortcut_overrides_loaded = overrides
+                # False: the install's part was not written (and was said);
+                # the page keeps its loaded state so the next OK tries again.
+                if self.main_window.choose_keyboard_shortcuts(
+                        copy.deepcopy(self._sharing), self._sharing_loaded['shared']) is not False:
+                    self._sharing_loaded = copy.deepcopy(self._sharing)
+                    self._shortcut_overrides_loaded = overrides
         elif overrides != getattr(self, '_shortcut_overrides_loaded', None):
             # No shared file (the dialog on a plain frame, a legacy install):
             # the account's settings are the only copy.

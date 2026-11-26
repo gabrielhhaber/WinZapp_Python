@@ -228,6 +228,38 @@ class TestAKeyForOneAccountOnly:
         window.choose_keyboard_shortcuts(state, before)
         window.save_settings()
 
+    def test_ok_while_another_account_holds_the_file_says_so_and_keeps_its_state(self, tmp_path):
+        """The write used to escape OK, skipping the account's save and
+        leaving the dialog open on half-changed memory."""
+        from coord_locks import LockTimeout
+        window = _account(tmp_path)
+        spoken = []
+        window.output = lambda text, interrupt=False: spoken.append(text)
+        real_update = window._app_settings.update
+
+        def locked(*_a, **_kw):
+            raise LockTimeout("held by another account")
+        window._app_settings.update = locked
+        state = window.shortcut_sharing_state()
+        before = copy.deepcopy(state["shared"])
+        state["shared"] = {"main.account[1]": _key(3)}
+        state["own"] = {"main.account[2]": _key(4)}
+        state["scope"] = {"main.account[2]": False}
+
+        assert window.choose_keyboard_shortcuts(copy.deepcopy(state), before) is False
+        assert spoken == ["shortcuts_shared_save_failed"]
+        # The mirror keeps what the file holds; the account's own part landed.
+        assert window._shared_shortcut_mirror()[SECTION] == before
+        assert _answers(window, "main.account[2]") == (CTRL_SHIFT, ord("4"))
+        assert _answers(window, "main.account[1]") != (CTRL_SHIFT, ord("3"))
+        window.save_settings()
+
+        # The next OK, with the lock free, writes the install's part.
+        window._app_settings.update = real_update
+        assert window.choose_keyboard_shortcuts(copy.deepcopy(state), before) is True
+        assert _answers(window, "main.account[1]") == (CTRL_SHIFT, ord("3"))
+        assert spoken == ["shortcuts_shared_save_failed"]
+
     def test_a_command_set_apart_keeps_its_key_when_the_install_changes(self, tmp_path):
         one = _account(tmp_path)
         two = _account(tmp_path)

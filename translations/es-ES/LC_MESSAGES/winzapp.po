@@ -14948,6 +14948,16 @@ msgid "Chat search"
 msgstr "Búsqueda en el chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"No se pudieron guardar los atajos de todas las cuentas. Inténtalo de nuevo "
+"en unos instantes."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
 msgid "Status panel"
 msgstr "Panel de estado"

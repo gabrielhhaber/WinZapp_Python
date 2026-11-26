@@ -14655,6 +14655,15 @@ msgid "Chat search"
 msgstr "بحث الدردشة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"لم يمكن حفظ الاختصارات في جميع الحسابات. الرجاء المحاولة مرة أخرى بعد لحظة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
 msgid "Status panel"
 msgstr "لوحة الحالة"
