@@ -6,6 +6,7 @@ available here.
 """
 
 import logging
+from core.ack_status import status_rank as _status_rank, reached_status_rank
 from core.contact_presence import ONLINE, activity, cached, merge, visible_online
 from main_window.presence_visibility import refresh_missing_presence
 from main_window.presence_ui import request_presence_ui
@@ -33,23 +34,6 @@ from core.locale_format import (
     get_time_format,
 )
 
-_STATUS_RANKS = {"0": 0, "2": 2, "3": 3, "4": 4, "5": 5,
-                 "SERVER_ACK": 2, "SENT": 2, "ACK": 2,
-                 "DELIVERED": 3, "DELIVERY_ACK": 3,
-                 "READ": 4,
-                 "PLAYED": 5}
-
-
-def _status_rank(value):
-    """Delivery-status rank on the app's scale (pending 0 < sent 2 < delivered 3
-    < read 4 < played 5); -1 when the value is a failure verdict. Unrecognised
-    values rank as pending, never above a reached stage."""
-    s = str(value if value is not None else "").strip().upper()
-    if s.startswith("-"):
-        return -1
-    return _STATUS_RANKS.get(s, 0)
-
-
 class ChatEventsMixin:
     """Chat-level server events: message status (acks), presence, unread counters,
     archive and pin updates.
@@ -68,11 +52,7 @@ class ChatEventsMixin:
         rank = _status_rank(status)
         if rank < 0:
             return False
-        best = _status_rank(msg.get("status"))
-        for u in msg.get("MessageUpdate") or []:
-            if isinstance(u, dict):
-                best = max(best, _status_rank(u.get("status")))
-        return rank < best
+        return rank < reached_status_rank(msg)
 
     def on_message_status_update(self, update: dict, skip_panel_refresh: bool = False):
         """
@@ -169,11 +149,11 @@ class ChatEventsMixin:
             return
 
         # ── Persist updated message record to DB ─────────────────────────────────
-        # insert_message rewrites message_json (which carries MessageUpdate, what
-        # the UI reads) *and* the indexed status column, so both stay in step.
+        # Merge only ack fields into the stored row: an edit or revoke may
+        # overtake this queued write, and its newer content must survive.
         if found_msg and found_chat_jid:
             try:
-                self.db.insert_message(found_chat_jid, found_msg)
+                self.db.queue_message_status(found_chat_jid, found_msg)
             except Exception as e:
                 logging.error(f"[on_message_status_update] Failed to persist status update to DB: {e}")
 

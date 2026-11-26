@@ -141,6 +141,11 @@ class Store:
         self._conn.row_factory = sqlite3.Row
         self._lock = threading.RLock()
         with self._lock:
+            # Offline delivery performs thousands of small durable commits.
+            # WAL avoids recreating/flushing a rollback journal for each one
+            # and lets snapshot readers proceed while the bridge is writing.
+            self._conn.execute("PRAGMA journal_mode=WAL")
+            self._conn.execute("PRAGMA synchronous=FULL")
             migrate_legacy_schema(self._conn)
             self._conn.executescript(SCHEMA)
             try:    # databases created before the locked column

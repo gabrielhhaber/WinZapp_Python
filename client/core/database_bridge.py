@@ -9,7 +9,7 @@ Design
 A dedicated asyncio event loop runs in a background daemon thread.  Every
 DatabaseManager call is dispatched to that loop via
 ``asyncio.run_coroutine_threadsafe()`` and blocked on from the caller's
-thread, except the explicitly queued presence-name snapshots. This gives us:
+thread, except explicitly queued presence names and UI event updates. This gives us:
 
 - A single serialised SQLite connection (no thread-safety hacks).
 - Clean async code inside DatabaseManager.
@@ -35,6 +35,7 @@ from typing import Any
 
 from core.database import DatabaseManager
 from core.latest_metadata import LatestMetadataWrite
+from core.event_writes import EventWritesMixin
 
 log = logging.getLogger(__name__)
 
@@ -86,7 +87,7 @@ class DatabaseBridgeTimeout(RuntimeError):
     """
 
 
-class DatabaseBridge:
+class DatabaseBridge(EventWritesMixin):
     """Synchronous wrapper around the async DatabaseManager.
 
     Parameters
@@ -133,6 +134,7 @@ class DatabaseBridge:
         )
         self._presence_names = LatestMetadataWrite(
             lambda value: self._db.set_metadata_json("presence_pushname_map", value))
+        self._init_event_writes()
 
     # ── Loop management ──────────────────────────────────────────────────────
 
@@ -257,6 +259,7 @@ class DatabaseBridge:
     async def _close_database(self):
         # Keep the existing bounded close wait, but never close/reopen the
         # connection ahead of an accepted name snapshot that is still running.
+        await self._event_writes.flush()
         await self._presence_names.flush()
         await self._db.close()
 
@@ -279,13 +282,14 @@ class DatabaseBridge:
         """
         def operation():
             return self._db.import_from_dict(data, clear_first=clear_first, clear_metadata=clear_metadata)
-        coro = (self._presence_names.reset(operation) if clear_first and clear_metadata
-                else operation())
+        reset_operation = (lambda: self._presence_names.reset(operation)) if clear_metadata else operation
+        coro = self._event_writes.reset(reset_operation) if clear_first else operation()
         self._call(coro, timeout=_BULK_CALL_TIMEOUT)
 
     def clear_all(self) -> None:
         """Delete all records from every table."""
-        self._call(self._presence_names.reset(self._db.clear_all), timeout=_BULK_CALL_TIMEOUT)
+        self._call(self._event_writes.reset(
+            lambda: self._presence_names.reset(self._db.clear_all)), timeout=_BULK_CALL_TIMEOUT)
 
     # ── Delegated read methods ────────────────────────────────────────────────
 

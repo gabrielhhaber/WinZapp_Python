@@ -34,6 +34,7 @@ def apply_contact_state(mw, jid, kind, name, saved, synced):
     keys = {find_contact_key(contacts, alias) or alias for alias in aliases}
     protected = next((contacts[k] for k in keys if user_saved(contacts.get(k))), None)
     changed = {}
+    previous = {}
     for key in keys:
         current = contacts.get(key)
         if current is None and kind == "address-book" and not saved:
@@ -54,13 +55,14 @@ def apply_contact_state(mw, jid, kind, name, saved, synced):
             else:
                 record["name"] = protected.get("name", "")
         if record != current:
+            previous[key] = current
             contacts[key] = changed[key] = record
     if not changed:
         return
     db = getattr(mw, "db", None)
     if db is not None:
         try:
-            db.upsert_contacts_batch(changed)
+            db.queue_contacts(changed, previous)
         except Exception:
             logging.exception("[contact-state-changed] could not persist observation")
     phone = next((a for a in aliases if a.endswith("@s.whatsapp.net")), jid)
