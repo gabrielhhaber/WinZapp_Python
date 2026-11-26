@@ -56,6 +56,13 @@ def is_own_chat_call(ongoing, is_self):
                 and is_self(str(ongoing.get("chatJid") or "")))
 
 
+def ongoing_row_jids(entry):
+    """Every chat a live Calls row reveals: its own, and the people it is
+    named after. A lock on any of them hides the row."""
+    ongoing = entry.get("ongoing") or {}
+    return [entry["jid"], *ongoing.get("people", ())]
+
+
 def ongoing_conversation_jid(entry, is_self):
     """The chat "Open conversation" of a live Calls row goes to: the first
     person in a call filed under this account's own chat, the call's chat

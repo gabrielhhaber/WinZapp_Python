@@ -66,10 +66,14 @@ class CallParticipantsMixin:
         self.show_call_participants(active.get("call_id"), active.get("peer_jid"),
                                     parent=getattr(self, "voice_call_window", None))
 
-    def show_call_participants(self, call_id, chat_jid, *, parent=None):
+    def show_call_participants(self, call_id, chat_jid, *, parent=None, title=None, people=()):
+        """*title* names a call filed under the own chat after its people;
+        a lock on *chat_jid* or on any of *people* closes the window."""
         if not call_id or is_placeholder_call_id(call_id) or getattr(self, "_shutting_down", False):
             return
-        allowed = lambda: not getattr(self, "is_chat_locked", lambda _jid: False)(chat_jid)
+        jids = [chat_jid, *people]
+        allowed = lambda: not any(
+            getattr(self, "is_chat_locked", lambda _jid: False)(jid) for jid in jids)
         if not allowed():
             # The words the dialog itself uses for a call it may not show;
             # they do not reveal that the chat is locked.
@@ -77,7 +81,7 @@ class CallParticipantsMixin:
             return
         from ui.dialogs.call_participants import CallParticipantsDialog
         dialog = CallParticipantsDialog(parent or self, self, call_id,
-                                        self.chat_display_name(chat_jid), allowed,
+                                        title or self.chat_display_name(chat_jid), allowed,
                                         invite_chat=self._call_invite_chat(call_id, chat_jid))
         self._call_participants_dialog = dialog     # for on_call_participants
         try:

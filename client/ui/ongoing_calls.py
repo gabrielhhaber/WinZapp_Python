@@ -5,7 +5,8 @@ import threading
 import wx
 
 from core.call_log import TAB_ALL, TAB_ONGOING
-from core.ongoing_calls import include_current_call, ongoing_conversation_jid, ongoing_entries
+from core.ongoing_calls import (include_current_call, ongoing_conversation_jid, ongoing_entries,
+                                ongoing_row_jids)
 
 
 class OngoingCallsMixin:
@@ -101,7 +102,8 @@ class OngoingCallsMixin:
         (MainWindow.ongoing_call_people_text), its chat's otherwise."""
         mw = self.main_window
         people = getattr(mw, "ongoing_call_people_text", None)
-        return (people(entry["ongoing"]) if people is not None else "")             or mw.chat_display_name(entry["jid"])
+        return ((people(entry["ongoing"]) if people is not None else "")
+                or mw.chat_display_name(entry["jid"]))
 
     def _ongoing_confirmed_now(self):
         return getattr(self, "_ongoing_confirmed", None) is self._ongoing_watch
@@ -122,13 +124,18 @@ class OngoingCallsMixin:
         rows = include_current_call(cached,
             getattr(self.main_window, "_active_voice_call", None),
             getattr(self.main_window, "_voice_call_last_announced_state", ""))
-        return [entry for entry in rows if not locked(entry["jid"])]
+        # A call named after its people (filed under the own chat, or a
+        # one-to-one call that became a group call) would show a locked
+        # contact's name: any locked chat it reveals hides the row.
+        return [entry for entry in rows
+                if not any(locked(jid) for jid in ongoing_row_jids(entry))]
 
     def _selected_ongoing(self):
         entry = self.focused_entry()
         if entry is None or not entry.get("ongoing"):
             return None
-        if getattr(self.main_window, "is_chat_locked", lambda _jid: False)(entry["jid"]):
+        locked = getattr(self.main_window, "is_chat_locked", lambda _jid: False)
+        if any(locked(jid) for jid in ongoing_row_jids(entry)):
             return None
         # Refuse a selected stale row even if a delayed history refresh kept it.
         return next((row for row in self._ongoing_rows_for_tab(self.current_tab(), joinable=True)
@@ -176,7 +183,9 @@ class OngoingCallsMixin:
         if entry is None:
             self._refuse_stale_ongoing()
             return
-        self.main_window.show_call_participants(entry["ongoing"]["id"], entry["jid"], parent=self)
+        self.main_window.show_call_participants(
+            entry["ongoing"]["id"], entry["jid"], parent=self,
+            title=self._ongoing_call_name(entry), people=entry["ongoing"].get("people", ()))
 
     def _join_ongoing_call(self, _event=None):
         entry = self._selected_ongoing()

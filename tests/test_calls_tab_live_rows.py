@@ -17,7 +17,8 @@ from types import SimpleNamespace
 
 from calls_panel import CallsPanel
 from core.call_log import TAB_ALL, TAB_ONGOING
-from tests.test_calls_ongoing import PERSON, Panel as _OngoingPanel
+from core.ongoing_calls import ongoing_entries
+from tests.test_calls_ongoing import CALL, ME_LID, PERSON, PERSON_CHAT, Panel as _OngoingPanel
 from tests.test_calls_ongoing import polling  # noqa: F401 — pytest fixture
 
 
@@ -137,3 +138,37 @@ class TestUnusableRow:
         assert not panel.joins
         assert panel.main_window.spoken == ["[call_participants_ended]"]
         assert not panel._rows[TAB_ONGOING]
+
+
+
+class TestCallNamedAfterItsPeople:
+    """A call started on the phone is filed under the own chat and named
+    after its people: a lock on one of them must hide it, or the row reads
+    the locked contact's name."""
+
+    def _panel(self):
+        panel = Panel()
+        panel._ongoing_entries = ongoing_entries({"response": [
+            {**CALL, "chatJid": ME_LID, "people": [PERSON_CHAT]}]})
+        panel.main_window.ongoing_call_people_text = (
+            lambda ongoing: "Ana" if ongoing.get("people") else "")
+        return panel
+
+    def test_a_locked_person_hides_the_row(self, polling):
+        queued, _ = polling
+        panel = self._panel()
+        panel.reply = {"response": [{**CALL, "chatJid": ME_LID, "people": [PERSON_CHAT]}]}
+        panel.main_window._locked_jids.add(PERSON_CHAT)
+        panel._watch_ongoing_calls()
+        queued.pop()()
+        assert not panel._rows[TAB_ONGOING] and not panel._rows[TAB_ALL]
+        assert not any("Ana" in text for text in panel._lists[TAB_ONGOING].items)
+
+    def test_the_participants_window_is_titled_like_the_row(self, polling):
+        panel = self._panel()
+        opened = []
+        panel.main_window.show_call_participants = lambda *a, **kw: opened.append((a, kw))
+        panel._populate_all()
+        panel._show_ongoing_participants()
+        assert opened == [(("C1", ME_LID), {"parent": panel, "title": "Ana",
+                                            "people": [PERSON_CHAT]})]

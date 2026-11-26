@@ -216,7 +216,7 @@ def test_participants_button_opens_only_the_selected_live_unlocked_call():
     panel._populate_all()
     assert panel._ongoing_participants_btn.shown
     panel._show_ongoing_participants()
-    assert opened == [(("C1", GROUP), {"parent": panel})]
+    assert opened == [(("C1", GROUP), {"parent": panel, "title": "Grupo", "people": ()})]
     panel.main_window._locked_jids.add(GROUP)
     panel._show_ongoing_participants()
     assert len(opened) == 1

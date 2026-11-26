@@ -311,6 +311,22 @@ def test_a_locked_chats_participants_are_refused_out_loud_without_a_dialog(monke
     assert spoken == [("call_participants_ended", True)]
 
 
+def test_a_locked_person_of_a_call_filed_under_the_own_chat_is_refused_too(monkeypatch):
+    """The window of a call named after its people would list a locked
+    contact even though the call's own chat is not locked."""
+    spoken = []
+
+    def no_dialog(*_a, **_kw):
+        raise AssertionError("a locked person's call must not open")
+    monkeypatch.setattr("ui.dialogs.call_participants.CallParticipantsDialog", no_dialog)
+    stub = SimpleNamespace(is_chat_locked=lambda jid: jid == PERSON["jid"],
+        i18n=SimpleNamespace(t=lambda key: key),
+        output=lambda text, interrupt=False: spoken.append((text, interrupt)))
+    CallParticipantsMixin.show_call_participants(
+        stub, "C1", "555000099@lid", title="Ana", people=[PERSON["jid"]])
+    assert spoken == [("call_participants_ended", True)]
+
+
 # ---------------------------------------------- everyone, not only the connected
 class _Words:
     def t(self, key):
