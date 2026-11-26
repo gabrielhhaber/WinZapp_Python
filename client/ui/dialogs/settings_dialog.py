@@ -2622,7 +2622,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
             ui_now = self.main_window.settings.get("user_interface", {})
-            self._away_enabled_cb.SetValue(away_enabled(ui_now))
+            self._away_enabled_cb.SetValue(
+                self.main_window.settings.get("user_interface", {}).get("away_enabled", True)
+            )
             self._away_minutes_spin.SetValue(away_minutes(ui_now))
             self._away_minutes_spin.Enable(away_enabled(ui_now))
 
@@ -4647,7 +4649,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._notification_burst_spin.GetValue()
             )
             ui_settings_away = self.main_window.settings.setdefault("user_interface", {})
-            ui_settings_away[AWAY_ENABLED_KEY] = self._away_enabled_cb.GetValue()
+            ui_settings_away["away_enabled"] = self._away_enabled_cb.GetValue()
             ui_settings_away[AWAY_MINUTES_KEY] = self._away_minutes_spin.GetValue()
             refresh_away = getattr(self.main_window, "_refresh_away_state", None)
             if refresh_away is not None:
