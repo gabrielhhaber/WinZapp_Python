@@ -538,6 +538,8 @@ class TextSendingMixin:
                 # get_base64_from_media can find the message in the DB later.
                 if real_id and isinstance(real_id, str):
                     msg.setdefault("key", {})["id"] = real_id
+                    if tracked is None:  # never registered for tracking: store it here
+                        persist_sent_message(getattr(self.main_window, "db", None), msg)
                     # Rename the local audio file (voice_messages/<id>.msv) and
                     # the pre-cached attachment (media/<id>.wzmedia, written by
                     # _pre_cache_sent_media()) onto the real id, so playback and
