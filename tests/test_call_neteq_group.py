@@ -213,6 +213,14 @@ def test_session_queue_holds_more_timed_frames_for_a_group(session):
     assert item.mixed and item.epoch == 'a'*32
 
 
+def test_session_queue_bound_never_cuts_the_largest_group_ingress(session):
+    # Sixteen senders heard: the player queue's own bound must hold all of it.
+    from core.call_neteq_buffer import TIMED_INGRESS_CAPACITY
+    assert session._output_queue.maxsize >= timed_ingress_limit(MAX_STREAMS, True)
+    assert TIMED_INGRESS_CAPACITY == timed_ingress_limit(10**6, True)
+    assert session._group_fallback_due is False
+
+
 @pytest.mark.parametrize('cause', ['no_neteq', 'live_translation'])
 def test_session_drops_group_audio_and_releases_the_native_transport(session, cause):
     from core.call_media_ownership import TimedPlaybackPCM

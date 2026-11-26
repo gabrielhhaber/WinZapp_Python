@@ -579,7 +579,7 @@ def install(venv):
     shutil.rmtree(target, ignore_errors=True)
     shutil.copytree(source, target)
     if kept:
-        build_neteq.restore_sidecar(target, kept, neteq_source_digest())
+        build_neteq.restore_sidecar(target, kept, neteq_source_digest(), installed=True)
     for stale in upstream.stale_metadata(os.listdir(site)):
         shutil.rmtree(os.path.join(site, stale), ignore_errors=True)
     with open(os.path.join(DIST, "BUILD_INFO.json"), encoding="utf-8") as f:

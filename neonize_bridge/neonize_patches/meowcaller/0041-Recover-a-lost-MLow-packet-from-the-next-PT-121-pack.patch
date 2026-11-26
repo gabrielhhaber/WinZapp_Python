@@ -6,8 +6,8 @@ Subject: [PATCH] Recover a lost MLow packet from the next PT 121 packet's
 
 A PT 121 (mlow-red) packet repeats earlier frames in its SplitRed blocks,
 but only its main frame was decoded: a lost packet was concealed (invented
-from the pitch of the last frame) even when the packet after it carried the
-lost frame itself.
+from the pitch of the last frame) even when the packet after it carried
+the lost frame itself.
 
 What a block's time code means is not documented, so no block is trusted
 by its position: a position is used only after the stream proved it, with
@@ -17,25 +17,29 @@ repeated frame is decoded in place of the lost one, as a received frame
 (it advances the decoder state and reaches the timed NetEq sink); older
 losses the blocks do not cover are still concealed. A sender whose
 redundancy is a different encoding never proves a position and keeps the
-concealment it had. The audio receive summary now counts concealed and
-recovered frames, and the first proven position is logged once.
+concealment it had. A block equal to several of the remembered main frames
+(identical silence or comfort-noise frames at the start of a call), or
+seen before three main frames are known, proves nothing: a wrong distance
+would replay an older frame on every later recovery. The audio receive
+summary now counts concealed and recovered frames, and the first proven
+position is logged once.
 
 Tested: a PT 121 stream that loses a packet gives the lost frame back
 sample for sample as a lossless receiver decodes it, with no concealment
 and the same decoder state afterwards; before the redundancy is proven the
-loss is concealed as before; re-encoded redundancy is never trusted; full
-suite passes.
+loss is concealed as before; re-encoded redundancy is never trusted;
+identical leading main frames prove no distance; full suite passes.
 ---
  audio_codec.go             |  19 ++++
  audio_receive_order.go     |   3 +
- audio_receive_runtime.go   |  41 ++++++--
+ audio_receive_runtime.go   |  41 +++++--
  audio_receive_stats.go     |   9 ++
- audio_red_recovery.go      |  96 +++++++++++++++++++
- audio_red_recovery_test.go | 186 +++++++++++++++++++++++++++++++++++++
+ audio_red_recovery.go      | 118 +++++++++++++++++++++
+ audio_red_recovery_test.go | 212 +++++++++++++++++++++++++++++++++++++
  engine_media.go            |   2 +-
  group_media_receive.go     |   1 +
  mlow/decoder.go            |  10 ++
- 9 files changed, 359 insertions(+), 8 deletions(-)
+ 9 files changed, 407 insertions(+), 8 deletions(-)
  create mode 100644 audio_red_recovery.go
  create mode 100644 audio_red_recovery_test.go
 
@@ -185,10 +189,10 @@ index d0f10ce..c7d21c9 100644
  }
 diff --git a/audio_red_recovery.go b/audio_red_recovery.go
 new file mode 100644
-index 0000000..6ec19d3
+index 0000000..49a3933
 --- /dev/null
 +++ b/audio_red_recovery.go
-@@ -0,0 +1,96 @@
+@@ -0,0 +1,118 @@
 +package meowcaller
 +
 +import (
@@ -271,13 +275,9 @@ index 0000000..6ec19d3
 +		if r.back[p-1] != 0 {
 +			continue
 +		}
-+		block := redundant[len(redundant)-p].Data
-+		for _, main := range r.mains {
-+			if main.ok && len(block) > 0 && bytes.Equal(block, main.frame) {
-+				r.back[p-1] = sequence - main.sequence
-+				proved = true
-+				break
-+			}
++		if back := r.provenDistance(sequence, redundant[len(redundant)-p].Data); back != 0 {
++			r.back[p-1] = back
++			proved = true
 +		}
 +	}
 +	copy(r.mains[1:], r.mains[:redRecoveryDepth-1])
@@ -285,12 +285,38 @@ index 0000000..6ec19d3
 +	r.mains[0] = redRecoveryMain{sequence: sequence, frame: append([]byte(nil), main...), ok: true}
 +	return proved
 +}
++
++// provenDistance returns how many packets back block repeats, or 0 when the
++// remembered main frames cannot tell it unambiguously. The proof needs a full
++// window and exactly one main equal to the block: at the start of a call the
++// mains are often identical (silence, comfort noise), and a block matching
++// several of them, or one whose older neighbour is not yet known, would prove
++// a wrong distance for the rest of the call and replay an older frame on
++// every recovery.
++func (r *redRecovery) provenDistance(sequence uint16, block []byte) uint16 {
++	if len(block) == 0 {
++		return 0
++	}
++	var back uint16
++	for _, main := range r.mains {
++		if !main.ok {
++			return 0
++		}
++		if bytes.Equal(block, main.frame) {
++			if back != 0 {
++				return 0
++			}
++			back = sequence - main.sequence
++		}
++	}
++	return back
++}
 diff --git a/audio_red_recovery_test.go b/audio_red_recovery_test.go
 new file mode 100644
-index 0000000..b2fa400
+index 0000000..af6530c
 --- /dev/null
 +++ b/audio_red_recovery_test.go
-@@ -0,0 +1,186 @@
+@@ -0,0 +1,212 @@
 +package meowcaller
 +
 +import (
@@ -324,11 +350,15 @@ index 0000000..b2fa400
 +}
 +
 +func TestRedRecoveryTrustsOnlyAProvenBlockPosition(t *testing.T) {
-+	a, b, c, d := []byte{0x50, 1}, []byte{0x50, 2}, []byte{0x50, 3}, []byte{0x50, 4}
++	x, y, a, b, c, d := []byte{0x50, 7}, []byte{0x50, 8}, []byte{0x50, 1}, []byte{0x50, 2}, []byte{0x50, 3}, []byte{0x50, 4}
 +	var r redRecovery
-+	if r.Observe(10, rtp.RtpPayloadTypeMlowRed, splitRed(a, a)) {
++	if r.Observe(8, rtp.RtpPayloadTypeMlowRed, splitRed(x, x)) {
 +		t.Fatal("the first packet has nothing before it to prove a block against")
 +	}
++	if r.Observe(9, rtp.RtpPayloadTypeMlowRed, splitRed(x, y)) {
++		t.Fatal("a block proved its position before the window of main frames was full")
++	}
++	r.Observe(10, rtp.RtpPayloadTypeMlowRed, splitRed(y, a))
 +	if got := r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed(c, d)); got != nil {
 +		t.Fatalf("an unproven block was trusted: %v", got)
 +	}
@@ -356,6 +386,28 @@ index 0000000..b2fa400
 +	}
 +	if r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed([]byte{0x50, 8}, []byte{0x50, 4})) != nil {
 +		t.Fatal("redundancy that never matched was used")
++	}
++}
++
++// At the start of a call the main frames are often identical (silence,
++// comfort noise): a block equal to several of them tells no distance, and
++// trusting the first match would replay an older frame on every recovery.
++func TestRedRecoveryRefusesAProofAmongIdenticalMainFrames(t *testing.T) {
++	silence, voice, next := []byte{0x50, 0}, []byte{0x50, 1}, []byte{0x50, 2}
++	var r redRecovery
++	for seq := uint16(1); seq <= 4; seq++ {
++		if r.Observe(seq, rtp.RtpPayloadTypeMlowRed, splitRed(silence, silence)) {
++			t.Fatalf("packet %d proved a distance among identical main frames", seq)
++		}
++	}
++	if r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed(voice, next)) != nil {
++		t.Fatal("a block position was trusted although no proof was unambiguous")
++	}
++	// Speech starts: once the window holds distinct frames the real distance is proven.
++	r.Observe(5, rtp.RtpPayloadTypeMlowRed, splitRed(silence, voice))
++	r.Observe(6, rtp.RtpPayloadTypeMlowRed, splitRed(voice, next))
++	if r.back[0] != 1 {
++		t.Fatalf("proved distance %d, want 1", r.back[0])
 +	}
 +}
 +

@@ -67,6 +67,15 @@ def test_an_unstamped_sidecar_copied_from_ci_is_kept_with_a_warning(tmp_path, ca
     assert "no source stamp" in capsys.readouterr().out
 
 
+def test_install_keeping_the_venv_sidecar_says_so_not_rust(tmp_path, capsys):
+    digest = build_neteq.source_digest(_source(tmp_path))
+    _sidecar(tmp_path / "venv", stamp=digest)
+    assert build_neteq.restore_sidecar(
+        tmp_path / "new", build_neteq.read_sidecar(tmp_path / "venv"), digest, installed=True) is True
+    out = capsys.readouterr().out
+    assert "keeping the installed one" in out and "Rust not found" not in out
+
+
 def test_the_digest_ignores_line_endings(tmp_path):
     unix = _source(tmp_path / "unix", lib=b"a\nb\n")
     windows = _source(tmp_path / "windows", lib=b"a\r\nb\r\n")

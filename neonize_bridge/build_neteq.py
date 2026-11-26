@@ -37,24 +37,28 @@ def read_sidecar(folder):
     return kept
 
 
-def restore_sidecar(package, kept, digest):
-    """Put a kept sidecar back into a package built without Rust.
+def restore_sidecar(package, kept, digest, *, installed=False):
+    """Put a kept sidecar back into a package built without Rust, or (with
+    ``installed``) into a venv whose new build brought none.
 
     A sidecar stamped with other sources is stale and stays out; an unstamped
     one (copied from a CI artifact) is kept, its ABI is checked when loaded.
     Returns whether it was restored."""
     if not kept:
         return False
+    origin = 'the installed copy' if installed else 'the previous build'
     stamp = kept.get(STAMP)
     if stamp is not None and stamp.decode('ascii', 'replace').strip() != digest:
-        print('WARNING: the NetEq sidecar kept from the previous build was built from other '
+        print(f'WARNING: the NetEq sidecar kept from {origin} was built from other '
               'sources; leaving it out', flush=True)
         return False
     for name, content in kept.items():
         path = Path(package) / name
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_bytes(content)
-    print('WARNING: Rust not found; reusing the NetEq sidecar of the previous build'
+    what = ('the new build has no NetEq sidecar; keeping the installed one' if installed
+            else 'Rust not found; reusing the NetEq sidecar of the previous build')
+    print('WARNING: ' + what
           + ('' if stamp is not None else ' (it carries no source stamp)'), flush=True)
     return True
 

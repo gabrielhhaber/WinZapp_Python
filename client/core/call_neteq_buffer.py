@@ -25,6 +25,8 @@ STREAM_IDLE_SECONDS = 5.0
 
 # The worker's timed ingress keeps at most eight 60 ms frames per sender.
 TIMED_FRAMES_PER_STREAM = 8
+# The most timed_ingress_limit ever asks of the player queue.
+TIMED_INGRESS_CAPACITY = TIMED_FRAMES_PER_STREAM * MAX_STREAMS
 
 
 def timed_ingress_limit(stream_count, mixed):

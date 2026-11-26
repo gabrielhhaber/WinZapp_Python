@@ -418,14 +418,16 @@ class CallAudioSession:
         self._input_rate = CALL_SAMPLE_RATE
         self._output_rate = CALL_SAMPLE_RATE
         self._mic_queue: "queue.Queue[CapturedPCM]" = queue.Queue(maxsize=CALL_MIC_QUEUE_LIMIT)
-        self._output_queue: "queue.Queue[PlaybackPCM]" = queue.Queue(
-            maxsize=CALL_OUTPUT_QUEUE_LIMIT
-        )
         # The reservoir the output callback drains; the player thread fills it.
         self._output_buffer = _OutputJitterBuffer(self._output_rate, neonize=config.neonize_audio)
+        output_limit = CALL_OUTPUT_QUEUE_LIMIT
         if config.neonize_audio:
-            from core.call_neteq_buffer import NetEqOutputBuffer
+            from core.call_neteq_buffer import NetEqOutputBuffer, TIMED_INGRESS_CAPACITY
             self._output_buffer = NetEqOutputBuffer(self._output_buffer, self._output_rate)
+            # A group call's timed ingress grows with the senders heard
+            # (timed_ingress_limit); the queue's own bound must not cut it.
+            output_limit = max(output_limit, TIMED_INGRESS_CAPACITY)
+        self._output_queue: "queue.Queue[PlaybackPCM]" = queue.Queue(maxsize=output_limit)
 
         logging.info("[call_audio] output profile=%s prebuffer/target/cap=%s ms",
                      "neonize" if config.neonize_audio else "default",
@@ -433,6 +435,9 @@ class CallAudioSession:
         self._output_resampler = StreamingMonoResampler()
         self._output_timed_source = None
         self._group_resamplers = PerSenderResampler()
+        # Set by the player when a group frame had nowhere to go (no NetEq,
+        # live translation); the next underrun pass releases the transport.
+        self._group_fallback_due = False
         self._output_underruns_logged = 0
         self._stop_event = threading.Event()
         # Held around every write to the output stream and around replacing
@@ -1499,7 +1504,7 @@ class CallAudioSession:
 
     def _log_output_underruns(self) -> None:
         """Report starvation from OUTSIDE the callback, rate limited."""
-        group_fallback, self._group_fallback_due = getattr(self, '_group_fallback_due', False), False
+        group_fallback, self._group_fallback_due = self._group_fallback_due, False
         if group_fallback and not getattr(self._output_buffer, 'native_failed', False):
             fallback = getattr(self._transport, 'fallback', None)
             if callable(fallback):

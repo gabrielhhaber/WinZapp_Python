@@ -242,7 +242,7 @@ not prove speech intelligibility, physical output routing, or installed acceptan
 
 `call_audio_pcm.py` uses a 97-tap streaming Blackman FIR before 3:1 decimation
 (1 ms group delay). When `Calls.resample_pcm48_to16` is available, the FIR runs
-in Go through `CallResamplePCM48To16` (neonize patch 0033). The bridge retains
+in Go through `CallResamplePCM48To16` (neonize patch 0034). The bridge retains
 the 96-sample history and incomplete capture bytes per microphone stream;
 the native function is stateless and accepts at most 100 ms plus history.
 Changing calls, stopping a stream or replacing it discards that history as
@@ -266,7 +266,7 @@ not remove Socket.IO or change playback thresholds.
 ## One playback reservoir for direct Neonize audio
 
 The bridge's `chamadaAtiva` queue now advertises meowcaller's optional
-`BufferedAudioSink` capability (neonize 0034, meowcaller 0037). Its downstream
+`BufferedAudioSink` capability (neonize 0035, meowcaller 0038). Its downstream
 device callback already owns an adaptive reservoir, so decoded direct-call PCM
 is delivered immediately instead of waiting for the next RTP packet and a
 second native prefill. Sinks without the capability retain the original native
@@ -324,7 +324,9 @@ into the next decoded frame; a frame whose range decode fails restores the
 decoder state and is concealed instead. On PT 121 (mlow-red) the packet after
 a loss can give the lost frame back (meowcaller 0041): once the stream has
 shown a SplitRed block equal, byte for byte, to the main frame of an earlier
-packet, that block position is trusted, and the repeated frame is decoded in
+packet, that block position is trusted (only when exactly one of the last
+three main frames matches: identical silence or comfort-noise frames at the
+start of a call prove no distance), and the repeated frame is decoded in
 place of the lost one as a received frame (it is not flagged concealed, so the
 timed NetEq sink receives it). Redundancy that never matches, an unproven
 position and older losses keep the concealment. The receive summary counts
