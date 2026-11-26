@@ -674,7 +674,7 @@
   <li><strong>Vpřed a vzad:</strong> Shift+Šipka vpravo/vlevo posune o 5 sekund; Shift+Page Down/Up o 1 minutu; Shift+Home a Shift+End přejdou na začátek a na konec toho, co se přehrává.</li>
   <li>Následující hlasové zprávy se přehrávají za sebou, pokud nezrušíte zaškrtnutí "Automaticky přehrávat hlasové zprávy za sebou" v Nastavení &gt; Uživatelské rozhraní. Během sekvence řádek s fokusem počká s aktualizací svého stavu, aby čtečka obrazovky nečetla přes zvuk.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pozastaví nebo obnoví zvuk, který se přehrává, z libovolného panelu.</li>
-  <li>Pokud se změní výstupní zařízení (například odpojená sluchátka), WinZapp přepne na výchozí zařízení a zprávu poprvé přehraje.</li>
+  <li>Pokud se změní výstupní zařízení (například odpojená sluchátka), WinZapp přepne na výchozí zařízení a jednou to oznámí hlasem. Zařízení vybrané v Nastavení zůstává zachováno a znovu se použije, jakmile se připojí, i když nebylo připojené při spuštění WinZappu.</li>
   <li>Pokud zvuková karta není dostupná (například když se počítač probudí), WinZapp se při selhání přehrávání pokusí obnovit zvukový výstup; pokud stále nemůže přehrávat, oznámí vám to čtečkou obrazovky.</li>
   <li>V Nastavení je volba, která zvuk neoznačuje jako přehraný.</li>
 </ul>
@@ -1540,6 +1540,9 @@
   <tr><td class="field-name">Zatím nevydáno</td><td>Text zprávy (Alt+C): políčko „Zalamovat dlouhé řádky“.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Klávesy si také můžete ponechat jen pro jeden účet: políčko „Používat stejné zkratky ve všech účtech“ na téže stránce je zaškrtnuté; když ho zrušíte, klávesy, které v tomto účtu změníte, platí jen pro něj a ostatní účty si ponechají své. Okno Změnit u každé zkratky má také políčko „Používat tuto zkratku ve všech účtech“, které se řídí obecným políčkem, dokud ho nezměníte; zkratka, která se obecným políčkem neřídí, má v seznamu uvedeno „ve všech účtech“ nebo „jen v tomto účtu“.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Hovory: hovor, který jste zahájili v telefonu a který se změnil na skupinový, můžete po svém odchodu znovu připojit z WinZappu: v chatu každé osoby, která v něm zůstává, se objeví „Připojit se k probíhajícímu hlasovému hovoru“ a řádek na kartě Hovory ukazuje jejich jména. Platí pro Neonize i WPPConnect.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Opětovné připojení po dlouhé době offline: WinZapp nyní přijímá nahromaděné zprávy, reakce a potvrzení o přečtení, aniž by se při každém zápisu do databáze zasekávalo rozhraní, a engine Neonize zapisuje svou databázi rychleji.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Při obnově starých zpráv neznámých skupin WinZapp hledá název každé skupiny na pozadí a dál odpovídá.</td></tr>
+  <tr><td class="field-name">Zatím nevydáno</td><td>Když přehrávací nebo nahrávací zařízení vybrané v Nastavení není při spuštění WinZappu připojené, WinZapp to jednou oznámí hlasem a použije výchozí zařízení systému místo okna se zprávou.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Engine Neonize: popisek Neonize v okně párování a v Nastavení už neříká „experimentální“, ale „výchozí“.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Hovory Neonize: opraven návrat ke kompatibilnímu zvuku, když výhradní výstup používá frekvenci nepodporovanou NetEQ, se zachováním kompenzace ztráty paketů.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Individuální hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání.</td></tr>

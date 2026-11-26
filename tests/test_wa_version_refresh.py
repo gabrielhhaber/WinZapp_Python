@@ -857,3 +857,45 @@ class TestGlue:
         assert bg.index("wait_for_refresh()") < bg.index("self._start_wpp_background()\n            deadline")
         cancelled = inspect.getsource(MainWindow._restart_wpp_after_cancelled_shutdown)
         assert cancelled.index("wait_for_refresh()") < cancelled.index("self._start_wpp_background()")
+
+
+# ------------------------------------------------- default_fetch: TLS roots ---
+# A macOS build's bundled OpenSSL looks for roots in the build machine's
+# python.org OPENSSLDIR. On a Mac without that installer urllib's default
+# context has none, every check failed with CERTIFICATE_VERIFY_FAILED, was
+# logged as "offline", and the catalogue (so the WhatsApp Web pin) never moved
+# again — until the pinned build stopped starting. The opener must carry an
+# explicit context.
+
+def _https_contexts(opener):
+    import urllib.request
+    return [h._context for h in opener.handlers
+            if isinstance(h, urllib.request.HTTPSHandler)]
+
+
+class TestDefaultFetchTrust:
+    def test_the_opener_verifies_through_the_system_trust_store(self, monkeypatch):
+        import ssl
+        from core import tls_trust
+        context = ssl.create_default_context()
+        monkeypatch.setattr(tls_trust, "system_ssl_context", lambda: context)
+        assert _https_contexts(wr._build_opener()) == [context]
+
+    def test_without_a_system_trust_store_it_falls_back_to_certifi(self, monkeypatch):
+        import certifi
+        from core import tls_trust
+        monkeypatch.setattr(tls_trust, "system_ssl_context", lambda: None)
+        seen = {}
+        real = wr.ssl.create_default_context
+
+        def spy(*args, **kwargs):
+            seen.update(kwargs)
+            return real(*args, **kwargs)
+
+        monkeypatch.setattr(wr.ssl, "create_default_context", spy)
+        contexts = _https_contexts(wr._build_opener())
+        assert len(contexts) == 1
+        assert seen.get("cafile") == certifi.where()
+
+    def test_redirects_are_still_refused(self):
+        assert any(isinstance(h, wr._NoRedirect) for h in wr._build_opener().handlers)

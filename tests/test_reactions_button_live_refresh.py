@@ -62,7 +62,7 @@ class _FakeI18n:
 
 
 class _FakeDB:
-    def insert_message(self, jid, record):
+    def queue_message(self, jid, record):
         pass
 
 

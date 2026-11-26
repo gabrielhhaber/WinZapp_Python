@@ -8,7 +8,7 @@ def window():
     writes, refresh = [], []
     mw = N(contacts={"1@s.whatsapp.net": {"remoteJid":"1@s.whatsapp.net","name":"Old book name","pushName":"Profile","syncedToPhone":True}},
         _lid_to_phone={"901@lid":"1@s.whatsapp.net"}, _phone_to_lid={"1@s.whatsapp.net":"901@lid"},
-        db=N(upsert_contacts_batch=lambda rows:writes.append(rows)),
+        db=N(queue_contacts=lambda rows, previous:writes.append(rows)),
         _refresh_views_after_contact_change=lambda *args:refresh.append(args), _is_bad_contact_name=lambda name:name.isdigit())
     return mw,writes,refresh
 

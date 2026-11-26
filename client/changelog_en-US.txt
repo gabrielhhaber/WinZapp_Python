@@ -25,6 +25,14 @@ WHAT'S NEW
 - Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
 
 - Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
+
+- Reconnecting after a long time offline: WinZapp now receives the accumulated messages, reactions and read receipts without freezing the interface on every database write, and the Neonize engine writes its database faster.
+- macOS: choosing another connection engine in the pairing window now restarts WinZapp on it. It used to say that WinZapp could not restart by itself, and the engine was not changed.
+- History of unknown groups: WinZapp no longer freezes its interface when it recovers old messages of a group it did not know yet. It used to look up the group's name on the interface thread, and each lookup could take up to 10 seconds during which WinZapp did not respond. The name is now looked up in the background and appears as soon as it arrives.
+- When the playback or recording device chosen in Settings, such as headphones, is not connected as WinZapp starts, WinZapp now says so once and uses the system default device, instead of showing a message box at every launch. The box held up startup until it was answered, so a launch with no one at the computer ended in an error saying the WinZapp API had failed to start in time, and the program closed. The chosen device is kept and used again once it is connected.
+
+- macOS: WinZapp's check for newer WhatsApp Web versions now works on Macs without Python from python.org installed. It used to fail with a certificate error that the log reported as "offline", so the list of versions never updated and, once WhatsApp stopped serving the build WinZapp was using, WPPConnect could no longer connect.
+
 - Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
 
 - Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.

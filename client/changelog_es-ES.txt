@@ -25,6 +25,14 @@ NOVEDADES
 - Guardar como (Ctrl+Shift+S) en un documento JSON recibido en una conversación, como el archivo app.json de la configuración, ahora guarda el archivo, en lugar de decir que no se pudo descargar.
 
 - Atajos de teclado: al pasar a otra cuenta justo después de cambiar una tecla, la cuenta que aparece responde a la tecla nueva aunque la anterior siga guardando su configuración; antes podía quedarse con la tecla antigua hasta guardar algo.
+
+- Reconexión tras mucho tiempo sin conexión: WinZapp ahora recibe los mensajes, reacciones y confirmaciones de lectura acumulados sin bloquear la interfaz en cada escritura en la base de datos, y el motor Neonize escribe su base de datos más rápido.
+- macOS: elegir otro motor de conexión en la ventana de vinculación ahora reinicia WinZapp con él. Antes decía que WinZapp no pudo reiniciarse por sí solo, y el motor no se cambiaba.
+- Historial de grupos desconocidos: WinZapp ya no bloquea la interfaz al recuperar mensajes antiguos de un grupo que aún no conocía. Antes buscaba el nombre del grupo en el propio hilo de la interfaz, y cada búsqueda podía tardar hasta 10 segundos sin que WinZapp respondiera. Ahora el nombre se busca en segundo plano y aparece en cuanto llega.
+- Cuando el dispositivo de reproducción o de grabación elegido en la Configuración, como unos auriculares, no está conectado al iniciar WinZapp, WinZapp ahora lo avisa una sola vez por voz y usa el dispositivo predeterminado del sistema, en lugar de mostrar un cuadro de mensaje en cada inicio. El cuadro detenía el inicio hasta que se respondía, así que un inicio sin nadie frente al ordenador terminaba en un error que decía que la API de WinZapp no se había iniciado a tiempo, y el programa se cerraba. El dispositivo elegido se conserva y se vuelve a usar en cuanto se conecta.
+
+- macOS: la comprobación de versiones más recientes de WhatsApp Web ahora funciona en Macs sin el Python de python.org instalado. Fallaba con un error de certificado que el registro anotaba como "offline", así que la lista de versiones nunca se actualizaba y, cuando WhatsApp dejaba de servir la versión que usaba WinZapp, WPPConnect ya no podía conectarse.
+
 - Motor Neonize: en la ventana de emparejamiento y en Configuración, la etiqueta de Neonize ya no dice "experimental" y ahora dice "predeterminado".
 
 - Llamadas Neonize: corregido el retorno al audio compatible cuando la salida exclusiva usa una frecuencia no admitida por NetEQ, manteniendo la ocultación de pérdidas.

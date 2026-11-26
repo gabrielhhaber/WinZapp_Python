@@ -2235,7 +2235,7 @@ msgctxt "audio_device_effects_output"
 msgid "Sound effects output:"
 msgstr "مخرج تأثيرات الصوت:"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/voice_recording.py
 #, python-brace-format
 msgctxt "audio_device_failed_input"

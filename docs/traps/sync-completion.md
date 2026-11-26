@@ -1,5 +1,27 @@
 # Sync completion, on-demand history and the incremental round
 
+## Offline replay can be limited by durable commits, not the network (2026-11-26)
+
+A reconnect at 00:19:57 announced 2,681 messages and 5,616 total items. Minutes
+later it was still replaying old messages and read/played receipts in order.
+Watchdog stacks showed the wx thread waiting in reaction persistence, ack
+persistence, local-read metadata and remote-contact persistence, all through
+`DatabaseBridge._call()`/`future.result()` (one stall lasted 7.4 s).
+
+The bridge store still used SQLite's default rollback journal. Isolated files
+on the same drive measured median single-row FULL commits of about 183 ms with
+DELETE versus 49 ms with WAL; a read-only connection to the busy bridge database
+could not obtain its lock within three seconds. These are storage measurements,
+not a measured end-to-end speedup or proof that every replay delay is local.
+
+The bridge now selects WAL while keeping synchronous=FULL. Backups already use
+SQLite's backup API, so committed WAL content is included. Client UI persistence
+uses the fenced, coalesced event queue described in `message-pipeline.md`.
+Preserve commit-before-emit in the bridge, receipt ordering, monotonic acks,
+copied queued values, distinct message/contact keys, and close/reset fences.
+Never accelerate this by skipping receipts, marking the offline stream complete
+early, or dropping SQLite's durability guarantees.
+
 ## A missing CDP result is not an empty ChatStore (2026-10-16)
 
 On a live 715-chat account, the page reported `WPP.isReady=true`,

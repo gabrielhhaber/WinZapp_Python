@@ -674,7 +674,7 @@
   <li><strong>Forward and back:</strong> Shift+Right/Left Arrow moves 5 seconds; Shift+Page Down/Up moves 1 minute; Shift+Home and Shift+End go to the start and the end of what is playing.</li>
   <li>The following voice messages play in sequence, unless you clear "Automatically play voice messages in sequence" in Settings &gt; User interface. During the sequence, the focused row waits to update its state, so the screen reader does not read over the audio.</li>
   <li><strong>Ctrl+Alt+Shift+P</strong> pauses or resumes the audio that is playing, from any panel.</li>
-  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and plays the message the first time.</li>
+  <li>If the output device changes (headphones unplugged, for example), WinZapp switches to the default device and says so once, by voice. The device chosen in Settings is kept and used again once it is connected, including when it was not connected as WinZapp started.</li>
   <li>If the sound card is not available (for example, when the computer wakes up), WinZapp tries to restore the audio output when a playback fails; if it still cannot play, it tells you through the screen reader.</li>
   <li>In Settings, there is an option not to mark audio as played.</li>
 </ul>
@@ -1540,6 +1540,9 @@
   <tr><td class="field-name">Not yet released</td><td>Message text (Alt+C): the "Wrap long lines" box.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>You can also keep keys for one account only: the "Use the same shortcuts in every account" box on the same page comes checked; unchecked, the keys you change in this account apply to it alone, and the other accounts keep theirs. Each shortcut's Change window also has a "Use this shortcut in every account" box, which follows the general one until you change it; a shortcut that does not follow the general box shows "every account" or "this account only" in the list.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Calls: a call you started on your phone that became a group call can be rejoined from WinZapp after you leave it: "Join ongoing voice call" appears in the chat of each person still in it, and its row in the Calls tab shows their names. Works with Neonize and WPPConnect.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>Reconnecting after a long time offline: WinZapp now receives the accumulated messages, reactions and read receipts without freezing the interface on every database write, and the Neonize engine writes its database faster.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>When recovering old messages of unknown groups, WinZapp looks up each group's name in the background and keeps responding.</td></tr>
+  <tr><td class="field-name">Not yet released</td><td>When the playback or recording device chosen in Settings is not connected as WinZapp starts, WinZapp says so once and uses the system default device, instead of a message box.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize engine: the Neonize label in the pairing window and in Settings no longer says "experimental" and now says "default".</td></tr>
   <tr><td class="field-name">Not yet released</td><td>Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.</td></tr>
   <tr><td class="field-name">Not yet released</td><td>One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.</td></tr>

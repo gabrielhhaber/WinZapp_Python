@@ -25,6 +25,14 @@ NOUTĂȚI
 - Salvare ca (Ctrl+Shift+S) pe un document JSON primit într-o conversație, cum ar fi fișierul de setări app.json, salvează acum fișierul în loc să spună că nu a putut fi descărcat.
 
 - Comenzi rapide: când treceți la alt cont imediat după ce ați schimbat o tastă, contul care apare răspunde la tasta nouă chiar dacă cel anterior încă își salvează setările; înainte putea rămâne pe tasta veche până salva ceva.
+
+- Reconectare după mult timp offline: WinZapp primește acum mesajele, reacțiile și confirmările de citire acumulate fără să blocheze interfața la fiecare scriere în baza de date, iar motorul Neonize își scrie baza de date mai repede.
+- macOS: alegerea altui motor de conectare în fereastra de asociere repornește acum WinZapp cu acel motor. Înainte apărea mesajul că WinZapp nu a putut reporni singur, iar motorul nu era schimbat.
+- Istoricul grupurilor necunoscute: WinZapp nu mai blochează interfața când recuperează mesaje vechi ale unui grup pe care nu îl cunoștea încă. Înainte căuta numele grupului chiar în firul interfeței, iar fiecare căutare putea dura până la 10 secunde, timp în care WinZapp nu răspundea. Acum numele este căutat în fundal și apare imediat ce ajunge.
+- Când dispozitivul de redare sau de înregistrare ales în Setări, de exemplu căștile, nu este conectat la pornirea WinZapp, WinZapp anunță acum acest lucru o singură dată prin voce și folosește dispozitivul implicit al sistemului, în loc să afișeze o casetă de mesaj la fiecare pornire. Caseta oprea pornirea până când primea un răspuns, așa că o pornire fără nimeni la calculator se termina cu o eroare că WinZapp API nu a pornit la timp, iar programul se închidea. Dispozitivul ales este păstrat și folosit din nou imediat ce este conectat.
+
+- macOS: verificarea versiunilor mai noi de WhatsApp Web funcționează acum pe Mac-uri fără Python de la python.org instalat. Eșua cu o eroare de certificat pe care jurnalul o nota ca "offline", așa că lista de versiuni nu se actualiza niciodată și, când WhatsApp nu mai servea versiunea folosită de WinZapp, WPPConnect nu se mai putea conecta.
+
 - Motorul Neonize: în fereastra de asociere și în Setări, eticheta Neonize nu mai spune „experimental”, ci „implicit”.
 
 - Apeluri Neonize: corectată revenirea la sunetul compatibil când ieșirea exclusivă folosește o rată neacceptată de NetEQ, păstrând mascarea pierderilor de pachete.
