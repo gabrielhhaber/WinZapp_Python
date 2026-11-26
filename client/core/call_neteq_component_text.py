@@ -74,7 +74,7 @@ def component_announcement(ann, error):
     """`ann` with the component's own sentence when the shared one would
     speak of the transcription model."""
     key = FAILURE_KEYS.get(getattr(error, "code", None))
-    if error is None or key is None:
+    if key is None:
         return ann
     return management.Announcement(key, ann.outcome)
 
