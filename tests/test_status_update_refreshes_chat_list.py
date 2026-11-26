@@ -31,7 +31,7 @@ class _FakeDB:
     def __init__(self):
         self.written = []
 
-    def insert_message(self, jid, msg):
+    def queue_message_status(self, jid, msg):
         self.written.append((jid, msg.get("key", {}).get("id")))
 
 

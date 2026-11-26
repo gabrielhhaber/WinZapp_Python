@@ -33,7 +33,7 @@ class ReadStateMixin:
         if db is None:
             return
         try:
-            db.set_metadata_json(
+            db.queue_metadata(
                 "locally_read_at", dict(getattr(self, "_locally_read_at", {}))
             )
         except Exception as exc:

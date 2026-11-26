@@ -4,6 +4,7 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Opětovné připojení po dlouhé době offline: WinZapp nyní přijímá nahromaděné zprávy, reakce a potvrzení o přečtení, aniž by se při každém zápisu do databáze zasekávalo rozhraní, a engine Neonize zapisuje svou databázi rychleji.
 - macOS: volba jiného enginu připojení v okně párování teď WinZapp restartuje s tímto enginem. Dříve se zobrazilo, že se WinZapp nemohl sám restartovat, a engine se nezměnil.
 - Historie neznámých skupin: WinZapp už nezamrzá, když obnovuje staré zprávy skupiny, kterou ještě neznal. Dříve hledal název skupiny přímo ve vlákně rozhraní a každé hledání mohlo trvat až 10 sekund, během nichž WinZapp neodpovídal. Název se nyní hledá na pozadí a zobrazí se, jakmile dorazí.
 - Když přehrávací nebo nahrávací zařízení vybrané v Nastavení, například sluchátka, není při spuštění WinZappu připojené, WinZapp to teď jednou oznámí hlasem a použije výchozí zařízení systému, místo aby při každém spuštění zobrazil okno se zprávou. Okno zdržovalo spuštění, dokud na něj nikdo neodpověděl, takže spuštění bez nikoho u počítače skončilo chybou, že se API WinZappu nespustilo včas, a program se zavřel. Vybrané zařízení zůstává nastavené a znovu se použije, jakmile se připojí.
