@@ -11869,8 +11869,6 @@ msgstr ""
 "chat alla volta: annulla il fissaggio di un'altra chat e riprova."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11886,7 +11884,7 @@ msgstr "Non è stato possibile fissare questo messaggio. Riprova tra poco."
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_selected"
 msgid "Pin selected"
-msgstr "Fissa selezionato"
+msgstr "Fissa selezionati"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/pinned_messages_dialog.py

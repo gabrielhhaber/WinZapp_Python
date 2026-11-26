@@ -11806,8 +11806,6 @@ msgstr ""
 "încercați din nou."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -15333,7 +15331,7 @@ msgstr "Anunțați &la câteva secunde progresul descărcării media"
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "speech_announce_pinned_label"
 msgid "Announce &how many messages are pinned when a chat opens"
-msgstr "Anunță câte mesaje sunt &fixate la deschiderea unui chat"
+msgstr "Anunțați câte mesaje sunt &fixate la deschiderea unei conversații"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

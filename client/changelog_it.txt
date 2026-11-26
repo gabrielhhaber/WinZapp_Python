@@ -26,7 +26,7 @@ WHAT'S NEW
 
 - Chiamate Neonize: quando un pacchetto audio va perso e il successivo ne porta una copia, come inviano alcuni telefoni, WinZapp ora riproduce quella copia invece di riempire il vuoto con una stima.
 
-- Salva con nome (Ctrl+Maiusc+S) su un documento JSON ricevuto in una chat, come il file app.json delle impostazioni, ora salva il file invece di dire che non è stato possibile scaricarlo.
+- Salva con nome (Ctrl+Shift+S) su un documento JSON ricevuto in una chat, come il file app.json delle impostazioni, ora salva il file invece di dire che non è stato possibile scaricarlo.
 
 - Scorciatoie da tastiera: passando a un altro account subito dopo aver cambiato un tasto, l’account che compare risponde al tasto nuovo anche mentre il precedente sta ancora salvando le impostazioni; prima poteva restare sul tasto vecchio finché non salvava qualcosa.
 

@@ -8,7 +8,7 @@ NOVINKY
 
 - WPPConnect: prohlížeč uvedený v proměnné prostředí PUPPETEER_EXECUTABLE_PATH, například nativní Chrome pro Windows na ARM, se zase používá, a když je staženo více verzí prohlížeče, WinZapp použije tu, kterou požaduje WPPConnect, ne první nalezenou.
 
-- Připnuté zprávy: tlačítko připnutých zpráv chatu teď otevírá okno „Připnuté zprávy“ se seznamem připnutých zpráv. Každá zpráva v něm má místní nabídku a klávesové zkratky seznamu zpráv: kopírování, přeposlání, reakci, označení hvězdičkou, odepnutí, smazání, přepis a ostatní, s klávesami, které jste si zvolili. Odpověď, úprava a další akce, které vedou do chatu, okno zavřou a provedou se na zprávě, už zaměřené v chatu; Enter nebo „Přejít na zprávu“ vás k ní přenese v historii.
+- Připnuté zprávy: tlačítko připnutých zpráv chatu teď otevírá okno „Připnuté zprávy“ se seznamem připnutých zpráv. Každá zpráva v něm má místní nabídku a klávesové zkratky seznamu zpráv: kopírování, přeposlání, reakci, označení hvězdičkou, odepnutí, smazání, přepis a ostatní, s klávesami, které jste si zvolili. Odpověď, úprava a další akce, které vedou do chatu, okno zavřou a provedou se na zprávě, na které už je v chatu fokus; Enter nebo „Přejít na zprávu“ vás k ní přenese v historii.
 
 - Vybrané zprávy: „Odepnout vybrané“ v „Hromadné akce“ místní nabídky odepne najednou vybrané zprávy, které jsou připnuté. Když je zaškrtnuto „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“, Ctrl+Shift+P vybrané zprávy připne, nebo je odepne, když už jsou připnuté všechny.
 

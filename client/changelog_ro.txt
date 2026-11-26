@@ -10,9 +10,9 @@ NOUTĂȚI
 
 - Mesaje fixate: butonul de mesaje fixate al conversației deschide acum fereastra „Mesaje fixate”, cu lista mesajelor fixate. Fiecare mesaj are meniul contextual și comenzile rapide ale listei de mesaje: copiere, redirecționare, reacție, marcare cu stea, anularea fixării, ștergere, transcriere și celelalte, cu tastele pe care le-ați ales. Răspunsul, editarea și celelalte acțiuni care vă duc în conversație închid fereastra și se fac pe mesaj, deja focalizat în conversație; Enter sau „Accesați mesajul” vă duce la el în istoric.
 
-- Mesaje selectate: „Anulați fixarea selecției”, din „Acțiuni în bloc” al meniului contextual, anulează dintr-o dată fixarea mesajelor selectate care sunt fixate. Cu „Înlocuiți comenzile rapide cu acțiuni în bloc atunci când selectați conversații și mesaje” bifată, Ctrl+Shift+P fixează mesajele selectate sau le anulează fixarea când toate sunt deja fixate.
+- Mesaje selectate: „Anulați fixarea selecției”, din „Acțiuni în bloc” din meniul contextual, anulează dintr-o dată fixarea mesajelor selectate care sunt fixate. Cu „Înlocuiți comenzile rapide cu acțiuni în bloc atunci când selectați conversații și mesaje” bifată, Ctrl+Shift+P fixează mesajele selectate sau le anulează fixarea când toate sunt deja fixate.
 
-- Opțiune nouă în Setări > Accesibilitate > Conținut vorbit: „Anunță câte mesaje sunt fixate la deschiderea unui chat”, bifată implicit. Debifată, WinZapp nu mai spune „Mesaje fixate în acest chat: N” când deschideți o conversație.
+- Opțiune nouă în Setări > Accesibilitate > Conținut vorbit: „Anunțați câte mesaje sunt fixate la deschiderea unei conversații”, bifată implicit. Debifată, WinZapp nu mai spune „Mesaje fixate în acest chat: N” când deschideți o conversație.
 
 - Opțiune nouă în Setări > Generale > Notificări: „Notifică reacțiile la mesajele dvs.”, bifată implicit. Debifată, o reacție la un mesaj al dvs. nu este citită, nu redă niciun sunet și nu apare în notificările Windows; ea apare în continuare pe mesaj și în lista de conversații.
 

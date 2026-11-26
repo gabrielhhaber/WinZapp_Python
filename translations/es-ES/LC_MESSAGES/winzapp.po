@@ -11828,8 +11828,6 @@ msgstr ""
 "vez — desfija otro chat e inténtalo de nuevo."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"

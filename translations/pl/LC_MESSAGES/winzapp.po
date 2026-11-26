@@ -11842,8 +11842,6 @@ msgstr ""
 "czaty jednocześnie — odepnij inny czat i spróbuj ponownie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -14785,7 +14783,7 @@ msgstr "Polecenia i skróty klawiszowe"
 #: client/ui/dialogs/shortcuts_tab.py
 msgctxt "shortcut_shared_all_accounts"
 msgid "&Use the same shortcuts in every account"
-msgstr "Używaj &tych samych skrótów we wszystkich kontach"
+msgstr "Używaj &tych samych skrótów na wszystkich kontach"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14932,7 +14930,7 @@ msgstr "Nieprzypisany"
 #: client/ui/dialogs/shortcut_capture.py
 msgctxt "shortcut_use_in_all_accounts"
 msgid "&Use this shortcut in every account"
-msgstr "&Używaj tego skrótu we wszystkich kontach"
+msgstr "&Używaj tego skrótu na wszystkich kontach"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
