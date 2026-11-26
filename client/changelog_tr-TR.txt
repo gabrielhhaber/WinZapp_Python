@@ -4,6 +4,7 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Gönderilen mesajlar: Neonize motorunda, gönderdiğiniz mesajlar WinZapp yeniden açıldığında konuşmadan kaybolabiliyordu, çünkü bir kopyaları saklanmıyordu. Gönderilen her mesaj artık gönderimi onaylanır onaylanmaz saklanıyor.
 - WPPConnect, QR kodu veya telefon numarasıyla bağlanma: telefon eşleştirmeyi kabul ettikten sonra WhatsApp Web sohbetleri hâlâ açarken WinZapp artık bağlantının başarısız olduğunu söylemiyor. Eşleştirmeden 4 dakika sonra yapılan kontrol, WhatsApp Web'in yeni sürümlerinde bağlantı durumunu okuyamıyor ve çalışan bir bağlantıyı başarısız sayıyordu.
 
 - WPPConnect: PUPPETEER_EXECUTABLE_PATH ortam değişkeninde belirtilen bir tarayıcı, örneğin ARM üzerinde Windows için yerel bir Chrome, yeniden kullanılıyor; birden fazla tarayıcı sürümü indirilmişse WinZapp bulduğu ilk sürümü değil, WPPConnect'in istediğini kullanıyor.

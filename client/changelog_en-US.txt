@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Sent messages: with the Neonize engine, messages you sent could disappear from the conversation when WinZapp was reopened, because no copy of them was stored. Each sent message is now stored as soon as its delivery is confirmed.
 - WPPConnect, connecting with a QR code or a phone number: after the phone accepts the pairing, WinZapp no longer says the connection failed while WhatsApp Web is still opening the chats. The check made 4 minutes after pairing could not read the connection state on recent WhatsApp Web versions and reported a working connection as failed.
 
 - WPPConnect: a browser named in the PUPPETEER_EXECUTABLE_PATH environment variable, such as a native Chrome for Windows on ARM, is used again, and when more than one browser version is downloaded WinZapp uses the one WPPConnect asks for, not the first one it finds.

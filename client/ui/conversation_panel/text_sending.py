@@ -14,6 +14,7 @@ import wx
 from core.message_queue import PendingMessage
 from core.pending_timestamp import pending_send_timestamp
 from core.reply_failure import clear_reply_draft, is_missing_quote_failure
+from core.sent_message_store import persist_sent_message
 from ui.conversation_panel.typing_row import append_message_row, message_row_count
 from app_paths import data_path
 from ui.conversation_panel.media_paths import (
@@ -506,6 +507,7 @@ class TextSendingMixin:
             clear_reply_draft(tracked)
             if real_id and isinstance(real_id, str):
                 tracked.setdefault("key", {})["id"] = real_id
+                persist_sent_message(getattr(self.main_window, "db", None), tracked)
         self._media_upload_progress.pop(local_id, None)
         self._upload_stages_seen.pop(local_id, None)
         # Panel-level guard: survive _sorted_messages rebuilds that replace dict

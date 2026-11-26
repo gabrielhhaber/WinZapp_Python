@@ -4,6 +4,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Mesaje trimise: cu motorul Neonize, mesajele pe care le trimiteai puteau dispărea din conversație la redeschiderea WinZapp, pentru că nu se salva nicio copie a lor. Acum fiecare mesaj trimis este salvat imediat ce trimiterea este confirmată.
 - WPPConnect, conectarea cu cod QR sau cu numărul de telefon: după ce telefonul acceptă asocierea, WinZapp nu mai spune că conectarea a eșuat cât timp WhatsApp Web încă deschide conversațiile. Verificarea făcută la 4 minute după asociere nu putea citi starea conexiunii în versiunile recente ale WhatsApp Web și considera eșuată o conexiune care funcționa.
 
 - WPPConnect: un browser indicat în variabila de mediu PUPPETEER_EXECUTABLE_PATH, cum ar fi un Chrome nativ pentru Windows pe ARM, este folosit din nou, iar când sunt descărcate mai multe versiuni ale browserului, WinZapp o folosește pe cea cerută de WPPConnect, nu prima pe care o găsește.
