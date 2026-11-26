@@ -34,12 +34,12 @@ identical leading main frames prove no distance; full suite passes.
  audio_receive_order.go     |   3 +
  audio_receive_runtime.go   |  41 +++++--
  audio_receive_stats.go     |   9 ++
- audio_red_recovery.go      | 118 +++++++++++++++++++++
- audio_red_recovery_test.go | 212 +++++++++++++++++++++++++++++++++++++
+ audio_red_recovery.go      | 118 ++++++++++++++++++++
+ audio_red_recovery_test.go | 216 +++++++++++++++++++++++++++++++++++++
  engine_media.go            |   2 +-
  group_media_receive.go     |   1 +
  mlow/decoder.go            |  10 ++
- 9 files changed, 407 insertions(+), 8 deletions(-)
+ 9 files changed, 411 insertions(+), 8 deletions(-)
  create mode 100644 audio_red_recovery.go
  create mode 100644 audio_red_recovery_test.go
 
@@ -313,10 +313,10 @@ index 0000000..49a3933
 +}
 diff --git a/audio_red_recovery_test.go b/audio_red_recovery_test.go
 new file mode 100644
-index 0000000..af6530c
+index 0000000..429e50b
 --- /dev/null
 +++ b/audio_red_recovery_test.go
-@@ -0,0 +1,212 @@
+@@ -0,0 +1,216 @@
 +package meowcaller
 +
 +import (
@@ -380,8 +380,12 @@ index 0000000..af6530c
 +
 +func TestRedRecoveryNeverProvesAReencodedRedundancy(t *testing.T) {
 +	var r redRecovery
++	// A full window of distinct main frames, so only the byte comparison can
++	// refuse; the block repeats an earlier packet's redundant block, never a main.
 +	r.Observe(1, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 9}, []byte{0x50, 1}))
-+	if r.Observe(2, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 7}, []byte{0x50, 2})) {
++	r.Observe(2, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 6}, []byte{0x50, 2}))
++	r.Observe(3, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 5}, []byte{0x50, 3}))
++	if r.Observe(4, rtp.RtpPayloadTypeMlowRed, splitRed([]byte{0x50, 5}, []byte{0x50, 4})) {
 +		t.Fatal("a block that differs from the earlier main frame proved a position")
 +	}
 +	if r.Recover(rtp.RtpPayloadTypeMlowRed, 1, splitRed([]byte{0x50, 8}, []byte{0x50, 4})) != nil {
