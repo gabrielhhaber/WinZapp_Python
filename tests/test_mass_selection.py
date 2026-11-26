@@ -1724,6 +1724,7 @@ class TestMassUnpin:
         run_threads()
         assert [m["pinInChat"] for m in msgs] == [False, True]
         assert len(boxes) == 1 and "(1/2)" in boxes[0][0]
+        assert boxes[0][1] == "unpin_message"   # not the pin box's title
 
     def test_unpinning_skips_messages_that_are_not_pinned(self, run_threads):
         msgs = self._pinned("m1") + [_msg("m2")]
@@ -1748,3 +1749,62 @@ class TestMassUnpin:
         panel._on_ctrl_shift_p(None)
         run_threads()
         assert panel.main_window.pin_calls == [("grupo@g.us", "m2", True)]
+
+
+class TestMassPinInAChannel:
+    """A channel's updates are pinned through the channel's own write, and only
+    by its owner and admins (channel_conversation.py): a subscriber's batch
+    has nothing to do, an admin's goes to _write_channel_pin, never to the
+    chat pin a group uses."""
+
+    CHANNEL = "123@newsletter"
+
+    class _ChannelPanel(_Panel):
+        def __init__(self, messages, admin):
+            super().__init__(messages=messages)
+            self.conversation = {"remoteJid": TestMassPinInAChannel.CHANNEL}
+            self._admin = admin
+            self.channel_writes = []
+
+        def _can_pin_channel_update(self, msg):
+            return self._admin
+
+        def _write_channel_pin(self, jid, msg, pin):
+            self.channel_writes.append((jid, msg["key"]["id"], pin))
+            return True
+
+    def _updates(self, *ids, pinned=False):
+        msgs = [_msg(mid, jid=self.CHANNEL) for mid in ids]
+        for m in msgs:
+            m["pinInChat"] = pinned
+        return msgs
+
+    def test_a_subscribers_batch_has_nothing_to_do(self, run_threads):
+        msgs = self._updates("u1", "u2")
+        panel = self._ChannelPanel(msgs, admin=False)
+        panel.selected_messages = {"u1", "u2"}
+        panel._on_mass_pin_messages(None)
+        run_threads()
+        assert panel.main_window.announced == ["mass_nothing_to_do"]
+        assert panel.channel_writes == [] and panel.main_window.pin_calls == []
+        assert _CapturedThread.created == []
+        assert [m["pinInChat"] for m in msgs] == [False, False]
+
+    def test_an_admin_pins_through_the_channels_write(self, run_threads):
+        msgs = self._updates("u1", "u2")
+        panel = self._ChannelPanel(msgs, admin=True)
+        panel.selected_messages = {"u1", "u2"}
+        panel._on_mass_pin_messages(None)
+        run_threads()
+        assert panel.channel_writes == [(self.CHANNEL, "u1", True), (self.CHANNEL, "u2", True)]
+        assert panel.main_window.pin_calls == []
+        assert [m["pinInChat"] for m in msgs] == [True, True]
+
+    def test_an_admin_unpins_through_the_channels_write(self, run_threads):
+        msgs = self._updates("u1", pinned=True)
+        panel = self._ChannelPanel(msgs, admin=True)
+        panel.selected_messages = {"u1"}
+        panel._on_mass_unpin_messages(None)
+        run_threads()
+        assert panel.channel_writes == [(self.CHANNEL, "u1", False)]
+        assert msgs[0]["pinInChat"] is False

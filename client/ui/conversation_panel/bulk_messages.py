@@ -84,7 +84,8 @@ class BulkMessagesMixin:
         """(messages to act on, all selected ids) for a mass message action.
 
         Targets are real messages in the current selection that don't already
-        carry *flag* (or, with *carrying*, that do: the ones to undo it on) — system events are filtered here rather than left to
+        carry *flag* (or, with *carrying*, that do: the ones to undo it on).
+        System events are filtered here rather than left to
         each single-message handler's own _reject_system_event_action guard,
         so a mixed selection doesn't announce "unavailable" once per system
         event. Order follows _sorted_messages, not set iteration order, same
@@ -193,7 +194,7 @@ class BulkMessagesMixin:
                     ok = (self._write_channel_pin(j, m, pin) if channel
                           else self.main_window.pin_message(j, k, pin))
                 except Exception as exc:
-                    logging.warning("[_on_mass_pin_messages] pin_message raised for %s: %s",
+                    logging.warning("[_mass_set_pinned] pin=%s raised for %s: %s", pin,
                                     k.get("id", ""), exc)
                     ok = False
                 if not ok:
@@ -219,7 +220,7 @@ class BulkMessagesMixin:
         wx.MessageBox(
             (i18n.t("pin_message_failed") if attempted_pin
              else i18n.t("unpin_message_failed")) + f" ({len(failed)}/{total})",
-            i18n.t("pin_message"),
+            i18n.t("pin_message" if attempted_pin else "unpin_message").replace("&", ""),
             wx.OK | wx.ICON_WARNING,
         )
 

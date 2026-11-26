@@ -203,3 +203,16 @@ class TestPinMessage:
         assert msg["pinInChat"] is False
         assert mw.db.inserted[-1][0] == old_jid
         assert panel.repainted == []
+
+
+@pytest.mark.parametrize("attempted_pin,title", [(True, "pin_message"), (False, "unpin_message")])
+def test_the_failure_box_is_titled_after_what_was_tried(monkeypatch, attempted_pin, title):
+    """A refused unpin used to be titled "Pin message", with its mnemonic."""
+    shown = []
+    monkeypatch.setattr("ui.conversations.wx.MessageBox", lambda *a, **kw: shown.append(a))
+    mw = _FakeMainWindow()
+    mw.i18n = type("I18n", (), {"t": staticmethod(lambda key: "&" + key)})()
+    panel = _Stub(mw)
+    panel._on_pin_message_failed(_msg(pinned=attempted_pin), attempted_pin,
+                                 panel.conversation["remoteJid"])
+    assert shown[0][1] == title

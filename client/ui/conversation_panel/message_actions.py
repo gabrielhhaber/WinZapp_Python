@@ -137,7 +137,7 @@ class MessageActionsMixin:
         i18n = self.main_window.i18n
         wx.MessageBox(
             i18n.t("pin_message_failed" if attempted_pin else "unpin_message_failed"),
-            i18n.t("pin_message"),
+            i18n.t("pin_message" if attempted_pin else "unpin_message").replace("&", ""),
             wx.OK | wx.ICON_WARNING,
         )
 
