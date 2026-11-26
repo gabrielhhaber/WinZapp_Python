@@ -9,6 +9,7 @@ unchanged.
 from __future__ import annotations
 
 from core import call_neteq_component
+from core.call_neteq_component_text import component_announcement
 from core.transcription import management
 
 
@@ -37,4 +38,4 @@ class NetEqComponentDownloadJob(management.ManagementJob):
         says it, for a download in the background)."""
         if error is None:
             return management.Announcement("neteq_component_downloaded", management.OUTCOME_DONE)
-        return super().announcement(result, error)
+        return component_announcement(super().announcement(result, error), error)

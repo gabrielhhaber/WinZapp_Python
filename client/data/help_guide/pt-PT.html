@@ -783,15 +783,6 @@
     <h2 id="h-ligacoes">📞 9. Ligações</h2>
 <p class="lead">Dá para fazer, atender e recusar, atender e recusar chamadas de voz e de vídeo pelo próprio WinZapp, sem pegar o telemóvel.</p>
 <p>Chamadas Neonize individuais e de grupo: reprodução com NetEQ para suavizar variações de rede e perdas de áudio, com regresso automático ao modo compatível. Na chamada de grupo, o áudio de cada pessoa tem o seu próprio NetEQ. A melhoria é automática quando o componente está disponível. Tradução em direto e dispositivos não suportados pelo NetEQ continuam a usar o modo compatível, sem exigir alterações nas definições. Quando o telemóvel de alguém envia, em cada pacote de áudio, uma cópia do anterior, um pacote perdido é recuperado dessa cópia, em vez de ser preenchido com uma estimativa.</p>
-<p>Em Definições &gt; Chamadas, o botão "Componente de reprodução da chamada" abre uma janela com o campo "Componente de reprodução da chamada (NetEQ)", só de leitura, e os botões "Transferir", "Remover" e "Fechar" (Esc também fecha). O campo indica o estado do componente:</p>
-<ul>
-  <li><strong>Não transferido:</strong> com o tamanho da transferência; "Transferir" obtém o componente.</li>
-  <li><strong>Transferência incompleta ou danificada:</strong> "Transferir" volta a transferir o componente e repara-o; "Remover" apaga o que ficou.</li>
-  <li><strong>Transferido:</strong> as chamadas com o motor Neonize usam-no para reproduzir a voz da outra pessoa com mais fluidez (depois de uma transferência, a partir da próxima chamada); "Remover" apaga-o.</li>
-  <li><strong>Incluído nesta instalação do WinZapp:</strong> o componente veio com o motor Neonize, pelo que não há nada para transferir.</li>
-  <li><strong>Não disponibilizado nesta versão:</strong> esta versão do WinZapp ainda não disponibiliza o componente para transferência, e "Transferir" fica indisponível.</li>
-</ul>
-<p>"Transferir" pede confirmação, mostrando o tamanho da transferência, e abre uma janela de progresso com "Cancelar"; com "Descarregar atualizações e transferências da transcrição em segundo plano, sem a janela de progresso" (Definições &gt; Geral) marcado, a transferência decorre em segundo plano. No fim, o WinZapp diz o resultado. "Remover" também pede confirmação. Se o componente estiver em uso, o WinZapp avisa que não o pôde remover: feche o WinZapp, abra-o novamente e remova o componente antes de fazer uma chamada. Sem o componente, as chamadas com o motor Neonize usam a reprodução padrão, o mesmo modo compatível descrito acima, sem exigir alterações nas definições.</p>
 <p>Chamadas Neonize: o áudio usa uma ligação local direta ao motor nativo, com regresso automático ao Socket.IO se não estiver disponível. Não é necessário alterar definições. Os controlos da chamada continuam a funcionar pela via habitual.</p>
 <p>Nas chamadas individuais pelo Neonize, o áudio recebido chega ao buffer de reprodução sem uma espera duplicada no motor. O ajuste automático às variações da rede continua ativo, sem alterar definições.</p>
 <p>A otimização da conversão do áudio do microfone nas chamadas pelo Neonize é automática e não exige alterar definições. Se o motor instalado não oferece a otimização, o WinZapp continua a usar o processamento compatível.</p>
@@ -1544,7 +1535,6 @@
 <p class="lead">Cada alpha nova que traz funcionalidades é acrescentada ao guia. Esta lista mostra até que alpha o guia está completo e o que foi acrescentado em cada rodada.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>O que entrou no guia</th></tr>
-  <tr><td class="field-name">Ainda não lançada</td><td>Definições &gt; Chamadas: o botão "Componente de reprodução da chamada" abre a janela do componente de reprodução das chamadas Neonize (NetEQ), com o estado do componente e os botões "Transferir" e "Remover".</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Chamadas de grupo no Neonize: o áudio de cada pessoa tem a sua própria reprodução com NetEQ; um pacote de áudio perdido é recuperado da cópia que alguns telemóveis enviam no pacote seguinte.</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Mensagens afixadas: a janela "Mensagens afixadas" tem o menu de contexto e os atalhos da lista de mensagens; "Desafixar selecionadas" e Ctrl+Shift+P com mensagens selecionadas; a opção "Informar quantas mensagens estão afixadas ao abrir uma conversa".</td></tr>
   <tr><td class="field-name">Ainda não lançada</td><td>Definições &gt; Geral &gt; Notificações: "Notificar reações às suas mensagens".</td></tr>

@@ -10466,6 +10466,24 @@ msgstr ""
 "druhé strany plynuleji, když je připojení nestabilní."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_download_corrupted"
+msgid ""
+"The downloaded call playback component is incomplete or damaged. Download it"
+" again."
+msgstr ""
+"Stažená součást pro přehrávání hovorů je neúplná nebo poškozená. Stáhněte ji"
+" znovu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_download_failed"
+msgid ""
+"The call playback component could not be downloaded. Check your connection "
+"and try again."
+msgstr ""
+"Součást pro přehrávání hovorů nešlo stáhnout. Zkontrolujte připojení a "
+"zkuste to znovu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/call_neteq_component_text.py
 msgctxt "neteq_component_downloaded"
 msgid "Call playback component downloaded. It is used from the next call."

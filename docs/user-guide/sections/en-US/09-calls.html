@@ -1,15 +1,6 @@
 <!--nav: 📞 Calls-->
 <p class="lead">You can make, answer and decline voice and video calls right in WinZapp, without picking up your phone.</p>
 <p>One-to-one and group Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback. In a group call, each person's audio has its own NetEQ. This works automatically when the component is available. Live translation and devices not supported by NetEQ keep compatible playback, without settings changes. When a phone sends, in each audio packet, a copy of the previous one, a lost packet is recovered from that copy instead of being filled with an estimate.</p>
-<p>In Settings &gt; Calls, the "Call playback component" button opens a window with the read-only field "Call playback component (NetEQ)" and the "Download", "Remove" and "Close" buttons (Esc also closes it). The field tells the component's state:</p>
-<ul>
-  <li><strong>Not downloaded:</strong> with the download size; "Download" fetches the component.</li>
-  <li><strong>Download incomplete or damaged:</strong> "Download" downloads the component again and repairs it; "Remove" deletes what is left.</li>
-  <li><strong>Downloaded:</strong> calls with the Neonize engine use it to play the other person's voice more smoothly (after a download, from the next call on); "Remove" deletes it.</li>
-  <li><strong>Included in this installation of WinZapp:</strong> the component came with the Neonize engine, so there is nothing to download.</li>
-  <li><strong>Not offered by this version:</strong> this version of WinZapp does not offer the component for download yet, and "Download" is unavailable.</li>
-</ul>
-<p>"Download" asks for confirmation, showing the download size, and opens a progress window with "Cancel"; with "Download updates and transcription downloads in the background, without the progress window" (Settings &gt; General) checked, the download runs in the background. When it ends, WinZapp says the result. "Remove" also asks for confirmation. If the component is in use, WinZapp says it could not be removed: close WinZapp, open it again and remove the component before making a call. Without the component, calls with the Neonize engine use the standard playback, the same compatible mode described above, without settings changes.</p>
 <p>Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable. No settings changes are needed. Call controls continue to use the usual connection.</p>
 <p>In one-to-one Neonize calls, incoming audio reaches the playback buffer without a duplicate wait in the engine. Automatic adjustment to network jitter stays active, without changing settings.</p>
 <p>Microphone audio conversion in Neonize calls is optimized automatically, without changing settings. If the installed engine does not support the optimization, WinZapp keeps using compatible processing.</p>

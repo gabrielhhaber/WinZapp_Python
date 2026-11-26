@@ -4,7 +4,7 @@ Pure and free of wx, so every sentence can be checked in every locale.
 """
 
 from core import call_neteq_component
-from core.transcription import management, model_store
+from core.transcription import errors, management, model_store
 
 # Besides model_store's three states: a copy that came with the installation
 # (the bridge's folder), and a version with no release pinned to download.
@@ -62,15 +62,33 @@ def confirmation_text(i18n) -> str:
     )
 
 
+# The failures whose shared sentence names the transcription model: the
+# component says its own. Disk space, cancel and the rest keep theirs.
+FAILURE_KEYS = {
+    errors.MODEL_DOWNLOAD_FAILED: "neteq_component_download_failed",
+    errors.MODEL_CORRUPTED: "neteq_component_download_corrupted",
+}
+
+
+def component_announcement(ann, error):
+    """`ann` with the component's own sentence when the shared one would
+    speak of the transcription model."""
+    key = FAILURE_KEYS.get(getattr(error, "code", None))
+    if error is None or key is None:
+        return ann
+    return management.Announcement(key, ann.outcome)
+
+
 def outcome_text(i18n, result, error) -> str:
     """The sentence of a finished download. Failures use the sentences the
-    transcription downloads already have (connection, disk space, cancelled)."""
+    transcription downloads already have (disk space, cancelled), except the
+    ones that would name the transcription model."""
     if error is None:
         return i18n.t("neteq_component_downloaded")
-    ann = management.announcement(
+    ann = component_announcement(management.announcement(
         management.ACTION_DOWNLOAD_MODEL, result, error,
         model_id=call_neteq_component.NETEQ.id,
-    )
+    ), error)
     return i18n.t(ann.i18n_key).format(**dict(ann.values))
 
 

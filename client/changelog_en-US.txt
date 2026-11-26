@@ -24,8 +24,6 @@ WHAT'S NEW
 
 - Neonize group calls: each person's audio now has its own NetEQ playback, as in one-to-one calls, which smooths network jitter and audio loss for each of them separately; before, the whole group was mixed without it, with more gaps and delay. Live translation and devices not supported by NetEQ keep compatible playback.
 
-- Neonize calls: the call playback component (NetEQ) can now be managed in Settings > Calls, with the "Call playback component" button. Its window shows the component's state (not downloaded, with the download size; download incomplete or damaged; downloaded; included in this installation; or not offered by this version) and has the "Download" button, which also repairs an incomplete download, and "Remove". Without the component, calls automatically use the standard playback (compatible mode).
-
 - Neonize calls: when an audio packet is lost and the next one carries a copy of it, as some phones send, WinZapp now plays that copy instead of filling the gap with an estimate.
 
 - Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.

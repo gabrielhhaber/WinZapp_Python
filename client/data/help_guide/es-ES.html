@@ -783,15 +783,6 @@
     <h2 id="h-llamadas">📞 9. Llamadas</h2>
 <p class="lead">Puedes hacer, contestar y rechazar llamadas de voz y de vídeo directamente en WinZapp, sin coger el teléfono.</p>
 <p>Llamadas individuales y de grupo Neonize: reproducción con NetEQ para suavizar las variaciones de red y las pérdidas de audio, con retorno automático al modo compatible. En una llamada de grupo, el audio de cada persona tiene su propio NetEQ. Funciona automáticamente cuando el componente está disponible. La traducción en directo y los dispositivos no admitidos por NetEQ mantienen la reproducción compatible, sin cambiar los ajustes. Cuando el teléfono de alguien envía, en cada paquete de audio, una copia del anterior, un paquete perdido se recupera de esa copia en lugar de rellenarse con una estimación.</p>
-<p>En Configuración &gt; Llamadas, el botón "Componente de reproducción de la llamada" abre una ventana con el campo de solo lectura "Componente de reproducción de la llamada (NetEQ)" y los botones "Descargar", "Quitar" y "Cerrar" (Esc también la cierra). El campo indica el estado del componente:</p>
-<ul>
-  <li><strong>No descargado:</strong> con el tamaño de la descarga; "Descargar" obtiene el componente.</li>
-  <li><strong>Descarga incompleta o dañada:</strong> "Descargar" vuelve a descargar el componente y lo repara; "Quitar" borra lo que quedó.</li>
-  <li><strong>Descargado:</strong> las llamadas con el motor Neonize lo usan para reproducir la voz de la otra persona con más fluidez (tras una descarga, a partir de la próxima llamada); "Quitar" lo borra.</li>
-  <li><strong>Incluido en esta instalación de WinZapp:</strong> el componente vino con el motor Neonize, así que no hay nada que descargar.</li>
-  <li><strong>No ofrecido en esta versión:</strong> esta versión de WinZapp todavía no ofrece el componente para descargar, y "Descargar" no está disponible.</li>
-</ul>
-<p>"Descargar" pide confirmación, mostrando el tamaño de la descarga, y abre una ventana de progreso con "Cancelar"; con "Descargar las actualizaciones y las descargas de la transcripción en segundo plano, sin la ventana de progreso" (Configuración &gt; General) marcada, la descarga se hace en segundo plano. Al terminar, WinZapp dice el resultado. "Quitar" también pide confirmación. Si el componente está en uso, WinZapp avisa de que no se pudo quitar: cierra WinZapp, vuelve a abrirlo y quita el componente antes de hacer una llamada. Sin el componente, las llamadas con el motor Neonize usan la reproducción estándar, el mismo modo compatible descrito arriba, sin cambiar los ajustes.</p>
 <p>Llamadas Neonize: el audio usa una conexión local directa con el motor nativo y vuelve automáticamente a Socket.IO si no está disponible. No es necesario cambiar los ajustes. Los controles de llamada siguen usando la conexión habitual.</p>
 <p>En las llamadas individuales con Neonize, el audio recibido llega al búfer de reproducción sin una espera duplicada en el motor. El ajuste automático a las variaciones de la red sigue activo, sin cambiar ajustes.</p>
 <p>La optimización de la conversión del audio del micrófono en las llamadas con Neonize es automática y no requiere cambiar ajustes. Si el motor instalado no admite la optimización, WinZapp sigue usando el procesamiento compatible.</p>
@@ -1544,7 +1535,6 @@
 <p class="lead">Cada alpha nueva que trae funciones se añade a la guía. Esta lista muestra hasta qué alpha está completa la guía y qué se añadió en cada ronda.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Qué entró en la guía</th></tr>
-  <tr><td class="field-name">Aún no publicado</td><td>Configuración &gt; Llamadas: el botón "Componente de reproducción de la llamada" abre la ventana del componente de reproducción de las llamadas Neonize (NetEQ), con el estado del componente y los botones "Descargar" y "Quitar".</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Llamadas de grupo en Neonize: el audio de cada persona tiene su propia reproducción con NetEQ; un paquete de audio perdido se recupera de la copia que algunos teléfonos envían en el siguiente.</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Mensajes fijados: la ventana "Mensajes fijados" tiene el menú contextual y los atajos de la lista de mensajes; "Desfijar seleccionados" y Ctrl+Shift+P con mensajes seleccionados; la opción "Anunciar cuántos mensajes están fijados al abrir un chat".</td></tr>
   <tr><td class="field-name">Aún no publicado</td><td>Configuración &gt; General &gt; Notificaciones: "Notificar reacciones a tus mensajes".</td></tr>

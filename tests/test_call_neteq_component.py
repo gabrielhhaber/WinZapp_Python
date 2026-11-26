@@ -248,6 +248,9 @@ def test_every_sentence_is_said_in_every_locale(locale, monkeypatch):
     assert "MB" in ctext.confirmation_text(i18n) and "{" not in ctext.confirmation_text(i18n)
     assert ctext.outcome_text(i18n, "x", None)
     assert ctext.outcome_text(i18n, None, errors.TranscriptionError(errors.CANCELLED, "x"))
+    for code in ctext.FAILURE_KEYS:
+        text = ctext.outcome_text(i18n, None, errors.TranscriptionError(code, "x"))
+        assert text == i18n.t(ctext.FAILURE_KEYS[code]) and "{" not in text
     assert ctext.removal_text(i18n, True) and ctext.removal_text(i18n, False)
     for key in ("neteq_component_button", "neteq_component_label", "neteq_component_progress",
                 "neteq_component_download_btn", "neteq_component_remove_btn",
@@ -380,3 +383,31 @@ def test_a_background_download_is_followed_to_its_end(monkeypatch):
     refused = _window(started=False)
     assert refused._start_in_background(lambda *a: None, "status") is False
     assert refused.said == ["noise_reducer_background_busy"]
+
+
+def test_a_failed_download_names_the_component_not_the_transcription_model():
+    from core.transcription import errors, management
+    for code, key in ((errors.MODEL_DOWNLOAD_FAILED, "neteq_component_download_failed"),
+                      (errors.MODEL_CORRUPTED, "neteq_component_download_corrupted")):
+        error = errors.TranscriptionError(code, "x")
+        shared = management.announcement(management.ACTION_DOWNLOAD_MODEL, None, error,
+                                         model_id=comp.NETEQ.id)
+        ann = ctext.component_announcement(shared, error)
+        assert ann.i18n_key == key and ann.outcome == shared.outcome
+
+
+def test_other_failures_keep_the_shared_sentence():
+    from core.transcription import errors, management
+    for code in (errors.CANCELLED, errors.NO_DISK_SPACE):
+        error = errors.TranscriptionError(code, "x")
+        shared = management.announcement(management.ACTION_DOWNLOAD_MODEL, None, error,
+                                         model_id=comp.NETEQ.id)
+        assert ctext.component_announcement(shared, error) is shared
+
+
+def test_the_background_job_says_the_component_failure():
+    from core.call_neteq_component_job import NetEqComponentDownloadJob
+    from core.transcription import errors
+    job = NetEqComponentDownloadJob(on_progress=lambda *a: None, on_finished=lambda *a: None)
+    ann = job.announcement(None, errors.TranscriptionError(errors.MODEL_DOWNLOAD_FAILED, "x"))
+    assert ann.i18n_key == "neteq_component_download_failed"

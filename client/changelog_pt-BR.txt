@@ -24,8 +24,6 @@ NOVIDADES
 
 - Ligações em grupo no Neonize: o áudio de cada pessoa agora tem a sua própria reprodução com NetEQ, como nas chamadas individuais, que suaviza as variações de rede e as perdas de áudio de cada uma separadamente; antes, o grupo todo era misturado sem ele, com mais falhas e atraso. A tradução ao vivo e os dispositivos não atendidos pelo NetEQ continuam usando o modo compatível.
 
-- Chamadas Neonize: o componente de reprodução das chamadas (NetEQ) agora pode ser gerenciado em Configurações > Chamadas, pelo botão "Componente de reprodução da chamada". A janela mostra o estado do componente (não baixado, com o tamanho do download; download incompleto ou danificado; baixado; incluído nesta instalação; ou não oferecido nesta versão) e tem os botões "Baixar", que também conserta um download incompleto, e "Remover". Sem o componente, as chamadas usam automaticamente a reprodução padrão (o modo compatível).
-
 - Ligações Neonize: quando um pacote de áudio se perde e o seguinte traz uma cópia dele, como alguns celulares mandam, o WinZapp agora toca essa cópia, em vez de preencher a falha com uma estimativa.
 
 - Salvar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o arquivo app.json das configurações, agora salva o arquivo, em vez de dizer que não foi possível baixá-lo.

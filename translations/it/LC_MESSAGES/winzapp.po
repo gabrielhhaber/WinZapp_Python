@@ -10632,6 +10632,24 @@ msgstr ""
 "più fluido quando la connessione è instabile."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_download_corrupted"
+msgid ""
+"The downloaded call playback component is incomplete or damaged. Download it"
+" again."
+msgstr ""
+"Il componente di riproduzione delle chiamate scaricato è incompleto o "
+"danneggiato. Scaricalo di nuovo."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_download_failed"
+msgid ""
+"The call playback component could not be downloaded. Check your connection "
+"and try again."
+msgstr ""
+"Impossibile scaricare il componente di riproduzione delle chiamate. "
+"Controlla la connessione e riprova."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/call_neteq_component_text.py
 msgctxt "neteq_component_downloaded"
 msgid "Call playback component downloaded. It is used from the next call."

@@ -783,15 +783,6 @@
     <h2 id="h-hovory">📞 9. Hovory</h2>
 <p class="lead">Hlasové a videohovory můžete ve WinZappu uskutečňovat, přijímat i odmítat přímo, aniž byste sáhli po telefonu.</p>
 <p>Individuální i skupinové hovory Neonize: přehrávání pomocí NetEQ vyrovnává kolísání sítě a výpadky zvuku s automatickým návratem ke kompatibilnímu přehrávání. Ve skupinovém hovoru má zvuk každé osoby vlastní NetEQ. Funkce pracuje automaticky, když je součást dostupná. Živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání bez změny nastavení. Když telefon někoho posílá v každém zvukovém paketu kopii předchozího, ztracený paket se obnoví z této kopie, místo aby se vyplnil odhadem.</p>
-<p>V Nastavení &gt; Hovory otevře tlačítko "Součást pro přehrávání hovorů" okno s polem jen pro čtení "Součást pro přehrávání hovorů (NetEQ)" a tlačítky "Stáhnout", "Odebrat" a "Zavřít" (zavře ho i Esc). Pole uvádí stav součásti:</p>
-<ul>
-  <li><strong>Nestaženo:</strong> s velikostí stahování; "Stáhnout" součást stáhne.</li>
-  <li><strong>Stahování neúplné nebo poškozené:</strong> "Stáhnout" součást stáhne znovu a opraví ji; "Odebrat" smaže, co zůstalo.</li>
-  <li><strong>Staženo:</strong> hovory přes engine Neonize ji používají k plynulejšímu přehrávání hlasu druhé strany (po stažení od příštího hovoru); "Odebrat" ji smaže.</li>
-  <li><strong>Součást této instalace WinZappu:</strong> součást přišla s enginem Neonize, takže není co stahovat.</li>
-  <li><strong>Tato verze ji nenabízí:</strong> tato verze WinZappu zatím součást ke stažení nenabízí a "Stáhnout" není k dispozici.</li>
-</ul>
-<p>"Stáhnout" si vyžádá potvrzení s velikostí stahování a otevře okno průběhu s tlačítkem "Zrušit"; když je zaškrtnuté "Stahovat aktualizace a soubory pro přepis na pozadí, bez okna průběhu" (Nastavení &gt; Obecné), stahování proběhne na pozadí. Po dokončení WinZapp oznámí výsledek. "Odebrat" si také vyžádá potvrzení. Pokud se součást používá, WinZapp oznámí, že ji nešlo odebrat: zavřete WinZapp, znovu ho otevřete a odeberte součást dřív, než začnete hovor. Bez této součásti hovory přes engine Neonize používají standardní přehrávání, tedy stejné kompatibilní přehrávání popsané výše, bez změny nastavení.</p>
 <p>Hovory Neonize: zvuk využívá přímé místní spojení s nativním jádrem a při jeho nedostupnosti se automaticky vrátí k Socket.IO. Není třeba měnit nastavení. Ovládání hovoru nadále používá obvyklé spojení.</p>
 <p>Při individuálních hovorech přes Neonize přichází přijímaný zvuk do vyrovnávací paměti přehrávání bez dvojitého čekání v modulu. Automatické přizpůsobování kolísání síťového zpoždění zůstává aktivní a nevyžaduje změnu nastavení.</p>
 <p>Optimalizace převodu zvuku mikrofonu při hovorech přes Neonize probíhá automaticky a nevyžaduje změnu nastavení. Pokud ji nainstalovaný modul nepodporuje, WinZapp nadále používá kompatibilní zpracování.</p>
@@ -1544,7 +1535,6 @@
 <p class="lead">Každá nová alpha, která přináší funkce, se přidává do návodu. Tento seznam ukazuje, do které alphy je průvodce úplný a co bylo přidáno v každém kole.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co přibylo do návodu</th></tr>
-  <tr><td class="field-name">Zatím nevydáno</td><td>Nastavení &gt; Hovory: tlačítko "Součást pro přehrávání hovorů" otevře okno součásti pro přehrávání hovorů Neonize (NetEQ) se stavem součásti a tlačítky "Stáhnout" a "Odebrat".</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Skupinové hovory Neonize: zvuk každé osoby má vlastní přehrávání pomocí NetEQ; ztracený zvukový paket se obnoví z kopie, kterou některé telefony posílají v dalším.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Připnuté zprávy: okno „Připnuté zprávy“ má místní nabídku a zkratky seznamu zpráv; „Odepnout vybrané“ a Ctrl+Shift+P s vybranými zprávami; volba „Při otevření chatu ohlásit počet připnutých zpráv“.</td></tr>
   <tr><td class="field-name">Zatím nevydáno</td><td>Nastavení &gt; Obecné &gt; Oznámení: „Oznamovat reakce na vaše zprávy“.</td></tr>

@@ -24,8 +24,6 @@ NOWOŚCI
 
 - Połączenia grupowe Neonize: dźwięk każdej osoby ma teraz własne odtwarzanie z NetEQ, tak jak w połączeniach indywidualnych, co łagodzi wahania sieci i utratę dźwięku osobno dla każdej z nich; wcześniej cała grupa była miksowana bez niego, z większą liczbą przerw i opóźnieniem. Tłumaczenie na żywo i urządzenia nieobsługiwane przez NetEQ nadal korzystają ze zgodnego odtwarzania.
 
-- Połączenia Neonize: składnikiem odtwarzania połączeń (NetEQ) można teraz zarządzać w Ustawienia > Połączenia, przyciskiem „Składnik odtwarzania połączeń”. Jego okno pokazuje stan składnika (nie pobrano, z rozmiarem pobierania; pobieranie niekompletne lub uszkodzone; pobrano; dołączony do tej instalacji; albo niedostępny w tej wersji) i ma przyciski „Pobierz”, który naprawia też niekompletne pobieranie, oraz „Usuń”. Bez składnika połączenia automatycznie korzystają ze standardowego (zgodnego) odtwarzania.
-
 - Połączenia Neonize: gdy pakiet dźwięku zaginie, a następny niesie jego kopię, jak wysyłają niektóre telefony, WinZapp odtwarza teraz tę kopię, zamiast wypełniać lukę oszacowaniem.
 
 - Zapisz jako (Ctrl+Shift+S) dla dokumentu JSON odebranego w czacie, na przykład pliku ustawień app.json, teraz zapisuje plik zamiast zgłaszać, że nie udało się go pobrać.

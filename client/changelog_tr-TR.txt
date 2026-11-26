@@ -24,8 +24,6 @@ YENİLİKLER
 
 - Neonize grup aramaları: her kişinin sesi artık bire bir aramalarda olduğu gibi kendi NetEQ oynatmasına sahip; bu, her birinin ağ dalgalanmalarını ve ses kaybını ayrı ayrı azaltır. Önceden tüm grup NetEQ olmadan karıştırılıyordu ve daha fazla kesinti ve gecikme oluyordu. Canlı çeviri ve NetEQ tarafından desteklenmeyen aygıtlar uyumlu oynatmayı kullanmaya devam eder.
 
-- Neonize aramaları: arama oynatma bileşeni (NetEQ) artık Ayarlar > Aramalar'daki "Arama oynatma bileşeni" düğmesiyle yönetilebilir. Penceresi bileşenin durumunu gösterir (indirilmedi, indirme boyutuyla birlikte; indirme tamamlanmadı veya bozuk; indirildi; bu kuruluma dahil; ya da bu sürümde sunulmuyor) ve eksik bir indirmeyi de onaran "İndir" ile "Kaldır" düğmelerini içerir. Bileşen olmadan aramalar otomatik olarak standart (uyumlu) oynatmayı kullanır.
-
 - Neonize aramaları: bir ses paketi kaybolduğunda ve sonraki paket onun bir kopyasını taşıdığında (bazı telefonlar bunu gönderir), WinZapp artık boşluğu bir tahminle doldurmak yerine bu kopyayı çalar.
 
 - Bir sohbette alınan JSON belgesinde, örneğin ayarların app.json dosyasında, Farklı Kaydet (Ctrl+Shift+S) artık indirilemediğini söylemek yerine dosyayı kaydeder.
