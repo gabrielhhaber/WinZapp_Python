@@ -19,6 +19,7 @@ class PinnedMessagesMixin:
         self._pinned_snapshot_known = False
         self._pinned_writes = set()
         self._pinned_deferred_read = {}
+        self._pinned_window = None
         self._pinned_messages_btn = wx.Button(
             self.conversation_panel,
             label=self.main_window.i18n.t("pinned_messages_title"),
@@ -112,6 +113,7 @@ class PinnedMessagesMixin:
         self._update_pinned_messages_button()
         if changed:
             self._repaint_or_repopulate(changed)
+        self._refresh_pinned_messages_window()
         if not visible:
             return
         if show:
@@ -156,6 +158,14 @@ class PinnedMessagesMixin:
                 pins.pop(mid, None)
         self._pinned_messages = list(pins.values())
         self._update_pinned_messages_button()
+        self._refresh_pinned_messages_window()
+
+    def _refresh_pinned_messages_window(self):
+        # Optimistic unpins can be rolled back after the action returns;
+        # authoritative reads can arrive while the modal window stays open.
+        dialog, jid = getattr(self, "_pinned_window", None) or (None, "")
+        if dialog is not None and (self.conversation or {}).get("remoteJid") == jid:
+            dialog.pins_changed()
 
     def _begin_pinned_message_write(self, jid):
         job = (jid, object())

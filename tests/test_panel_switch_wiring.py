@@ -186,6 +186,9 @@ class _Panel(ConversationPanelVisibilityMixin, PinnedMessagesMixin):
         self.log = log
         self.conversation = None
         self._conversation_origin = None
+        # PinnedMessagesMixin reads this when the vault closes. An absent
+        # attribute here would be fabricated as a MagicMock by __getattr__.
+        self._pinned_window = None
         self._group_participants_cache = []
         self._last_list_focus_jid = ""
         self._last_open_jid = ""

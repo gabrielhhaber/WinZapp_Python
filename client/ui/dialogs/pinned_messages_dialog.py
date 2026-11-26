@@ -68,6 +68,16 @@ class PinnedMessagesDialog(wx.Dialog):
 
     # ── rows ──────────────────────────────────────────────────────────────
 
+    def pins_changed(self):
+        """Follow background writes and reads without reopening the window.
+
+        An action can run a nested modal loop. It refreshes once it returns;
+        refreshing here would change the rows its selection context owns.
+        """
+        if self._in_action or self._locked or self._leaving or not self:
+            return
+        self._refresh()
+
     def _current(self, message):
         """The conversation's own copy of a pin when it holds one: its flags
         (starred, selected, edited) are the live ones."""

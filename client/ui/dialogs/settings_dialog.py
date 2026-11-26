@@ -26,7 +26,7 @@ from core.audio_devices import (
 from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
 from core.notification_manager import (
-    GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS, reaction_notifications_enabled,
+    GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS,
 )
 from core.attachment_types import PASTED_AUDIO_MODES
 from core.reaction_shortcuts import (
@@ -2583,12 +2583,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         notify_edits = self.main_window.settings.get("general", {}).get(
             "notify_edited_messages", False
         )
+        notify_reactions = self.main_window.settings.get("general", {}).get(
+            "notify_reactions", True
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
             self._announce_edits_check.SetValue(announce_edits is True)
             self._notify_edits_check.SetValue(notify_edits is True)
-            self._notify_reactions_check.SetValue(
-                reaction_notifications_enabled(self.main_window.settings))
+            self._notify_reactions_check.SetValue(notify_reactions is not False)
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))

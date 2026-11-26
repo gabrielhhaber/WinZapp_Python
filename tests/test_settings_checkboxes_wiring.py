@@ -164,12 +164,15 @@ _VALUE_GUARDS = ("bool", "emoticon_setting_enabled")
 
 
 def _unwrap_bool(node):
-    # A strict opt-in guard has the same settings source as bool(value),
-    # but rejects malformed stored values such as the string "false".
+    # Strict opt-in (is True) and opt-out (is not False) guards both
+    # retain the same settings source, including its fallback.
     if (isinstance(node, ast.Compare) and len(node.ops) == 1
-            and isinstance(node.ops[0], ast.Is) and len(node.comparators) == 1
+            and len(node.comparators) == 1
             and isinstance(node.comparators[0], ast.Constant)
-            and node.comparators[0].value is True):
+            and ((isinstance(node.ops[0], ast.Is)
+                  and node.comparators[0].value is True)
+                 or (isinstance(node.ops[0], ast.IsNot)
+                     and node.comparators[0].value is False))):
         return node.left
     if (
         isinstance(node, ast.Call)

@@ -82,6 +82,29 @@ def inline_callbacks(monkeypatch):
 
 
 class TestPinnedOverview:
+    def test_open_window_follows_unpin_and_delayed_rollback(self):
+        pin = message("old")
+        panel = Panel([pin])
+        panel._pinned_messages = [pin]
+        snapshots = []
+        panel._pinned_window = (SimpleNamespace(pins_changed=lambda: snapshots.append(
+            [m["key"]["id"] for m in panel._pinned_messages])), JID)
+        pin["pinInChat"] = False
+        panel._pinned_message_state_changed(pin, JID)
+        pin["pinInChat"] = True  # the background write was refused
+        panel._pinned_message_state_changed(pin, JID)
+        assert snapshots == [[], ["old"]]
+
+    @pytest.mark.parametrize("same_chat", [True, False])
+    def test_authoritative_read_refreshes_only_its_own_open_window(self, same_chat):
+        panel = Panel()
+        dialog = SimpleNamespace(pins_changed=Mock())
+        panel._pinned_window = (dialog, JID if same_chat else "other@g.us")
+        panel.main_window.get_pinned_messages.return_value = [message("old")]
+        panel._load_pinned_messages()
+        panel.work.pop()()
+        assert dialog.pins_changed.call_count == int(same_chat)
+
     def test_open_updates_count_and_announces_without_moving_focus(self):
         old = message("old", False)
         removed = message("removed")

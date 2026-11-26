@@ -252,7 +252,7 @@ class Window:
     for _name in ("_current", "_row_text", "_refresh", "_selected", "_record_ids", "_go",
                   "_leave", "_run", "_on_char_hook", "_selection_key", "_add_to_selection",
                   "_toggle_all", "_leave_menu", "_on_menu", "close_for_lock", "_end_for_lock",
-                  "_on_context_menu"):
+                  "_on_context_menu", "pins_changed"):
         locals()[_name] = getattr(PinnedMessagesDialog, _name)
 
     def __init__(self, panel):
@@ -296,6 +296,25 @@ def keys(monkeypatch):
 
 
 class TestWindowRows:
+    def test_background_pin_change_updates_rows_without_reopening(self):
+        panel = Panel([message("a")])
+        window = Window(panel)
+        panel._pinned_messages = []
+        window.pins_changed()
+        assert window._rows == []
+        panel._pinned_messages = [message("a")]
+        window.pins_changed()
+        assert window._list.items == ["Content a"]
+
+    @pytest.mark.parametrize("state", ["_in_action", "_locked", "_leaving"])
+    def test_background_pin_change_waits_for_actions_and_never_revives_closed_rows(self, state):
+        panel = Panel([message("a")])
+        window = Window(panel)
+        setattr(window, state, True)
+        panel._pinned_messages = []
+        window.pins_changed()
+        assert window._list.items == ["Content a"]
+
     def test_rows_have_no_pin_marker_and_keep_line_breaks(self):
         window = Window(Panel([message("a", "first\nsecond")]))
         assert window._list.items == ["first\nsecond"]
