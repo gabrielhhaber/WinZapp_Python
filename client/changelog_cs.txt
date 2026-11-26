@@ -22,6 +22,10 @@ NOVINKY
 
 - Neonize: když se připojíte ke skupinovému hovoru, který už probíhá, nově uslyšíte lidi, jejichž telefon posílá zvuk ve formátu, který WinZapp dříve zahazoval; s nimi jste neslyšeli nikoho.
 
+- Skupinové hovory Neonize: zvuk každé osoby má nyní vlastní přehrávání pomocí NetEQ, stejně jako v individuálních hovorech, které vyrovnává kolísání sítě a výpadky zvuku každé z nich zvlášť; dříve se celá skupina míchala bez něj, s více výpadky a zpožděním. Živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání.
+
+- Hovory Neonize: když se ztratí zvukový paket a další nese jeho kopii, jak ji některé telefony posílají, WinZapp nyní přehraje tuto kopii, místo aby mezeru vyplnil odhadem.
+
 - Uložit jako (Ctrl+Shift+S) u dokumentu JSON přijatého v chatu, například souboru nastavení app.json, nyní soubor uloží, místo aby oznámilo, že ho nelze stáhnout.
 
 - Klávesové zkratky: když hned po změně klávesy přepnete na jiný účet, zobrazený účet reaguje na novou klávesu, i když předchozí účet ještě ukládá nastavení; dříve mohl zůstat u staré klávesy, dokud něco neuložil.

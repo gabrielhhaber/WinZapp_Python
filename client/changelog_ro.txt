@@ -22,6 +22,10 @@ NOUTĂȚI
 
 - Neonize: când intrați într-un apel de grup deja în desfășurare, acum auziți persoanele al căror telefon trimite sunetul într-un format pe care WinZapp îl arunca înainte; cu ele, nu auzeați pe nimeni.
 
+- Apeluri de grup Neonize: sunetul fiecărei persoane are acum propria redare cu NetEQ, ca în apelurile individuale, care atenuează variațiile rețelei și pierderile audio ale fiecăreia separat; înainte, tot grupul era mixat fără el, cu mai multe întreruperi și întârziere. Traducerea în timp real și dispozitivele neacceptate de NetEQ păstrează redarea compatibilă.
+
+- Apeluri Neonize: când se pierde un pachet audio și următorul aduce o copie a lui, cum trimit unele telefoane, WinZapp redă acum acea copie în loc să umple golul cu o estimare.
+
 - Salvare ca (Ctrl+Shift+S) pe un document JSON primit într-o conversație, cum ar fi fișierul de setări app.json, salvează acum fișierul în loc să spună că nu a putut fi descărcat.
 
 - Comenzi rapide: când treceți la alt cont imediat după ce ați schimbat o tastă, contul care apare răspunde la tasta nouă chiar dacă cel anterior încă își salvează setările; înainte putea rămâne pe tasta veche până salva ceva.

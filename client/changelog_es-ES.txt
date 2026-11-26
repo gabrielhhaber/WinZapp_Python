@@ -22,6 +22,10 @@ NOVEDADES
 
 - Neonize: al unirte a una llamada de grupo ya en curso, ahora oyes a las personas cuyo teléfono envía el audio en un formato que WinZapp antes descartaba; con ellas, no oías a nadie.
 
+- Llamadas de grupo en Neonize: el audio de cada persona tiene ahora su propia reproducción con NetEQ, como en las llamadas individuales, que suaviza las variaciones de red y las pérdidas de audio de cada una por separado; antes, todo el grupo se mezclaba sin él, con más cortes y retraso. La traducción en directo y los dispositivos no admitidos por NetEQ mantienen la reproducción compatible.
+
+- Llamadas Neonize: cuando se pierde un paquete de audio y el siguiente trae una copia de él, como envían algunos teléfonos, WinZapp ahora reproduce esa copia en lugar de rellenar el hueco con una estimación.
+
 - Guardar como (Ctrl+Shift+S) en un documento JSON recibido en una conversación, como el archivo app.json de la configuración, ahora guarda el archivo, en lugar de decir que no se pudo descargar.
 
 - Atajos de teclado: al pasar a otra cuenta justo después de cambiar una tecla, la cuenta que aparece responde a la tecla nueva aunque la anterior siga guardando su configuración; antes podía quedarse con la tecla antigua hasta guardar algo.

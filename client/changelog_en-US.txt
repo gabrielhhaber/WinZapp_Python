@@ -22,6 +22,10 @@ WHAT'S NEW
 
 - Neonize: joining a group call already under way, you now hear the people whose phones send audio in a format WinZapp used to drop; with them, you heard nobody.
 
+- Neonize group calls: each person's audio now has its own NetEQ playback, as in one-to-one calls, which smooths network jitter and audio loss for each of them separately; before, the whole group was mixed without it, with more gaps and delay. Live translation and devices not supported by NetEQ keep compatible playback.
+
+- Neonize calls: when an audio packet is lost and the next one carries a copy of it, as some phones send, WinZapp now plays that copy instead of filling the gap with an estimate.
+
 - Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
 
 - Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
