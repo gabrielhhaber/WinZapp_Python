@@ -19,5 +19,7 @@ def apply_phone_lock(mw, jid, locked):
             panel.close_ai_media(locked_only=True)
         if panel is not None and hasattr(panel, "drop_locked_translations"):
             panel.drop_locked_translations()
+        if panel is not None and hasattr(panel, "close_locked_pinned_window"):
+            panel.close_locked_pinned_window()
     mw._refresh_chat_lock_navigation()
     mw._schedule_set_chats()

@@ -243,7 +243,7 @@ class Window:
     """PinnedMessagesDialog's methods on a stub: no wx.Dialog is built."""
     for _name in ("_current", "_row_text", "_refresh", "_selected", "_record_ids", "_go",
                   "_leave", "_run", "_on_char_hook", "_selection_key", "_add_to_selection",
-                  "_toggle_all", "_leave_menu", "_on_menu"):
+                  "_toggle_all", "_leave_menu", "_on_menu", "close_for_lock", "_end_for_lock"):
         locals()[_name] = getattr(PinnedMessagesDialog, _name)
 
     def __init__(self, panel):
@@ -251,6 +251,8 @@ class Window:
         self._mw = SimpleNamespace(output=Mock())
         self._i18n = SimpleNamespace(t=lambda key: key)
         self._rows, self._gone, self._leaving = [], set(), False
+        self._in_action = self._locked = False
+        self.IsModal = Mock(return_value=True)
         self._menu_message = self._menu_go_id = None
         self.target = self.then = None
         self._list = _ListBox()
@@ -300,6 +302,33 @@ class TestWindowRows:
         assert window._list.items == ["pinned_messages_empty"]
         window._go_button.Enable.assert_called_with(False)
         assert window._selected() is None
+
+
+class TestTheVaultLocks:
+    """MainWindow.lock_chat_vault() closes the window of a chat it hides."""
+
+    def test_the_rows_go_and_the_window_closes(self):
+        window = Window(Panel([message("a")]))
+        window.close_for_lock()
+        assert window._list.items == [] and window._rows == []
+        window._go_button.Enable.assert_called_with(False)
+        window.EndModal.assert_called_once_with(wx.ID_CANCEL)
+
+    def test_during_an_action_the_close_waits_for_it_to_return(self, keys):
+        """The action's own window may be the running modal loop; wx can only
+        end that one."""
+        panel = Panel([message("a"), message("b")])
+        window = Window(panel)
+        during = []
+
+        def lock_meanwhile(msg, command):
+            window.close_for_lock()
+            during.append(window.EndModal.call_count)
+        panel.run_message_command.side_effect = lock_meanwhile
+        keys(window, "messages.ID_CTRL_SHIFT_E")
+        assert during == [0]
+        window.EndModal.assert_called_once_with(wx.ID_CANCEL)
+        assert window._list.items == []
 
 
 class TestWindowKeys:

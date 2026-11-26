@@ -193,10 +193,13 @@ class PinnedMessagesMixin:
             return
         visit = self._pinned_visit
         dialog = PinnedMessagesDialog(self, self.main_window)
+        # Kept for close_locked_pinned_window(), with the chat it lists.
+        self._pinned_window = (dialog, (self.conversation or {}).get("remoteJid", ""))
         try:
             result = dialog.ShowModal()
             target, then = dialog.target, dialog.then
         finally:
+            self._pinned_window = None
             dialog.Destroy()
         if (result != wx.ID_OK or target is None or visit is not self._pinned_visit
                 or getattr(self.main_window, "_shutting_down", False)):
@@ -204,6 +207,14 @@ class PinnedMessagesMixin:
         self._jump_to_pinned_message(target)
         if then is not None:
             then()
+
+    def close_locked_pinned_window(self):
+        """Locking the vault closes the pinned messages window of a chat it
+        hides (MainWindow.lock_chat_vault): left open, it kept listing that
+        chat's pins over the main list."""
+        dialog, jid = getattr(self, "_pinned_window", None) or (None, "")
+        if dialog is not None and self.main_window.is_chat_hidden_by_vault(jid):
+            dialog.close_for_lock()
 
     def _jump_to_pinned_message(self, message):
         index = self._resident_message_index(message)

@@ -611,3 +611,29 @@ class TestLockChatVaultAsksTheSameRule:
         vault.main_window._chat_lock_vault.unlock_chat(_JID)
         vault.main_window.lock_chat_vault(silent=True)
         assert vault.panel.conversation == {"remoteJid": _JID}
+
+
+class TestLockChatVaultClosesThePinnedWindow:
+    """The pinned messages window of a chat the vault hides (#848) closes with
+    the vault; left open, it kept listing that chat's pins."""
+
+    def _pinned_window(self, vault):
+        from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
+        closed = []
+        panel = vault.panel
+        panel.close_locked_pinned_window = types.MethodType(
+            PinnedMessagesMixin.close_locked_pinned_window, panel)
+        panel._pinned_window = (types.SimpleNamespace(
+            close_for_lock=lambda: closed.append(True)), _JID)
+        return closed
+
+    def test_a_locked_chats_window_closes(self, vault):
+        closed = self._pinned_window(vault)
+        vault.main_window.lock_chat_vault(silent=True)
+        assert closed == [True]
+
+    def test_a_window_of_a_chat_that_is_not_locked_stays(self, vault):
+        closed = self._pinned_window(vault)
+        vault.main_window._chat_lock_vault.unlock_chat(_JID)
+        vault.main_window.lock_chat_vault(silent=True)
+        assert closed == []

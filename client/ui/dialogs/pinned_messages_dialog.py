@@ -37,6 +37,8 @@ class PinnedMessagesDialog(wx.Dialog):
         self._rows = []
         self._gone = set()
         self._leaving = False
+        self._in_action = False     # an action (and any window it opened) runs
+        self._locked = False        # close_for_lock() came in meanwhile
         self._menu_message = None
         self._menu_go_id = None
         self.target = None      # the message to focus in the conversation
@@ -144,19 +146,42 @@ class PinnedMessagesDialog(wx.Dialog):
         panel._resident_message_index(message)
         before = self._record_ids()
         # The window's keys act on the window's part of the selection only.
-        with selection_within(panel, [message_id(m) for m in self._rows]) as outside:
-            try:
-                action()
-            except Exception:
-                logging.exception("[pinned-messages] action failed")
+        self._in_action = True
+        try:
+            with selection_within(panel, [message_id(m) for m in self._rows]) as outside:
+                try:
+                    action()
+                except Exception:
+                    logging.exception("[pinned-messages] action failed")
+        finally:
+            self._in_action = False
         if outside:
             # Their rows were redrawn unselected if the action rewrote the list.
             panel._refresh_message_rows_by_ids(sorted(outside))
+        if self._locked and self:
+            self._end_for_lock()
+            return
         if self._leaving or not self:
             return
         self._gone |= {message_id(m) for m in self._rows
                        if message_id(m) in before} - self._record_ids()
         self._refresh()
+
+    def close_for_lock(self):
+        """The vault was locked over this chat: the rows go at once and the
+        window closes. An action's own window (forward, a confirmation) may
+        be open on top; wx can only end the modal loop that is running, so
+        then the close waits for that action to return (_run)."""
+        self._locked = True
+        self._rows = []
+        self._list.Set([])
+        self._go_button.Enable(False)
+        if not self._in_action:
+            self._end_for_lock()
+
+    def _end_for_lock(self):
+        if self.IsModal():
+            self.EndModal(wx.ID_CANCEL)
 
     def _on_char_hook(self, event):
         if wx.Window.FindFocus() is not self._list or not self._rows:
