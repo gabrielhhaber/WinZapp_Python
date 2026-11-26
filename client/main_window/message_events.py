@@ -1154,7 +1154,7 @@ class MessageEventsMixin:
                 not getattr(self, "_window_hidden", False)
                 and self.IsShown()
                 and not self.IsIconized()
-                and not self.is_user_away()
+                and not getattr(self, "is_user_away", lambda: False)()
             )
             if not (_open and _visible):
                 chat["unreadCount"] = int(chat.get("unreadCount") or 0) + 1
@@ -1355,7 +1355,7 @@ class MessageEventsMixin:
                 # Away (core/away_mode.py): nobody is looking, so it stays
                 # unread until the person is back (main_window/away.py).
                 last_act = getattr(self, "_last_activation_time", 0)
-                if time.time() - last_act >= 5.0 and not self.is_user_away():
+                if time.time() - last_act >= 5.0 and not getattr(self, "is_user_away", lambda: False)():
                     threading.Thread(
                         target=self.mark_conversation_as_read,
                         args=(remote_jid, True),
