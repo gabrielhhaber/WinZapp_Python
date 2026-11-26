@@ -57,6 +57,9 @@ def ensure_build_tools() -> None:
     path = _path_from_registry()
     missing = [name for name in _WINGET_PACKAGES if not _has_tool(name, path)]
     if not missing:
+        os.environ["PATH"] = path
+        from .neonize_neteq_setup import ensure_neteq_tools
+        ensure_neteq_tools()
         return
 
     winget = shutil.which("winget", path=path)
@@ -85,3 +88,5 @@ def ensure_build_tools() -> None:
             + ", ".join(still_missing)
             + ". Open a new terminal and run `uv run setup-neonize` again.")
     os.environ["PATH"] = path
+    from .neonize_neteq_setup import ensure_neteq_tools
+    ensure_neteq_tools()
