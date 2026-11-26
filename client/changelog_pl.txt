@@ -4,6 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Ponowne połączenie po długim czasie offline: WinZapp odbiera teraz nagromadzone wiadomości, reakcje i potwierdzenia odczytu bez zawieszania interfejsu przy każdym zapisie do bazy danych, a silnik Neonize zapisuje swoją bazę szybciej.
 - macOS: wybranie innego silnika połączenia w oknie łączenia uruchamia teraz WinZapp ponownie z tym silnikiem. Wcześniej pojawiał się komunikat, że WinZapp nie mógł uruchomić się ponownie samodzielnie, a silnik nie był zmieniany.
 - Gdy wybrane w Ustawieniach urządzenie odtwarzające lub nagrywające, na przykład słuchawki, nie jest podłączone przy uruchamianiu WinZapp, WinZapp teraz informuje o tym jeden raz mową i używa domyślnego urządzenia systemu, zamiast pokazywać okno komunikatu przy każdym uruchomieniu. Okno wstrzymywało uruchamianie do czasu odpowiedzi, więc uruchomienie bez nikogo przy komputerze kończyło się błędem, że API WinZapp nie uruchomiło się na czas, i program się zamykał. Wybrane urządzenie zostaje zachowane i jest znowu używane, gdy tylko zostanie podłączone.
 
