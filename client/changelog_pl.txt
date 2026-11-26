@@ -4,6 +4,7 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Wysłane wiadomości: w silniku Neonize wiadomości, które wysłałeś, mogły znikać z rozmowy po ponownym otwarciu WinZapp, ponieważ nie zapisywano ich kopii. Teraz każda wysłana wiadomość jest zapisywana, gdy tylko wysłanie zostanie potwierdzone.
 - WPPConnect, łączenie kodem QR lub numerem telefonu: gdy telefon zaakceptuje parowanie, WinZapp nie mówi już, że połączenie się nie udało, kiedy WhatsApp Web wciąż otwiera czaty. Sprawdzenie wykonywane 4 minuty po parowaniu nie potrafiło odczytać stanu połączenia w nowych wersjach WhatsApp Web i uznawało działające połączenie za nieudane.
 
 - WPPConnect: przeglądarka wskazana w zmiennej środowiskowej PUPPETEER_EXECUTABLE_PATH, np. natywny Chrome dla Windows na ARM, znów jest używana, a gdy pobrano kilka wersji przeglądarki, WinZapp używa tej, której wymaga WPPConnect, a nie pierwszej znalezionej.

@@ -4,6 +4,7 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "e6038e79de7e": "Mensagens enviadas: no motor Neonize, as mensagens que você enviava podiam sumir",
     "dbf14c42b79c": "WPPConnect, conectar com QR-CODE ou pelo número de telefone: depois que o celula",
     "7af0f0d8a221": "WPPConnect: um navegador indicado na variável de ambiente PUPPETEER_EXECUTABLE_P",
     "ae30c71187cc": "Mensagens fixadas: o botão de mensagens fixadas da conversa agora abre a janela ",

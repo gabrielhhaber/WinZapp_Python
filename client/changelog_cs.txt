@@ -4,6 +4,7 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Odeslané zprávy: u enginu Neonize mohly vámi odeslané zprávy po novém otevření WinZapp z konverzace zmizet, protože se neukládala žádná jejich kopie. Každá odeslaná zpráva se nyní uloží, jakmile je odeslání potvrzeno.
 - WPPConnect, připojení kódem QR nebo telefonním číslem: když telefon spárování přijme, WinZapp už neříká, že se připojení nezdařilo, zatímco WhatsApp Web ještě otevírá chaty. Kontrola prováděná 4 minuty po spárování nedokázala v nových verzích WhatsApp Webu přečíst stav připojení a funkční připojení vyhodnotila jako neúspěšné.
 
 - WPPConnect: prohlížeč uvedený v proměnné prostředí PUPPETEER_EXECUTABLE_PATH, například nativní Chrome pro Windows na ARM, se zase používá, a když je staženo více verzí prohlížeče, WinZapp použije tu, kterou požaduje WPPConnect, ne první nalezenou.
