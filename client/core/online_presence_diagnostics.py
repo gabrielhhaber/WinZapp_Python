@@ -21,24 +21,25 @@ class PresenceDiagnostics:
         self.last_logged = float("-inf")
 
     def decide(self, *, connected, token, shutdown, background, hidden,
-               shown=None, iconized=None, active=None, now=None):
+               shown=None, iconized=None, active=None, away=False, now=None):
         now = time.monotonic() if now is None else now
         if connected != self.connected:
             self.epoch = self.epoch % 9_999_999 + 1
             self.connected = connected
         self.sequence = self.sequence % 9_999_999 + 1
         online = bool(connected and not background and not hidden and shown
-                      and not iconized and active)
-        signature = (connected, token, shutdown, background, hidden, shown, iconized, active)
+                      and not iconized and active and not away)
+        signature = (connected, token, shutdown, background, hidden, shown, iconized, active,
+                     away)
         elapsed = now - self.last_logged
         trace = elapsed >= 60 or (signature != self.last_signature and elapsed >= 1)
         if trace:
             logging.info(
                 "[presence-diag] decision seq=%d epoch=%d online=%s connected=%s "
                 "token_present=%s shutdown=%s background=%s hidden=%s shown=%s "
-                "iconized=%s active=%s",
+                "iconized=%s active=%s away=%s",
                 self.sequence, self.epoch, online, connected, token, shutdown,
-                background, hidden, shown, iconized, active,
+                background, hidden, shown, iconized, active, away,
             )
             self.last_signature, self.last_logged = signature, now
         return PresenceDecision(self.sequence, self.epoch, online, trace)

@@ -21070,6 +21070,22 @@ msgstr "Automatically &play voice messages in sequence"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_enabled"
+msgid ""
+"Consider me a&way after a period without using WinZapp: show me offline and "
+"stop marking messages as read"
+msgstr ""
+"Consider me a&way after a period without using WinZapp: show me offline and "
+"stop marking messages as read"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_minutes_label"
+msgid "&Minutes without using WinZapp before I am away:"
+msgstr "&Minutes without using WinZapp before I am away:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "&Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""

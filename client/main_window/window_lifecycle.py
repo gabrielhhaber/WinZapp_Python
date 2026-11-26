@@ -124,6 +124,7 @@ class WindowLifecycleMixin:
         """Actually send the presence update after `_on_window_activate`'s debounce settles."""
         if active:
             self._last_activation_time = time.time()
+            self._away_interaction()  # coming back to the window is being present
             # The Accounts menu is built once at startup from a registry
             # snapshot and shows only 'paired' accounts. If another account's
             # process paired / changed state after this menu was built (or its
@@ -164,6 +165,7 @@ class WindowLifecycleMixin:
             shown=bool(self.IsShown()) if inspect_window else None,
             iconized=bool(self.IsIconized()) if inspect_window else None,
             active=bool(self.IsActive()) if inspect_window else None,
+            away=self.is_user_away(),
         )
         if not connected:
             self._presence_timer.Stop()
@@ -607,6 +609,7 @@ class WindowLifecycleMixin:
         if cp is not None and hasattr(cp, "close_ai_media"):
             wx.CallAfter(cp.close_ai_media)
         try:
+            self._stop_away()
             # Stop the presence keep-alive timer before tearing down
             if hasattr(self, "_presence_timer") and self._presence_timer.IsRunning():
                 self._presence_timer.Stop()

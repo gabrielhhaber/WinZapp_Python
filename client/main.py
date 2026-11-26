@@ -325,6 +325,7 @@ from main_window.chat_events import ChatEventsMixin
 from main_window.contact_presence import ContactPresenceMixin
 from main_window.history import HistoryMixin
 from main_window.read_state import ReadStateMixin
+from main_window.away import AwayMixin
 from main_window.chat_actions import ChatActionsMixin
 from main_window.message_actions import MessageActionsMixin
 from main_window.message_stars import MessageStarsMixin
@@ -401,6 +402,7 @@ class MainWindow(
     ContactPresenceMixin,
     HistoryMixin,
     ReadStateMixin,
+    AwayMixin,
     ChatActionsMixin,
     MessageActionsMixin,
     MessageStarsMixin,
@@ -1547,6 +1549,7 @@ class MainWindow(
         self.Bind(wx.EVT_TIMER,    self._on_presence_timer,   self._presence_timer)
         self.Bind(wx.EVT_ACTIVATE, self._on_window_activate)
         wx.CallAfter(self._sync_online_presence)
+        self._init_away()  # after N minutes without interaction: away (core/away_mode.py)
         self.Bind(wx.EVT_CHAR_HOOK, self._on_chat_lock_char_hook)
         self._presence_debounce_timer = None
 

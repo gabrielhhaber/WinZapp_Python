@@ -403,6 +403,8 @@ class ListRefreshMixin:
             return False
         if not conversation_in_view(self):
             return False
+        if getattr(mw, "is_user_away", lambda: False)():
+            return False
         if not getattr(mw, "_allow_ui_focus_changes", lambda: False)():
             return False
         last_act = getattr(mw, "_last_activation_time", 0)

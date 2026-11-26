@@ -722,6 +722,8 @@ NOVINKY
 
 - Mac: engine Neonize je nyní i ve WinZapp pro Mac, na Apple Silicon i Intel, a připojuje se přímo k WhatsAppu, bez prohlížeče. Vyberte ho v seznamu "Engine připojení" v okně připojení nebo v Nastavení > Připojení.
 
+- Nová volba v Nastavení > Obecné > Oznámení: „Považovat mě za nepřítomného po určité době bez používání WinZapp: zobrazovat mě offline a přestat označovat zprávy jako přečtené“, ve výchozím stavu zapnutá, s časem v minutách (výchozí 2). Po uplynutí této doby bez stisku klávesy nebo kliknutí ve WinZapp, i když je okno v popředí, se zobrazujete jako offline a zprávy přicházející do otevřené konverzace se již neoznačují jako přečtené; zůstávají nepřečtené, dokud WinZapp znovu nepoužijete, a pak se otevřená konverzace označí jako přečtená. Hovor, nahrávání nebo přehrávaný zvuk se počítají jako přítomnost. Při vypnutí se nic z toho neděje.
+
 V2.1.0.0
 
 Toto vydání přináší přepis hlasových zpráv přímo ve vašem počítači, bez odesílání čehokoli kamkoli, a online AI přepis a popis hlasových zpráv, obrázků, videí, samolepek a souborů PDF.

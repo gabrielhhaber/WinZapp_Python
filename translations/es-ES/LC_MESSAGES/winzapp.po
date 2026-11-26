@@ -21317,6 +21317,22 @@ msgstr "&Reproducir mensajes de voz en secuencia automáticamente"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_enabled"
+msgid ""
+"Consider me a&way after a period without using WinZapp: show me offline and "
+"stop marking messages as read"
+msgstr ""
+"Considerarme ausente &tras un tiempo sin usar WinZapp: aparecer sin conexión"
+" y dejar de marcar los mensajes como leídos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_minutes_label"
+msgid "&Minutes without using WinZapp before I am away:"
+msgstr "Minutos &sin usar WinZapp antes de estar ausente:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "&Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr ""

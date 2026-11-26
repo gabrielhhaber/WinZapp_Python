@@ -722,6 +722,8 @@ WHAT'S NEW
 
 - Mac: the Neonize engine now comes with WinZapp for Mac too, on Apple Silicon and Intel, and connects straight to WhatsApp, without a browser. Choose it in the "Connection engine" list of the connection window or in Settings > Connection.
 
+- New option in Settings > General > Notifications: "Consider me away after a period without using WinZapp: show me offline and stop marking messages as read", on by default, with the time in minutes (2 by default). After that long without a key press or a click in WinZapp, even with the window in front, you show as offline and messages arriving in the open conversation are no longer marked as read; they stay unread until you use WinZapp again, and then the open conversation is marked as read. A call, a recording or audio playing counts as being present. Turned off, none of this happens.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
