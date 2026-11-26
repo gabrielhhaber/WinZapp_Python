@@ -41,8 +41,14 @@ PEER_OPERATION = 15
 SYNC_TYPE = 9
 #: HistorySync.HistorySyncType.INITIAL_BOOTSTRAP
 BOOTSTRAP = 0
-#: chats an INITIAL_BOOTSTRAP carries when the phone cut it (399 measured, 2026-11-17)
-BOOTSTRAP_CAP = 399
+#: conversations an INITIAL_BOOTSTRAP carries when the phone cut it: 399 in the
+#: log line "history: 399 chats" of every pairing measured (2026-11-17 and
+#: 2026-11-25), status@broadcast and community containers included. The first
+#: version counted only the chats of the list (398 or fewer) against 399, so it
+#: never asked: the 2026-11-25 pairings (build 3.0.0.5977alpha) wrote no
+#: "recent conversations" line. A little below the cap, in case the phone
+#: shaves it again.
+BOOTSTRAP_CAP = 390
 #: conversations and messages of each asked for: more than any account has, the
 #: phone sends what it holds
 CONVERSATIONS = 2000
@@ -139,22 +145,13 @@ def is_answer(data) -> bool:
         return False
 
 
-def counts_as_chat(conversation) -> bool:
-    """Whether a Conversation of a block is a chat of the list (not a status,
-    a channel or a community's container)."""
-    jid = getattr(conversation, "ID", "")
-    return bool(jid) and not jid.endswith(("@broadcast", "@newsletter")) \
-        and not getattr(conversation, "isParentGroup", False)
-
-
 def note_block(s, data, omitted_batch=False):
     """Called for every block of the pairing's history before it is stored."""
     tracker = tracker_of(s)
     if omitted_batch:
         tracker.omitted()
     elif int(getattr(data, "syncType", -1)) == BOOTSTRAP:
-        chats = sum(1 for c in getattr(data, "conversations", ()) if counts_as_chat(c))
-        tracker.bootstrap(chats)
+        tracker.bootstrap(len(getattr(data, "conversations", ())))
 
 
 def request():

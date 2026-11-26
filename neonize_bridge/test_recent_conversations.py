@@ -90,10 +90,12 @@ def test_progress_state_obeys_the_hold():
     assert state["initialSyncComplete"] is False and state["recentCompleted"] is False
 
 
-def test_note_block_counts_the_chats_of_the_bootstrap_and_sees_the_omitted_batch():
+def test_note_block_counts_every_conversation_of_the_bootstrap():
+    # the phone's 399 include a status and a community container: the cap is
+    # measured on the block as logged, not on the chats of the list
     s = N()
-    conversations = [Conversation(ID=f"55{i}@s.whatsapp.net") for i in range(rc.BOOTSTRAP_CAP)]
-    conversations += [Conversation(ID="status@broadcast"), Conversation(ID="1@newsletter"),
+    conversations = [Conversation(ID=f"55{i}@s.whatsapp.net") for i in range(rc.BOOTSTRAP_CAP - 2)]
+    conversations += [Conversation(ID="status@broadcast"),
                       Conversation(ID="2@g.us", isParentGroup=True)]
     rc.note_block(s, HistorySync(syncType=HistorySync.INITIAL_BOOTSTRAP,
                                  conversations=conversations))
@@ -101,6 +103,14 @@ def test_note_block_counts_the_chats_of_the_bootstrap_and_sees_the_omitted_batch
     assert rc.tracker_of(s).wanted()
     rc.note_block(s, HistorySync(syncType=HistorySync.RECENT), omitted_batch=True)
     assert not rc.tracker_of(s).wanted()
+
+
+def test_a_399_conversation_bootstrap_of_the_reports_is_capped():
+    s = N()
+    rc.note_block(s, HistorySync(
+        syncType=HistorySync.INITIAL_BOOTSTRAP,
+        conversations=[Conversation(ID=f"55{i}@s.whatsapp.net") for i in range(399)]))
+    assert rc.tracker_of(s).wanted()
 
 
 def test_note_block_ignores_the_other_blocks():

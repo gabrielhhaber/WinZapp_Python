@@ -315,7 +315,9 @@ Web state is lost; its cost is a pause of the page's JavaScript.
   chat. Whether field 28 reaches that phone's registration, or the phone only honours it
   with other capabilities, is not known.
 - **Fallback** (`neonize_bridge/recent_conversations.py`): when `INITIAL_BOOTSTRAP` holds
-  `>= 399` chats and no omitted batch follows, once the pairing's transfer is complete the
+  `>= 390` conversations (counted as logged, `history: 399 chats`, status and community
+  containers included: the first version counted the list's chats against 399, got 398 and
+  never asked, 2026-11-25) and no omitted batch follows, once the pairing's transfer is complete the
   bridge sends WhatsApp's own `PeerDataOperationRequestType.RECENT_CONVERSATIONS_ON_DEMAND_REQUEST`
   (`15`, `RecentConversationsOnDemandRequest { conversationCount = 2000,
   messagesPerConversation = 50 }`), up to 3 times, 90 s apart. The answer is
