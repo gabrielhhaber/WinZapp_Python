@@ -1200,6 +1200,10 @@ DEFAULT_SETTINGS = {
         # read as it lands and adds nothing to the unread separator
         # (ConversationsPanel._is_read_on_arrival). Off: it accumulates there.
         "read_on_arrival_when_focused": False,
+        # Away mode: offline and nothing marked read after this many minutes
+        # without an interaction (core/away_mode.py).
+        "away_enabled": True,
+        "away_minutes": 2,
         "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",

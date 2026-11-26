@@ -93,6 +93,8 @@
         "show_listbox_item_count": false,
         "show_typing_row": false,
         "read_on_arrival_when_focused": false,
+        "away_enabled": true,
+        "away_minutes": 2,
         "page_up_down_step": 15,
         "self_reference_mode": "eu",
         "self_reference_custom_word": "",

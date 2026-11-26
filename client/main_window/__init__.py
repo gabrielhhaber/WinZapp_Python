@@ -48,6 +48,7 @@ Where to look (and where new code goes):
     transcription_background  model, CUDA and whisper.cpp downloads without a window
     auto_transcription  received voice messages transcribed on arrival into the line
     read_state          mark read/unread, local-read anchor
+    away                away mode: no interaction for N minutes -> offline, nothing marked read
     chat_actions        block, mute, archive, delete, clear, typing, pin
     chat_list           computing and rendering the chat list and previews
     chat_lists          WhatsApp custom lists, membership and account-scoped jobs

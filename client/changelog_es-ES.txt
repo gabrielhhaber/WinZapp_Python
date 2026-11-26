@@ -723,6 +723,8 @@ NOVEDADES
 
 - Mac: el motor Neonize ahora también viene en WinZapp para Mac, en Apple Silicon e Intel, y se conecta directamente a WhatsApp, sin navegador. Elígelo en la lista "Motor de conexión" de la ventana de conexión o en Configuración > Conexión.
 
+- Nueva opción en Configuración > General > Notificaciones: "Considerarme ausente tras un tiempo sin usar WinZapp: aparecer sin conexión y dejar de marcar los mensajes como leídos", activada por defecto, con el tiempo en minutos (2 por defecto). Pasado ese tiempo sin una tecla ni un clic en WinZapp, aunque la ventana esté en primer plano, apareces sin conexión y los mensajes que llegan a la conversación abierta dejan de marcarse como leídos; siguen sin leer hasta que vuelves a usar WinZapp, y entonces la conversación abierta se marca como leída. Una llamada, una grabación o un audio en reproducción cuentan como presencia. Desactivada, nada de esto ocurre.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

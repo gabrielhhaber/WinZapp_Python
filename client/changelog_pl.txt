@@ -724,6 +724,8 @@ NOWOŚCI
 
 - Mac: silnik Neonize jest teraz dostępny także w WinZapp na Maca, na Apple Silicon i Intel, i łączy się bezpośrednio z WhatsAppem, bez przeglądarki. Wybierz go na liście "Silnik połączenia" w oknie połączenia albo w Ustawienia > Połączenie.
 
+- Nowa opcja w Ustawienia > Ogólne > Powiadomienia: "Uznaj mnie za nieobecnego po okresie nieużywania WinZapp: pokazuj mnie jako offline i przestań oznaczać wiadomości jako przeczytane", domyślnie włączona, z czasem podawanym w minutach (domyślnie 2). Po tym czasie bez naciśnięcia klawisza ani kliknięcia w WinZapp, nawet gdy okno jest na wierzchu, jesteś widoczny jako offline, a wiadomości przychodzące do otwartej rozmowy nie są już oznaczane jako przeczytane; pozostają nieprzeczytane, dopóki znowu nie użyjesz WinZapp, a wtedy otwarta rozmowa zostaje oznaczona jako przeczytana. Rozmowa, nagrywanie i odtwarzany dźwięk liczą się jako obecność. Po wyłączeniu nic z tego się nie dzieje.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

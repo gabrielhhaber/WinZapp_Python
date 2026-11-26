@@ -369,6 +369,7 @@
     "e2761794715e": "No Neonize, um contato salvo com nome e sobrenome não perde mais o sobrenome na ",
     "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio",
     "4fe66311d2af": "Neonize no Windows em ARM: a bridge de conexão não fecha mais sozinha logo ao in",
-    "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In"
+    "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In",
+    "9bedd1e6fa02": "Nova opção em Configurações > Geral > Notificações: \"Considerar-me ausente depoi"
   }
 }

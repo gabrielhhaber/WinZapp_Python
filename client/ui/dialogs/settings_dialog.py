@@ -9,6 +9,11 @@ from ui.dialogs.sound_event_files import SoundEventFiles
 from wx.lib.scrolledpanel import ScrolledPanel
 from core import connection_engine as engines
 from core.listed_chats import channels_listed
+from core.away_mode import (
+    DEFAULT_MINUTES as AWAY_DEFAULT_MINUTES, ENABLED_KEY as AWAY_ENABLED_KEY,
+    MAX_MINUTES as AWAY_MAX_MINUTES, MIN_MINUTES as AWAY_MIN_MINUTES,
+    MINUTES_KEY as AWAY_MINUTES_KEY, away_enabled, away_minutes,
+)
 from core.notification_burst import BURST_LIMIT, BURST_LIMIT_MAX, BURST_LIMIT_MIN, burst_limit
 from core.chat_lock_vault import AUTO_LOCK_MINUTE_OPTIONS
 from ui.dialogs import engine_picker
@@ -724,6 +729,24 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         notif_sizer.Add(self._notification_burst_spin, 0, wx.ALL, 8)
         self._notification_burst_spin.Bind(wx.EVT_SPINCTRL, self._mark_dirty)
+
+        # Away mode (core/away_mode.py): offline and nothing marked read after
+        # this many minutes without a key or a click in WinZapp.
+        self._away_enabled_cb = wx.CheckBox(
+            self._notifications_page, label=i18n.t("ui_away_enabled")
+        )
+        notif_sizer.Add(self._away_enabled_cb, 0, wx.ALL, 8)
+        self._away_minutes_label = wx.StaticText(
+            self._notifications_page, label=i18n.t("ui_away_minutes_label")
+        )
+        notif_sizer.Add(self._away_minutes_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._away_minutes_spin = wx.SpinCtrl(
+            self._notifications_page, min=AWAY_MIN_MINUTES, max=AWAY_MAX_MINUTES,
+            initial=AWAY_DEFAULT_MINUTES,
+        )
+        notif_sizer.Add(self._away_minutes_spin, 0, wx.ALL, 8)
+        self._away_minutes_spin.Bind(wx.EVT_SPINCTRL, self._mark_dirty)
+        self._away_enabled_cb.Bind(wx.EVT_CHECKBOX, self._on_away_enabled_toggle)
 
         self._tray_icon_check = wx.CheckBox(
             self._notifications_page, label=i18n.t("tray_show_icon")
@@ -2598,6 +2621,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
+            ui_now = self.main_window.settings.get("user_interface", {})
+            self._away_enabled_cb.SetValue(
+                self.main_window.settings.get("user_interface", {}).get("away_enabled", True)
+            )
+            self._away_minutes_spin.SetValue(away_minutes(ui_now))
+            self._away_minutes_spin.Enable(away_enabled(ui_now))
 
         announce_sync = self.main_window.settings.get("general", {}).get("announce_sync_events", True)
         if wanted(unit, "speech"):
@@ -4619,6 +4648,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("general", {})["notification_burst_limit"] = (
                 self._notification_burst_spin.GetValue()
             )
+            ui_settings_away = self.main_window.settings.setdefault("user_interface", {})
+            ui_settings_away["away_enabled"] = self._away_enabled_cb.GetValue()
+            ui_settings_away[AWAY_MINUTES_KEY] = self._away_minutes_spin.GetValue()
+            refresh_away = getattr(self.main_window, "_refresh_away_state", None)
+            if refresh_away is not None:
+                refresh_away()
             # The title and the tray icon follow the two options right away.
             refresh_title = getattr(self.main_window, "_update_title", None)
             if refresh_title is not None:
@@ -5055,6 +5090,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._discount_archived_check.SetLabel(i18n.t("discount_archived_from_unread_badge_label"))
             self._discount_muted_check.SetLabel(i18n.t("discount_muted_from_unread_badge_label"))
             self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
+            self._away_enabled_cb.SetLabel(i18n.t("ui_away_enabled"))
+            self._away_minutes_label.SetLabel(i18n.t("ui_away_minutes_label"))
         if ready(self, "speech"):
             self._announce_sync_check.SetLabel(i18n.t("announce_sync_events_label"))
         if ready(self, "general"):
@@ -5388,6 +5425,11 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 self._notebook.GetPage(_page).Layout()
             self.Layout()
         self._resume_unit_loading()
+
+    def _on_away_enabled_toggle(self, event=None):
+        """The minutes only matter while away mode is on."""
+        self._away_minutes_spin.Enable(self._away_enabled_cb.GetValue())
+        self._mark_dirty(event)
 
     def _mark_dirty(self, event=None):
         """Show the Apply button the moment any setting actually changes,

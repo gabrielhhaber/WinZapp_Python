@@ -20810,6 +20810,22 @@ msgstr "تشغيل ال&رسائل الصوتية تلقائيًا بالتسل�
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_enabled"
+msgid ""
+"Consider me a&way after a period without using WinZapp: show me offline and "
+"stop marking messages as read"
+msgstr ""
+"&اعتبرني غائبًا بعد فترة من عدم استخدام WinZapp: أظهرني غير متصل وتوقف عن "
+"تعيين الرسائل كمقروءة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_away_minutes_label"
+msgid "&Minutes without using WinZapp before I am away:"
+msgstr "الدقائق دون استخدام &WinZapp قبل أن أصبح غائبًا:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_bulk_action_shortcuts"
 msgid "&Replace shortcuts with bulk actions when selecting chats and messages"
 msgstr "استبدال الاختصارات بإجراءات جماعية عن&د تحديد الدردشات والرسائل"
