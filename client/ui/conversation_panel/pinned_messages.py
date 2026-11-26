@@ -208,12 +208,16 @@ class PinnedMessagesMixin:
         if then is not None:
             then()
 
-    def close_locked_pinned_window(self):
+    def close_locked_pinned_window(self, jids=None):
         """Locking the vault closes the pinned messages window of a chat it
-        hides (MainWindow.lock_chat_vault): left open, it kept listing that
-        chat's pins over the main list."""
+        hides (MainWindow.lock_chat_vault), or, with *jids*, of a chat the
+        phone has just locked (core/remote_chat_lock.py; its aliases), which
+        closes even with the vault open, as its conversation does: left open,
+        it kept listing that chat's pins over the main list."""
         dialog, jid = getattr(self, "_pinned_window", None) or (None, "")
-        if dialog is not None and self.main_window.is_chat_hidden_by_vault(jid):
+        if dialog is None:
+            return
+        if jid in jids if jids is not None else self.main_window.is_chat_hidden_by_vault(jid):
             dialog.close_for_lock()
 
     def _jump_to_pinned_message(self, message):

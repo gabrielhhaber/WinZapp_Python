@@ -271,7 +271,10 @@ class PinnedMessagesDialog(wx.Dialog):
         message = self._selected()
         if message is None:
             return
-        menu = self._panel.message_context_menu_for(message, leave=self._leave_menu)
+        # Built on the window's part of the selection, like the actions it
+        # runs (_run): "Selected messages" only when a pin here is selected.
+        with selection_within(self._panel, [message_id(m) for m in self._rows]):
+            menu = self._panel.message_context_menu_for(message, leave=self._leave_menu)
         if menu is None:
             return
         label = self._i18n.t("pinned_go_to_message").replace("&", "")

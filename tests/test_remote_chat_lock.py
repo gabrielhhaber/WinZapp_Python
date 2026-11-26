@@ -15,7 +15,7 @@ def test_phone_lock_closes_alias_view_and_unlock_preserves_local_vault():
     mw.output = lambda text, interrupt=False: spoken.append(text)
     panel = N(conversation={"remoteJid": PHONE},
         close_ai_media=lambda **kw: calls.append("media"), drop_locked_translations=lambda: calls.append("translations"),
-        close_locked_pinned_window=lambda: calls.append("pinned"))
+        close_locked_pinned_window=lambda jids: calls.append(("pinned", set(jids))))
     def close():
         calls.append("close")
         panel.conversation = None
@@ -27,7 +27,7 @@ def test_phone_lock_closes_alias_view_and_unlock_preserves_local_vault():
     apply_phone_lock(mw, LID, True)
     assert mw.is_chat_phone_locked(PHONE) and mw.is_chat_phone_locked(LID)
     assert calls[:1] == ["close"] and "media" in calls and "translations" in calls
-    assert "pinned" in calls
+    assert ("pinned", {PHONE, LID}) in calls
     assert spoken == ["remote_chat_locked_closed"]
     assert mw.chats[PHONE]["isLocked"] is True
     persisted = mw.db.stored[mw._PHONE_LOCK_KEY]

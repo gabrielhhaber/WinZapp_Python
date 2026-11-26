@@ -251,7 +251,8 @@ class Window:
     """PinnedMessagesDialog's methods on a stub: no wx.Dialog is built."""
     for _name in ("_current", "_row_text", "_refresh", "_selected", "_record_ids", "_go",
                   "_leave", "_run", "_on_char_hook", "_selection_key", "_add_to_selection",
-                  "_toggle_all", "_leave_menu", "_on_menu", "close_for_lock", "_end_for_lock"):
+                  "_toggle_all", "_leave_menu", "_on_menu", "close_for_lock", "_end_for_lock",
+                  "_on_context_menu"):
         locals()[_name] = getattr(PinnedMessagesDialog, _name)
 
     def __init__(self, panel):
@@ -310,6 +311,44 @@ class TestWindowRows:
         assert window._list.items == ["pinned_messages_empty"]
         window._go_button.Enable.assert_called_with(False)
         assert window._selected() is None
+
+
+class TestTheMenuOnTheWindowsSelection:
+    def test_the_menu_sees_only_the_windows_part_of_the_selection(self):
+        """With only messages outside the window selected, the menu offered
+        "Selected messages" and its items ran on nothing, silently."""
+        panel = Panel([message("a")], records=[message("a"), message("x")])
+        panel.selected_messages.add("x")
+        seen = []
+        panel.message_context_menu_for = (
+            lambda msg, leave=None: seen.append(set(panel.selected_messages)))
+        Window(panel)._on_context_menu(None)
+        assert seen == [set()]
+        assert panel.selected_messages == {"x"}
+
+
+class TestClosingForALock:
+    """ui/conversation_panel/pinned_messages.py: which lock closes the window."""
+
+    def _panel(self, hidden=False):
+        from ui.conversation_panel.pinned_messages import PinnedMessagesMixin
+        closed = []
+        panel = SimpleNamespace(
+            _pinned_window=(SimpleNamespace(close_for_lock=lambda: closed.append(True)), JID),
+            main_window=SimpleNamespace(is_chat_hidden_by_vault=lambda jid: hidden))
+        return lambda jids=None: PinnedMessagesMixin.close_locked_pinned_window(panel, jids), closed
+
+    def test_the_vault_closes_a_chat_it_hides(self):
+        close, closed = self._panel(hidden=True)
+        close()
+        assert closed == [True]
+
+    def test_a_phone_lock_closes_its_own_chat_with_the_vault_open(self):
+        close, closed = self._panel(hidden=False)
+        close({"other@g.us"})
+        assert closed == []
+        close({JID})
+        assert closed == [True]
 
 
 class TestTheVaultLocks:
