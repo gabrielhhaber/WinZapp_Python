@@ -122,7 +122,7 @@ YENİLİKLER
 
 - Neonize: telefon ileti geçmişini gönderirken WinZapp bunu söyler ve WhatsApp'ı telefonun ekranında açık tutmanızı ister; telefon durduğunda (yüzdeyle), yeniden gönderdiğinde ve bitirdiğinde uyarır; telefon durmuşken WinZapp her 90 saniyede bir kalanını telefondan ister.
 
-- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor. Telefon dışarıda bıraktığı sohbetlerin listesini göndermediğinde, WinZapp eşleştirme geçmişi bittikten sonra telefondan eksik sohbetleri ister ve eşzamanlamayı tamamlanmış saymadan önce yanıtı birkaç dakika bekler.
+- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor. Telefon dışarıda bıraktığı sohbetlerin listesini göndermediğinde, WinZapp eşleştirme geçmişi bittikten sonra telefondan eksik sohbetleri ister ve eşzamanlamayı tamamlanmış saymadan önce yanıtı birkaç dakika bekler. WPPConnect'te, ilk eşzamanlamadan sonra liste bu sınıra yakınsa WinZapp telefondan bu ilk paketin ötesindeki sohbetleri bir kez ister.
 
 - Neonize: bir listeyi silmek onu sohbetlerinden de kaldırır; böylece sohbetler artık var olmayan bir listeyi göstermeye devam etmez.
 

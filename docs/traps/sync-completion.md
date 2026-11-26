@@ -332,3 +332,15 @@ Web state is lost; its cost is a pause of the page's JavaScript.
   the client as one silent `received-message` (`isMdHistoryMsg`) with its newest message,
   never for an archived chat (its flag only travels in the chat list).
 
+
+
+## WPPConnect: the same 399-chat cap (2026-11-26)
+
+The reporter's WPPConnect run showed the same cap: WhatsApp Web stored ~472
+chats of an account with ~1000. `requestRecentConversations`
+(`client/api_patches/src/controller/deviceController.ts`) sends WhatsApp Web's
+own `RECENT_CONVERSATIONS_ON_DEMAND_REQUEST`, and
+`client/main_window/wpp_recent_conversations.py` asks once per launch when the
+chat list has at least 390 chats. The chat counts in WinZapp's logs
+(`full pass: N target chat(s)`, `listChats raw=`) are what WhatsApp Web holds,
+never the account's real total.

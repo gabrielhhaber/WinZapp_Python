@@ -16,6 +16,7 @@ paths:
   - "neonize_bridge/older_history.py"
   - "neonize_bridge/history_resume.py"
   - "neonize_bridge/recent_conversations.py"
+  - "client/main_window/wpp_recent_conversations.py"
 ---
 
 # Sync completion

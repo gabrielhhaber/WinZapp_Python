@@ -122,7 +122,7 @@ NOVIDADES
 
 - Neonize: enquanto o telemóvel envia o histórico de mensagens, o WinZapp avisa e pede que mantenha o WhatsApp aberto no ecrã do telemóvel, avisa quando o telemóvel pára (com a percentagem), quando volta a enviar e quando termina; enquanto está parado, o WinZapp pede o resto ao telemóvel de 90 em 90 segundos.
 
-- Neonize: as conversas que o WhatsApp do iPhone deixa de fora do primeiro lote de histórico (agora envia só 400) passam também a ser pedidas e importadas. Quando o telemóvel não envia a lista das que ficaram de fora, o WinZapp, ao terminar o histórico do emparelhamento, pede ao telemóvel as conversas que faltam e espera pela resposta alguns minutos antes de dar a sincronização por concluída.
+- Neonize: as conversas que o WhatsApp do iPhone deixa de fora do primeiro lote de histórico (agora envia só 400) passam também a ser pedidas e importadas. Quando o telemóvel não envia a lista das que ficaram de fora, o WinZapp, ao terminar o histórico do emparelhamento, pede ao telemóvel as conversas que faltam e espera pela resposta alguns minutos antes de dar a sincronização por concluída. No WPPConnect, depois da primeira sincronização, o WinZapp pede uma vez ao telemóvel as conversas além desse primeiro lote quando a lista está perto desse limite.
 
 - Neonize: apagar uma lista também a retira das suas conversas, que deixam de apontar para uma lista que já não existe.
 

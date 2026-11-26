@@ -45,6 +45,7 @@ from core.conversation_resync import (
 from main_window.message_rules import is_countable_message
 from main_window.api_start_behind_window import wait_for_api_start
 from main_window import history_transfer
+from main_window import wpp_recent_conversations
 from core.utils import auto_download_enabled, prune_chats_messages
 
 
@@ -2021,6 +2022,8 @@ class SyncMixin:
         # the media phase and every future sync equally pointless, and until
         # this line existed there was no way to tell that from the log.
         self.log_history_sync_status(context="after initial sync")
+        # WPPConnect only: the phone caps its first batch at 399 chats
+        wpp_recent_conversations.start(self)
 
         # Chats whose history WhatsApp Web had not loaded into its store yet get
         # retried on their own thread — see _backfill_empty_chats(). It runs in

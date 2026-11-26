@@ -4947,3 +4947,113 @@ export async function getMessageAck(req: Request, res: Response) {
     });
   }
 }
+
+// Asks the phone for the chats beyond the first batch it sent. An iPhone caps
+// the INITIAL_BOOTSTRAP of a new link at 399 conversations and, for an account
+// with more, WhatsApp Web never learns of the rest. WhatsApp Web's own client
+// sends this request (RECENT_CONVERSATIONS_ON_DEMAND_REQUEST, type 15) when it
+// resumes after being offline (WAWebOfflineResumePrimarySnapshotRequest), with
+// 10 conversations of 10 messages; the answer is a history-sync chunk of type
+// RECENT_CONVERSATIONS_ON_DEMAND that WhatsApp Web already stores. Only
+// primaries that advertise `recentConversationsOnDemand` answer it, and the
+// request is sent at most once per call: the caller bounds the calls.
+export async function requestRecentConversations(req: Request, res: Response) {
+  /**
+     #swagger.tags = ["Chat"]
+     #swagger.autoBody=false
+     #swagger.security = [{
+            "bearerAuth": []
+     }]
+     #swagger.parameters["session"] = {
+      schema: 'NERDWHATS_AMERICA'
+     }
+   */
+  const body = (req.body || {}) as any;
+  const wantedConversations = Number(body.conversationCount);
+  const wantedMessages = Number(body.messagesPerConversation);
+  try {
+    const result = await req.client.page.evaluate(
+      async ({ conversationCount, messagesPerConversation }) => {
+        const out: any = {};
+        const req_ = (window as any).require;
+        if (typeof req_ !== 'function') {
+          out.error =
+            'WhatsApp Web module registry (window.require) unavailable';
+          return out;
+        }
+        let sender: any;
+        let pb: any;
+        try {
+          sender = req_('WAWebSendNonMessageDataRequest');
+          pb = req_('WAWebProtobufsE2E.pb');
+        } catch (e) {
+          out.error = `module lookup failed: ${e}`;
+          return out;
+        }
+        if (typeof sender?.sendPeerDataOperationRequest !== 'function') {
+          out.error = 'sendPeerDataOperationRequest missing from this build';
+          return out;
+        }
+        // Read by name: a renumbering in a future build must not send another
+        // request type. A build without it does not know the request at all.
+        const kind =
+          pb?.Message$PeerDataOperationRequestType
+            ?.RECENT_CONVERSATIONS_ON_DEMAND_REQUEST;
+        if (typeof kind !== 'number') {
+          out.error = 'this WhatsApp Web build has no recent-conversations request';
+          return out;
+        }
+        out.requestType = kind;
+
+        // The phone says whether it answers; asking one that does not only
+        // makes it show "Sync paused" on the lock screen.
+        try {
+          const caps = await req_(
+            'WAWebPrimaryDeviceCapabilities'
+          ).getPrimaryDeviceCapabilities();
+          out.primarySupports = caps?.recentConversationsOnDemand?.supported ?? null;
+        } catch (e) {
+          out.primarySupports = null;
+        }
+        if (out.primarySupports === false) {
+          out.error = 'the phone does not answer recent-conversations requests';
+          return out;
+        }
+
+        try {
+          await sender.sendPeerDataOperationRequest(kind, {
+            conversationCount,
+            messagesPerConversation,
+          });
+          out.requested = true;
+        } catch (e: any) {
+          out.error = `send failed: ${e?.message || e}`;
+        }
+        return out;
+      },
+      {
+        conversationCount: wantedConversations > 0 ? wantedConversations : 2000,
+        messagesPerConversation: wantedMessages > 0 ? wantedMessages : 10,
+      }
+    );
+
+    req.logger.info(
+      `[requestRecentConversations] ${JSON.stringify(result)}`
+    );
+    res.status(result?.error ? 500 : 200).json({
+      status: result?.error ? 'error' : 'success',
+      response: result,
+    });
+  } catch (e: any) {
+    req.logger.error(
+      `Error in requestRecentConversations: ${e?.message || e}\nStack: ${
+        e?.stack || ''
+      }`
+    );
+    res.status(500).json({
+      status: 'error',
+      response: 'Error on request recent conversations',
+      error: { message: e?.message || String(e) },
+    });
+  }
+}
