@@ -4,6 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- WPPConnect: o Chromium usado pelo WPPConnect não coloca mais o botão "Pesquisar com o Chromium" na área de notificação do Windows. O recurso de busca flutuante do Chromium, que cria esse botão, agora fica desligado no navegador interno.
 - Mensagens enviadas: no motor Neonize, as mensagens que você enviava podiam sumir da conversa ao reabrir o WinZapp, porque nenhuma cópia delas era guardada. Agora cada mensagem enviada é guardada assim que o envio é confirmado.
 - WPPConnect, conectar com QR-CODE ou pelo número de telefone: depois que o celular aceita o pareamento, o WinZapp não diz mais que a conexão falhou enquanto o WhatsApp Web ainda está abrindo as conversas. A verificação feita 4 minutos depois do pareamento não conseguia ler o estado da conexão nas versões recentes do WhatsApp Web e dava como falha uma conexão que estava funcionando.
 

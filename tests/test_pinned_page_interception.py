@@ -262,6 +262,15 @@ class TestTheSourceItself:
         for flag in ("--disable-shared-workers", "--disable-workers", "--disable-notifications"):
             assert flag not in args, f"{flag} must not be in optimizedBrowserArgs"
 
+    def test_omnibox_everywhere_is_disabled_in_the_browser(self):
+        """Chromium's floating "Search with Chromium" bar adds a status icon to
+        the Windows notification area that NVDA announces (issue #936)."""
+        src = (PATCHES / "start.js").read_text(encoding="utf-8")
+        start = src.index("const optimizedBrowserArgs = [")
+        args = src[start:src.index("];", start)]
+        disabled = [l for l in args.splitlines() if "--disable-features=" in l]
+        assert disabled and "OmniboxEverywhere" in disabled[0].split("=", 1)[1].strip().rstrip(",").strip("'").split(",")
+
     def test_the_two_copies_of_start_js_match(self):
         """api_patches/ is what setup_api.py restores from — a fix applied only
         to client/api/start.js is undone by the next setup run."""
