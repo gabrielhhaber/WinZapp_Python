@@ -74,6 +74,16 @@ def native_position(shown: str, offset: int) -> int:
     return len(head.encode("utf-16-le")) // 2
 
 
+def switch_wrap(settings, text: str, wrap: bool, offset: int):
+    """The message text window's wrap box was toggled: keep the choice in
+    *settings* and return ``(shown, native)``, the text to show and the
+    control position of string *offset* in it, so the reading position stays
+    on the same character in the other view."""
+    settings.setdefault("user_interface", {})["message_viewer_word_wrap"] = bool(wrap)
+    shown = viewer_text(text, wrap)
+    return shown, native_position(shown, offset)
+
+
 def selection_offsets(get_range, get_string_selection, frm: int, to: int):
     """Turn a text control's selection into ``(start, end)`` string offsets.
 

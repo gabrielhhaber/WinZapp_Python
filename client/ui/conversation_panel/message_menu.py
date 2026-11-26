@@ -43,7 +43,7 @@ from core.wrapped_text import (
     original_range,
     selection_offsets,
     message_viewer_wraps,
-    native_position,
+    switch_wrap,
     viewer_text,
 )
 
@@ -1032,13 +1032,11 @@ class MessageMenuMixin:
         wrap_check.SetValue(message_viewer_wraps(settings))
 
         def _on_wrap(event):
-            wrap = wrap_check.GetValue()
             point = len(text_ctrl.GetRange(0, text_ctrl.GetInsertionPoint()))
-            settings.setdefault("user_interface", {})["message_viewer_word_wrap"] = wrap
+            shown, native = switch_wrap(settings, text, wrap_check.GetValue(), point)
             self.main_window._schedule_save_settings()
-            shown = viewer_text(text, wrap)
             text_ctrl.ChangeValue(shown)
-            text_ctrl.SetInsertionPoint(native_position(shown, point))
+            text_ctrl.SetInsertionPoint(native)
 
         wrap_check.Bind(wx.EVT_CHECKBOX, _on_wrap)
         sizer.Add(wrap_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
