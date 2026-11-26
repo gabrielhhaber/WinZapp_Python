@@ -67,11 +67,11 @@ def setup_api() -> None:
 
 
 def setup_neonize() -> None:
-    """Prepare the Neonize bridge used by the development app."""
+    """Prepare the Neonize bridge; ``--with-neteq`` also installs Rust and C++ tools."""
     from .neonize_setup import ensure_build_tools
-    ensure_build_tools()
-    _exec([sys.executable, str(ROOT / "neonize_bridge" / "prepare.py"),
-           *sys.argv[1:]], ROOT)
+    args = [arg for arg in sys.argv[1:] if arg != "--with-neteq"]
+    ensure_build_tools(with_neteq=len(args) != len(sys.argv) - 1)
+    _exec([sys.executable, str(ROOT / "neonize_bridge" / "prepare.py"), *args], ROOT)
 
 
 def build_onefile() -> None:

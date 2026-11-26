@@ -49,17 +49,30 @@ def _has_tool(name: str, path: str) -> bool:
                           check=False).returncode == 0
 
 
-def ensure_build_tools() -> None:
-    """Install Go and 64-bit MinGW with winget when they are not available."""
+def _finish(path: str, with_neteq: bool) -> None:
+    os.environ["PATH"] = path
+    if with_neteq:
+        from .neonize_neteq_setup import ensure_neteq_tools
+        ensure_neteq_tools()
+    else:
+        print("NetEq (Rust and Visual C++ Build Tools) was not prepared; calls keep "
+              "the compatible playback. Run `uv run setup-neonize --with-neteq` "
+              "to install it.", flush=True)
+
+
+def ensure_build_tools(with_neteq: bool = False) -> None:
+    """Install Go and 64-bit MinGW with winget when they are not available.
+
+    The NetEq sidecar's toolchain (several GB of Visual C++ Build Tools plus
+    Rustup) is installed only when ``with_neteq`` is true.
+    """
     if sys.platform != "win32":
         raise SystemExit("The Neonize bridge setup is supported on Windows only.")
 
     path = _path_from_registry()
     missing = [name for name in _WINGET_PACKAGES if not _has_tool(name, path)]
     if not missing:
-        os.environ["PATH"] = path
-        from .neonize_neteq_setup import ensure_neteq_tools
-        ensure_neteq_tools()
+        _finish(path, with_neteq)
         return
 
     winget = shutil.which("winget", path=path)
@@ -87,6 +100,4 @@ def ensure_build_tools() -> None:
             "Installed the build tools, but they are not on PATH yet: "
             + ", ".join(still_missing)
             + ". Open a new terminal and run `uv run setup-neonize` again.")
-    os.environ["PATH"] = path
-    from .neonize_neteq_setup import ensure_neteq_tools
-    ensure_neteq_tools()
+    _finish(path, with_neteq)
