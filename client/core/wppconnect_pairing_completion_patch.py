@@ -233,6 +233,14 @@ assert V2_WAIT_FOR_IN_CHAT.count("wzPairingSettled = true") == 2
 # Socket is missing, and with no socket state at all a stream in SYNCING or
 # MAIN (only a connected socket produces them) counts as connected; anything
 # else still reaches the dialog.
+#
+# Those two fallbacks only ever answer where Socket is missing, and the page
+# measured without it is the login-only document: the stuck page this bound
+# exists for (#913 keeps it off `/` on main). Its socket is CONNECTED for the
+# QR/link exchange, so a CONNECTED bus there proves nothing about the chats
+# ever opening. A fallback therefore counts only with WPP.conn.isRegistered()
+# true on the same read: the stored login a page that is not logged in lacks.
+# The Socket module's own state, when it exists, still decides on its own.
 _V2_STATE_PROBE = (
     "                const wzState = await this.page\n"
     "                    .evaluate(() => ({ socket: WPP.whatsapp.Socket.state, stream: WPP.whatsapp.Stream.mode }))\n"
@@ -247,20 +255,33 @@ _V3_STATE_PROBE = (
     "                const wzState = await this.page\n"
     "                    .evaluate(() => {\n"
     "                        const read = (get) => { try { return get() ?? null; } catch (e) { return null; } };\n"
+    "                        const own = read(() => WPP.whatsapp.Socket.state);\n"
     "                        return {\n"
-    "                            socket: read(() => WPP.whatsapp.Socket.state) ??\n"
-    "                                read(() => WPP.whatsapp.BackendEventBus.socketState),\n"
+    "                            socket: own ?? read(() => WPP.whatsapp.BackendEventBus.socketState),\n"
+    "                            ownSocket: own !== null,\n"
     "                            stream: read(() => WPP.whatsapp.Stream.mode),\n"
+    "                            registered: read(() => WPP.conn.isRegistered()),\n"
     "                        };\n"
     "                    })\n"
     "                    .catch(() => null);\n"
-    "                if (wzState?.socket === 'CONNECTED' ||\n"
-    "                    (!wzState?.socket && "
+    "                // Without the Socket module the page may be the login-only one,\n"
+    "                // connected for the link alone: a fallback needs the stored login.\n"
+    "                if (wzState?.ownSocket ? wzState.socket === 'CONNECTED' :\n"
+    "                    wzState?.registered === true && (wzState.socket === 'CONNECTED' ||\n"
+    "                        (!wzState.socket && "
     + "[" + ", ".join(f"'{mode}'" for mode in CONNECTED_STREAM_MODES) + "]"
-    + ".includes(wzState?.stream))) {\n"
+    + ".includes(wzState.stream)))) {\n"
 )
+_V2_GIVE_UP_REPORT = "stream ${wzState?.stream ?? 'unknown'}).`);\n"
+_V3_GIVE_UP_REPORT = (
+    "stream ${wzState?.stream ?? 'unknown'}, registered ${wzState?.registered ?? 'unknown'}).`);\n")
 assert V2_WAIT_FOR_IN_CHAT.count(_V2_STATE_PROBE) == 1
-PATCHED_WAIT_FOR_IN_CHAT = V2_WAIT_FOR_IN_CHAT.replace(_V2_STATE_PROBE, _V3_STATE_PROBE, 1)
+assert V2_WAIT_FOR_IN_CHAT.count(_V2_GIVE_UP_REPORT) == 1
+PATCHED_WAIT_FOR_IN_CHAT = (
+    V2_WAIT_FOR_IN_CHAT
+    .replace(_V2_STATE_PROBE, _V3_STATE_PROBE, 1)
+    .replace(_V2_GIVE_UP_REPORT, _V3_GIVE_UP_REPORT, 1)
+)
 
 # --- 3. waitForLogin's post-scan check --------------------------------------
 

@@ -365,6 +365,26 @@ class TestWithoutTheSocketModule:
         assert run["result"]["state"] == "rejected"
         assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
 
+    def test_a_connected_login_only_page_without_the_login_reaches_the_dialog(self):
+        # The login-only document: no Socket, no Stream, its socket CONNECTED
+        # for the link exchange, and no stored login. Stuck, not connected.
+        run = _run(_patched(), self._events(
+            {"noSocket": True, "noStream": True, "busSocket": "CONNECTED", "registered": False}))
+        assert run["result"]["state"] == "rejected"
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+        assert "socket CONNECTED, stream unknown, registered false" in run["reports"][0]["message"]
+
+    def test_a_syncing_stream_without_the_login_reaches_the_dialog(self):
+        run = _run(_patched(), self._events({"noSocket": True, "registered": False}))
+        assert run["result"]["state"] == "rejected"
+        assert [r["name"] for r in run["reports"]] == ["PairingNotCompleted"]
+
+    def test_the_socket_modules_own_state_needs_no_login_proof(self):
+        # Only the fallbacks ask for the login: a page with Socket is the full app.
+        run = _run(_patched(), self._events({"registered": False}))
+        assert run["result"]["state"] == "resolved" and run["result"]["value"] is True
+        assert run["reports"] == []
+
     def test_a_bus_state_never_overrides_the_socket_modules_own(self):
         run = _run(_patched(), self._events({"socket": "OPENING", "busSocket": "CONNECTED"}))
         assert run["result"]["state"] == "rejected"

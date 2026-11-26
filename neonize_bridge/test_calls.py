@@ -647,6 +647,30 @@ def test_busy_call_does_not_register_a_second_offer_or_schedule_a_rejection(monk
     assert not session.ringing_calls.is_busy_elsewhere("waiting", now)
 
 
+def test_a_received_offer_hands_its_creator_to_both_call_layers(monkeypatch):
+    """The lobby query of a call that later becomes a group call names its
+    creator's device exactly as the offer did: the handler must pass it on."""
+    from neonize import events
+
+    now = 1700000001
+    handlers, offers, filed = {}, [], []
+    client = N(event=lambda event: lambda callback: handlers.setdefault(event, callback))
+    media = N(live_call=lambda: "", elsewhere=lambda _: None,
+              remember_offer=lambda data, creator="": offers.append((data["id"], creator)))
+    session = N(name="test", emit=lambda key, value: None,
+                me="5511888@s.whatsapp.net", lid="", call_media=media)
+    monkeypatch.setattr(calls.time, "time", lambda: now)
+    monkeypatch.setattr(calls.threading, "Timer", lambda *args: N(daemon=False, start=lambda: None))
+    monkeypatch.setattr(calls.ongoing_calls, "remember_offer",
+                        lambda m, call_id, creator, data: filed.append((call_id, creator)))
+    calls.register_events(client, session)
+    creator = N(User="77", Server="lid", Device=3)
+    handlers[events.CallOfferEv](client, offer(call_id="IN", creator=creator, ts=now))
+
+    assert offers == [("IN", "77:3@lid")]
+    assert filed == [("IN", creator)]
+
+
 def test_an_unconfirmed_outgoing_phone_call_expires_if_no_end_arrives():
     pending = calls.Pending()
     pending.remember_remote_call("phone", 1000, calls.RING_LIMIT)
