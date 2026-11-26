@@ -1,22 +1,57 @@
-"""Optional, pinned NetEq DLL; never search PATH or load a path from HTTP."""
+"""Optional, pinned NetEq DLL; never search PATH or load a path from HTTP.
+
+Two fixed places, in order: the copy downloaded from Settings > Calls
+(core/call_neteq_component.py), loaded only when its SHA-256 is the pinned
+one, then the copy inside the Neonize bridge's folder (installer and dev
+builds). Either one still has to answer the expected ABI.
+"""
 import ctypes
+import logging
 from pathlib import Path
 
 import numpy as np
 
 RATES = (8000, 16000, 32000, 48000)
+# The C ABI these bindings speak (winzapp_neteq_abi() in native/call_neteq).
+ABI = 1
+
+
+def bundled_paths():
+    """Where the bridge's own build puts the DLL."""
+    from core.neonize_bridge_process import bridge_dir
+    root = Path(bridge_dir())
+    return (root / '_internal/neonize/winzapp_call_neteq.dll',
+            root / '.venv/Lib/site-packages/neonize/winzapp_call_neteq.dll')
+
+
+def bundled_dll():
+    """The bridge-folder DLL, or None."""
+    return next((path for path in bundled_paths() if path.is_file()), None)
+
+
+def candidate_paths(downloaded, bundled):
+    """The paths to try, the verified download first. `downloaded` is what
+    call_neteq_component.verified_dll() answered (None: absent or not the
+    pinned file, never loaded)."""
+    return ([Path(downloaded)] if downloaded else []) + [p for p in bundled if p.is_file()]
 
 
 def load_library():
-    from core.neonize_bridge_process import bridge_dir
-    root = Path(bridge_dir())
-    for path in (root / '_internal/neonize/winzapp_call_neteq.dll',
-                 root / '.venv/Lib/site-packages/neonize/winzapp_call_neteq.dll'):
-        if path.is_file():
-            try:
-                return NetEqLibrary(path.resolve())
-            except (OSError, AttributeError, ValueError):
-                return None
+    from core import call_neteq_component
+    try:
+        downloaded = call_neteq_component.verified_dll()
+    except Exception as exc:
+        logging.warning('[call_audio] could not check the downloaded NetEq component: %s',
+                        type(exc).__name__)
+        downloaded = None
+    for path in candidate_paths(downloaded, bundled_paths()):
+        try:
+            return NetEqLibrary(path.resolve())
+        except (OSError, AttributeError, ValueError) as exc:
+            # A copy with another ABI or that will not load: try the next one,
+            # and at the end calls keep the compatible playback.
+            logging.warning('[call_audio] NetEq component %s not loaded: %s',
+                            path.name, type(exc).__name__)
     return None
 
 
@@ -24,7 +59,7 @@ class NetEqLibrary:
     def __init__(self, path):
         lib = self.lib = ctypes.CDLL(str(path), winmode=0x1100)
         lib.winzapp_neteq_abi.restype = ctypes.c_uint32
-        if lib.winzapp_neteq_abi() != 1:
+        if lib.winzapp_neteq_abi() != ABI:
             raise ValueError('unsupported NetEq ABI')
         lib.winzapp_neteq_create.argtypes = [ctypes.c_uint32]
         lib.winzapp_neteq_create.restype = ctypes.c_void_p

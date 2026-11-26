@@ -1,0 +1,109 @@
+# Builds the optional call playback component on its own (NetEq,
+# native/call_neteq, with build_neteq.py's pinned Rust) and drafts a release
+# of this repository with it, for the download in Settings > Calls
+# (client/core/call_neteq_component.py). Manual only, never on a PR.
+#
+# A maintainer checks and publishes the draft, then copies the five lines of
+# NETEQ_PIN.txt (in the artifact and the job log) into the pin block of
+# call_neteq_component.py. Until then the client offers no download. The tag
+# must start with "neteq-" and not contain "alpha": this repository's
+# releases are also WinZapp's update channel, and the updater ignores a tag
+# that is not a WinZapp version (tests/test_alpha_updates.py).
+name: NetEq DLL
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Draft release tag (e.g. neteq-1.0.1-winzapp.1)"
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  build:
+    name: Build and test the NetEq DLL
+    runs-on: windows-latest
+    steps:
+      - name: The tag cannot be taken for a WinZapp release
+        shell: bash
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: |
+          case "$TAG" in
+            neteq-*) ;;
+            *) echo "release_tag must start with neteq- (got: $TAG)"; exit 1 ;;
+          esac
+          if echo "$TAG" | grep -qi alpha; then echo "release_tag must not contain alpha"; exit 1; fi
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Prepare pinned Rust for NetEq
+        run: rustup toolchain install 1.91.1-x86_64-pc-windows-msvc --profile minimal
+
+      - name: Test NetEq native playout
+        env:
+          CARGO_TARGET_DIR: neonize_bridge/neonize_build/neteq-target
+          CARGO_BUILD_JOBS: "1"
+          RUSTFLAGS: -C target-feature=+crt-static
+        run: cargo +1.91.1-x86_64-pc-windows-msvc test --locked --manifest-path native/call_neteq/Cargo.toml --target x86_64-pc-windows-msvc
+
+      - name: Build the release files
+        env:
+          TAG: ${{ inputs.release_tag }}
+        run: python neonize_bridge/neteq_release.py dist "$env:TAG"
+
+      - name: Keep the build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: neteq-dll
+          path: |
+            dist/winzapp_call_neteq.dll
+            dist/winzapp_call_neteq_NOTICES.txt
+            dist/SHA256SUMS.txt
+            dist/NETEQ_PIN.txt
+          if-no-files-found: error
+
+  release:
+    name: Draft the NetEq DLL release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Fetch the build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: neteq-dll
+          path: dist
+
+      # A draft: nothing is downloaded until a maintainer publishes it and
+      # records NETEQ_PIN.txt in call_neteq_component.py.
+      - name: Create the draft release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ inputs.release_tag }}
+          name: ${{ inputs.release_tag }}
+          target_commitish: ${{ github.sha }}
+          draft: true
+          prerelease: true
+          fail_on_unmatched_files: true
+          body: |
+            WinZapp's optional call playback component (Windows x64): the NetEq
+            DLL built from native/call_neteq with the pinned Rust toolchain
+            (neonize_bridge/build_neteq.py), and its licence notices.
+            Downloaded from Settings > Calls; the client checks size and SHA-256.
+          files: |
+            dist/winzapp_call_neteq.dll
+            dist/winzapp_call_neteq_NOTICES.txt
+            dist/SHA256SUMS.txt

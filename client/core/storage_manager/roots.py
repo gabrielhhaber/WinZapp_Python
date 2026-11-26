@@ -34,7 +34,8 @@ def build_roots(*, program, resources, data, account, include_other=False,
                            ("logs", "logs"), ("storage_quarantine", "quarantine")):
         roots.append(Root("account_" + name, os.path.join(account, name), category,
                           "account", managed=category in ("media", "voice", "quarantine")))
-    for name in ("whisper_models", "noise_models", "cuda_runtime", "whisper_cpp_runtime"):
+    for name in ("whisper_models", "noise_models", "cuda_runtime", "whisper_cpp_runtime",
+                 "call_components"):
         roots.append(Root("global_" + name, os.path.join(shared, name), "models", "shared"))
     for name, category in (("api/userDataDir", "sessions"),
                            ("api/userDataDirSnapshots", "backups"),

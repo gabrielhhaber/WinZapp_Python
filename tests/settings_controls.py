@@ -56,6 +56,7 @@ FILES = (
     "transcription_tab.py", "transcription_whisper_cpp.py", "transcription_windows.py",
     "advanced_tab.py", "ai_auto_options.py", "ai_kinds_options.py", "reading_position_options.py",
     "noise_reducer_dialog.py", "noise_model_section.py", "noise_reducer_options.py", "voice_recording_options.py",
+    "neteq_component_dialog.py",
 )
 
 LABELLED = {"Button", "CheckBox", "RadioButton", "ToggleButton", "RadioBox", "StaticText",

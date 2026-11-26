@@ -69,5 +69,17 @@ audio/control contract stay compatible.
 - Real calls and hardware acceptance remain necessary. Full encoded-packet
   NetEq/custom codec integration and native WASAPI/APM are separate work.
 
+## Amendment (2026-11-26): optional download
+
+The maintainers asked (#768) that the component be an optional
+per-component download, like the local AI models, so a light WinZapp need not
+carry it. The loader now also accepts one more fixed path: the copy
+downloaded from Settings > Calls into `global_dir("call_components")`, from a
+`neteq-*` release of this repository pinned by tag, exact size and SHA-256
+(`client/core/call_neteq_component.py`). It is hashed before every load and
+tried before the bridge-folder copy; PATH is still never searched and no path
+comes over HTTP. The installer still bundles the DLL until the maintainers
+decide to drop it.
+
 Sources: [pinned crate](https://docs.rs/crate/neteq/1.0.1),
 [WebRTC baseline](https://webrtc.googlesource.com/src/+/6341cca49ffcad6fcb4603bd6cd1325fd0fe28bd/api/neteq/neteq.h).

@@ -163,6 +163,12 @@ def file_url(model, filename) -> str:
     upstream republishes — and, far worse, would silently accept *different*
     weights for any file whose size happened to be unchanged.
     """
+    # An entry hosted elsewhere (the call playback component, a GitHub release
+    # of this repository) answers its own pinned URL; the size and digest
+    # checks are the same.
+    url_of = getattr(model, "url_of", None)
+    if url_of is not None:
+        return url_of(filename)
     # An entry whose file sits in a subfolder of its repository (the noise
     # reduction model) names it here; the local file stays flat in the model
     # folder, where the rest of this module expects it.
