@@ -24,6 +24,8 @@ NOVINKY
 
 - Skupinové hovory Neonize: zvuk každé osoby má nyní vlastní přehrávání pomocí NetEQ, stejně jako v individuálních hovorech, které vyrovnává kolísání sítě a výpadky zvuku každé z nich zvlášť; dříve se celá skupina míchala bez něj, s více výpadky a zpožděním. Živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání.
 
+- Hovory Neonize: součást pro přehrávání hovorů (NetEQ) lze nyní spravovat v Nastavení > Hovory tlačítkem „Součást pro přehrávání hovorů“. Její okno ukazuje stav součásti (nestaženo, s velikostí stahování; stahování neúplné nebo poškozené; staženo; součást této instalace; nebo ji tato verze nenabízí) a má tlačítka „Stáhnout“, které opraví i neúplné stahování, a „Odebrat“. Bez této součásti hovory automaticky používají standardní (kompatibilní) přehrávání.
+
 - Hovory Neonize: když se ztratí zvukový paket a další nese jeho kopii, jak ji některé telefony posílají, WinZapp nyní přehraje tuto kopii, místo aby mezeru vyplnil odhadem.
 
 - Uložit jako (Ctrl+Shift+S) u dokumentu JSON přijatého v chatu, například souboru nastavení app.json, nyní soubor uloží, místo aby oznámilo, že ho nelze stáhnout.

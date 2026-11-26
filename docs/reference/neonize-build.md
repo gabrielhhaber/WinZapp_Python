@@ -46,6 +46,20 @@ What the patches carry today:
   one stamped with other sources is stale and is dropped, an unstamped one is
   kept (its ABI is checked when loaded). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
 
+  The component is also an optional download (Settings > Calls > Call
+  playback component; `client/core/call_neteq_component.py`), so a WinZapp
+  without it stays light. `load_library()` tries the downloaded copy first,
+  only when its SHA-256 is the pinned one, then the bridge-folder copies
+  above; any copy must answer ABI 1, and none at all keeps the compatible
+  playback. To publish one: run the **NetEq DLL** workflow
+  (`.github/workflows/neteq-dll.yml`, workflow_dispatch) with a tag starting
+  `neteq-` (never containing `alpha`); it builds the DLL with the pinned
+  Rust, joins its notices into `winzapp_call_neteq_NOTICES.txt` and drafts
+  the release. Check and publish the draft, then paste the five lines of
+  `NETEQ_PIN.txt` (artifact and job log) over the pin block of
+  `call_neteq_component.py`. Until that block is filled the download is not
+  offered.
+
 - **neonize 0038 / meowcaller 0042**: native protocol 3 (`NZA3`,
   `CallAudioTransportOpenV3`, `Calls.audio_protocols()`): with a protocol 3
   lease the call record is a meowcaller `MixedTimedAudioSink`, so each

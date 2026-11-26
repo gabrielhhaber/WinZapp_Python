@@ -5318,6 +5318,7 @@ msgstr "Vymazat vybrané chaty"
 #: client/ui/dialogs/channel_insights_dialog.py
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/new_conversation.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/pinned_messages_dialog.py
@@ -7020,7 +7021,8 @@ msgctxt "deactivate_all_sounds"
 msgid "&Disable all"
 msgstr "V&ypnout vše"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py client/core/commerce.py
 #: client/core/cuda_components/text.py client/core/noise_model_text.py
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/main_window/session_lifecycle.py
@@ -10438,6 +10440,130 @@ msgctxt "neonize_offer_title"
 msgid "New Neonize engine available"
 msgstr "Je k dispozici nový engine Neonize"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_button"
+msgid "Call &playback component"
+msgstr "&Součást pro přehrávání hovorů"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_download_btn"
+msgid "&Download"
+msgstr "S&táhnout"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py
+#, python-brace-format
+msgctxt "neteq_component_download_confirm"
+msgid ""
+"Download the call playback component (NetEQ) from WinZapp's releases on "
+"GitHub? Download size: {size}. In calls with the Neonize engine it plays the"
+" other person's voice more smoothly when the connection is unstable."
+msgstr ""
+"Stáhnout součást pro přehrávání hovorů (NetEQ) z vydání WinZappu na GitHubu?"
+" Velikost stahování: {size}. V hovorech přes engine Neonize přehrává hlas "
+"druhé strany plynuleji, když je připojení nestabilní."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py
+msgctxt "neteq_component_downloaded"
+msgid "Call playback component downloaded. It is used from the next call."
+msgstr ""
+"Součást pro přehrávání hovorů je stažená. Použije se od příštího hovoru."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_label"
+msgid "Call &playback component (NetEQ)"
+msgstr "&Součást pro přehrávání hovorů (NetEQ)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_progress"
+msgid "Downloading the call playback component..."
+msgstr "Stahuji součást pro přehrávání hovorů..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_remove_btn"
+msgid "&Remove"
+msgstr "&Odebrat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_remove_confirm"
+msgid ""
+"Remove the call playback component? Calls with the Neonize engine will use "
+"the standard playback."
+msgstr ""
+"Odebrat součást pro přehrávání hovorů? Hovory přes engine Neonize pak "
+"použijí standardní přehrávání."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_remove_in_use"
+msgid ""
+"The call playback component is in use and could not be removed. Close "
+"WinZapp, open it again and remove it before making a call."
+msgstr ""
+"Součást pro přehrávání hovorů se používá a nepodařilo se ji odebrat. Zavřete"
+" WinZapp, znovu ho otevřete a odeberte součást dřív, než začnete hovor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_removed"
+msgid ""
+"Call playback component removed. Calls with the Neonize engine use the "
+"standard playback."
+msgstr ""
+"Součást pro přehrávání hovorů byla odebrána. Hovory přes engine Neonize "
+"používají standardní přehrávání."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "neteq_component_state_absent"
+msgid ""
+"Not downloaded (download size: {size}). Calls with the Neonize engine use "
+"the standard playback."
+msgstr ""
+"Nestaženo (velikost stahování: {size}). Hovory přes engine Neonize používají"
+" standardní přehrávání."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_bundled"
+msgid ""
+"Included in this installation of WinZapp, so there is nothing to download. "
+"Calls with the Neonize engine use it."
+msgstr ""
+"Je součástí této instalace WinZappu, takže není co stahovat. Hovory přes "
+"engine Neonize ji používají."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_incomplete"
+msgid ""
+"Download incomplete or damaged. Calls with the Neonize engine use the "
+"standard playback until it is downloaded again."
+msgstr ""
+"Stahování neúplné nebo poškozené. Hovory přes engine Neonize používají "
+"standardní přehrávání, dokud se součást znovu nestáhne."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_installed"
+msgid ""
+"Downloaded. Calls with the Neonize engine use it to play the other person's "
+"voice more smoothly."
+msgstr ""
+"Staženo. Hovory přes engine Neonize ji používají k plynulejšímu přehrávání "
+"hlasu druhé strany."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_unavailable"
+msgid ""
+"This version of WinZapp does not offer the component for download yet. Calls"
+" with the Neonize engine use the standard playback."
+msgstr ""
+"Tato verze WinZappu zatím součást ke stažení nenabízí. Hovory přes engine "
+"Neonize používají standardní přehrávání."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #, python-brace-format
 msgctxt "network_install_location_message"
@@ -10913,6 +11039,7 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Staženo. Potlačení šumu používá neurální model."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_reducer_background_busy"
 msgid ""
@@ -18278,6 +18405,7 @@ msgstr ""
 "Zpráva byla během přepisu smazána pro všechny, takže přepis byl zahozen."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/noise_model_section.py
 #: client/ui/dialogs/noise_reducer_dialog.py
 #: client/ui/dialogs/transcription_queue.py

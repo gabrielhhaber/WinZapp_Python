@@ -24,6 +24,8 @@ NOUTĂȚI
 
 - Apeluri de grup Neonize: sunetul fiecărei persoane are acum propria redare cu NetEQ, ca în apelurile individuale, care atenuează variațiile rețelei și pierderile audio ale fiecăreia separat; înainte, tot grupul era mixat fără el, cu mai multe întreruperi și întârziere. Traducerea în timp real și dispozitivele neacceptate de NetEQ păstrează redarea compatibilă.
 
+- Apeluri Neonize: componenta de redare a apelurilor (NetEQ) poate fi acum gestionată din Setări > Apeluri, cu butonul „Componenta de redare a apelurilor”. Fereastra ei arată starea componentei (nedescărcată, cu dimensiunea descărcării; descărcare incompletă sau deteriorată; descărcată; inclusă în această instalare; sau neoferită de această versiune) și are butoanele „Descarcă”, care repară și o descărcare incompletă, și „Elimină”. Fără componentă, apelurile folosesc automat redarea standard (redarea compatibilă).
+
 - Apeluri Neonize: când se pierde un pachet audio și următorul aduce o copie a lui, cum trimit unele telefoane, WinZapp redă acum acea copie în loc să umple golul cu o estimare.
 
 - Salvare ca (Ctrl+Shift+S) pe un document JSON primit într-o conversație, cum ar fi fișierul de setări app.json, salvează acum fișierul în loc să spună că nu a putut fi descărcat.

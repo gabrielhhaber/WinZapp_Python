@@ -48,6 +48,7 @@ from ui.dialogs.transcription_reuse import TranscriptionReuseMixin
 from ui.dialogs.transcription_windows import TranscriptionWindowsMixin
 from ui.dialogs.advanced_tab import AdvancedTabMixin
 from ui.dialogs.noise_reducer_dialog import NoiseReducerButtonMixin
+from ui.dialogs.neteq_component_dialog import NetEqComponentButtonMixin
 from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
 from ui.dialogs.reading_position_options import ReadingPositionOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
@@ -242,6 +243,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                      TranscriptionQueueMixin, TranscriptionCacheMixin,
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
                      TranscriptionWindowsMixin, AdvancedTabMixin, NoiseReducerButtonMixin,
+                     NetEqComponentButtonMixin,
                      VoiceRecordingOptionsMixin, ReadingPositionOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
@@ -1418,6 +1420,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._calls_page, label=i18n.t("call_translation_options"))
         calls_sizer.Add(self._call_translation_settings_button, 0, wx.ALL, 8)
         self._call_translation_settings_button.Bind(wx.EVT_BUTTON, self._on_call_translation_settings)
+        # The optional NetEq download (Neonize calls), in a window of its own.
+        self._build_neteq_component_button(self._calls_page, calls_sizer)
 
         self._calls_page.SetSizer(calls_sizer)
         self._call_alerts_check.Bind(wx.EVT_CHECKBOX, self._on_call_alerts_toggle)
@@ -5042,6 +5046,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._call_audio_settings_button.SetLabel(i18n.t("calls_audio_settings_button"))
             self._call_video_settings_button.SetLabel(i18n.t("calls_video_settings_button"))
             self._call_translation_settings_button.SetLabel(i18n.t("call_translation_options"))
+            self._relabel_neteq_component_button()
         if ready(self, "notifications"):
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
             self._announce_edits_check.SetLabel(i18n.t("announce_edited_messages_label"))

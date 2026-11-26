@@ -784,6 +784,15 @@
     <h2 id="h-polaczenia">📞 9. Połączenia</h2>
 <p class="lead">Możesz wykonywać, odbierać i odrzucać połączenia głosowe i wideo bezpośrednio w WinZapp, bez sięgania po telefon.</p>
 <p>Indywidualne i grupowe połączenia Neonize: odtwarzanie z NetEQ łagodzi wahania sieci i utratę dźwięku, z automatycznym powrotem do zgodnego trybu odtwarzania. W połączeniu grupowym dźwięk każdej osoby ma własny NetEQ. Funkcja działa automatycznie, gdy komponent jest dostępny. Tłumaczenie na żywo i urządzenia nieobsługiwane przez NetEQ nadal korzystają ze zgodnego odtwarzania, bez zmiany ustawień. Gdy czyjś telefon wysyła w każdym pakiecie dźwięku kopię poprzedniego, zagubiony pakiet jest odtwarzany z tej kopii, zamiast być wypełniany oszacowaniem.</p>
+<p>W Ustawienia &gt; Połączenia przycisk "Składnik odtwarzania połączeń" otwiera okno z polem tylko do odczytu "Składnik odtwarzania połączeń (NetEQ)" oraz przyciskami "Pobierz", "Usuń" i "Zamknij" (Esc też je zamyka). Pole podaje stan składnika:</p>
+<ul>
+  <li><strong>Nie pobrano:</strong> z rozmiarem pobierania; "Pobierz" pobiera składnik.</li>
+  <li><strong>Pobieranie niekompletne lub uszkodzone:</strong> "Pobierz" pobiera składnik ponownie i go naprawia; "Usuń" kasuje to, co zostało.</li>
+  <li><strong>Pobrano:</strong> połączenia z silnikiem Neonize używają go, aby płynniej odtwarzać głos rozmówcy (po pobraniu od następnego połączenia); "Usuń" go kasuje.</li>
+  <li><strong>Dołączony do tej instalacji WinZappa:</strong> składnik przyszedł razem z silnikiem Neonize, więc nie ma nic do pobrania.</li>
+  <li><strong>Niedostępny w tej wersji:</strong> ta wersja WinZappa nie oferuje jeszcze pobrania tego składnika, a "Pobierz" jest niedostępny.</li>
+</ul>
+<p>"Pobierz" prosi o potwierdzenie, podając rozmiar pobierania, i otwiera okno postępu z przyciskiem "Anuluj"; przy zaznaczonej opcji "Pobieraj aktualizacje i pliki potrzebne do transkrypcji w tle, bez okna postępu" (Ustawienia &gt; Ogólne) pobieranie odbywa się w tle. Po zakończeniu WinZapp podaje wynik. "Usuń" też prosi o potwierdzenie. Jeśli składnik jest używany, WinZapp informuje, że nie można go usunąć: zamknij WinZappa, otwórz go ponownie i usuń składnik przed rozpoczęciem połączenia. Bez składnika połączenia z silnikiem Neonize używają standardowego odtwarzania, czyli tego samego zgodnego trybu opisanego wyżej, bez zmiany ustawień.</p>
 <p>Połączenia Neonize: dźwięk korzysta z bezpośredniego połączenia lokalnego z natywnym silnikiem, z automatycznym powrotem do Socket.IO, gdy jest ono niedostępne. Nie trzeba zmieniać ustawień. Sterowanie połączeniem nadal korzysta z dotychczasowego połączenia.</p>
 <p>Podczas połączeń indywidualnych przez Neonize odbierany dźwięk trafia do bufora odtwarzania bez dodatkowego oczekiwania w silniku. Automatyczne dostosowanie do wahań opóźnienia sieci nadal działa i nie wymaga zmiany ustawień.</p>
 <p>Optymalizacja konwersji dźwięku mikrofonu podczas połączeń przez Neonize działa automatycznie i nie wymaga zmiany ustawień. Jeśli zainstalowany silnik jej nie obsługuje, WinZapp nadal korzysta z dotychczasowego sposobu przetwarzania.</p>
@@ -1536,6 +1545,7 @@
 <p class="lead">Każda nowa alpha, która wnosi funkcje, jest dodawana do podręcznika. Ta lista pokazuje, do której alphy podręcznik jest kompletny i co dodano w każdej rundzie.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Co trafiło do podręcznika</th></tr>
+  <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia &gt; Połączenia: przycisk "Składnik odtwarzania połączeń" otwiera okno składnika odtwarzania połączeń Neonize (NetEQ), ze stanem składnika i przyciskami "Pobierz" i "Usuń".</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Połączenia grupowe Neonize: dźwięk każdej osoby ma własne odtwarzanie z NetEQ; zagubiony pakiet dźwięku jest odzyskiwany z kopii, którą niektóre telefony wysyłają w następnym.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Przypięte wiadomości: okno „Przypięte wiadomości” ma menu kontekstowe i skróty listy wiadomości; „Odepnij zaznaczone” i Ctrl+Shift+P dla zaznaczonych wiadomości; opcja „Ogłaszaj liczbę przypiętych wiadomości po otwarciu czatu”.</td></tr>
   <tr><td class="field-name">Jeszcze niewydane</td><td>Ustawienia &gt; Ogólne &gt; Powiadomienia: „Powiadamiaj o reakcjach na Twoje wiadomości”.</td></tr>

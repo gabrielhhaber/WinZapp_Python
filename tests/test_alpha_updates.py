@@ -187,6 +187,18 @@ def test_a_neonize_dll_release_is_never_offered_as_a_winzapp_update():
                                       include_alpha=include_alpha)["tag_name"] == "v0.25.0.0"
 
 
+def test_a_neteq_component_release_is_never_offered_as_a_winzapp_update():
+    """neteq-dll.yml publishes the optional call playback component here, under
+    a tag that starts with "neteq-" (and carries no zip): never an update."""
+    neteq = _release("neteq-1.0.1-winzapp.1", prerelease=True,
+                     assets=_assets("winzapp_call_neteq.dll", "winzapp_call_neteq_NOTICES.txt",
+                                    "SHA256SUMS.txt"))
+    for include_alpha in (False, True):
+        assert updater.select_release([neteq], include_alpha=include_alpha) is None
+        assert updater.select_release([neteq, _release("v0.25.0.0")],
+                                      include_alpha=include_alpha)["tag_name"] == "v0.25.0.0"
+
+
 def test_returns_none_when_nothing_eligible():
     assert updater.select_release([_release("v0.25.0.1500alpha")], include_alpha=False) is None
     assert updater.select_release([], include_alpha=True) is None

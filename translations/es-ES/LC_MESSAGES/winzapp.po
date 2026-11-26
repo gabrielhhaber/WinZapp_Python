@@ -5382,6 +5382,7 @@ msgstr "Vaciar chats seleccionados"
 #: client/ui/dialogs/channel_insights_dialog.py
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/new_conversation.py
 #: client/ui/dialogs/order_update_dialog.py
 #: client/ui/dialogs/pinned_messages_dialog.py
@@ -7101,7 +7102,8 @@ msgctxt "deactivate_all_sounds"
 msgid "&Disable all"
 msgstr "&Desactivar todos"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po client/core/commerce.py
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py client/core/commerce.py
 #: client/core/cuda_components/text.py client/core/noise_model_text.py
 #: client/core/notification_manager.py client/main_window/chat_list.py
 #: client/main_window/session_lifecycle.py
@@ -10564,6 +10566,133 @@ msgctxt "neonize_offer_title"
 msgid "New Neonize engine available"
 msgstr "Nuevo motor Neonize disponible"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_button"
+msgid "Call &playback component"
+msgstr "Componente de &reproducción de la llamada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_download_btn"
+msgid "&Download"
+msgstr "&Descargar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py
+#, python-brace-format
+msgctxt "neteq_component_download_confirm"
+msgid ""
+"Download the call playback component (NetEQ) from WinZapp's releases on "
+"GitHub? Download size: {size}. In calls with the Neonize engine it plays the"
+" other person's voice more smoothly when the connection is unstable."
+msgstr ""
+"¿Descargar el componente de reproducción de la llamada (NetEQ) desde las "
+"versiones de WinZapp en GitHub? Tamaño de la descarga: {size}. En las "
+"llamadas con el motor Neonize reproduce la voz de la otra persona con más "
+"fluidez cuando la conexión es inestable."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/core/call_neteq_component_text.py
+msgctxt "neteq_component_downloaded"
+msgid "Call playback component downloaded. It is used from the next call."
+msgstr ""
+"Componente de reproducción de la llamada descargado. Se usa a partir de la "
+"próxima llamada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_label"
+msgid "Call &playback component (NetEQ)"
+msgstr "Co&mponente de reproducción de la llamada (NetEQ)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_progress"
+msgid "Downloading the call playback component..."
+msgstr "Descargando el componente de reproducción de la llamada..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_remove_btn"
+msgid "&Remove"
+msgstr "&Quitar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
+msgctxt "neteq_component_remove_confirm"
+msgid ""
+"Remove the call playback component? Calls with the Neonize engine will use "
+"the standard playback."
+msgstr ""
+"¿Quitar el componente de reproducción de la llamada? Las llamadas con el "
+"motor Neonize usarán la reproducción estándar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_remove_in_use"
+msgid ""
+"The call playback component is in use and could not be removed. Close "
+"WinZapp, open it again and remove it before making a call."
+msgstr ""
+"El componente de reproducción de la llamada está en uso y no se pudo quitar."
+" Cierra WinZapp, vuelve a abrirlo y quita el componente antes de hacer una "
+"llamada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_removed"
+msgid ""
+"Call playback component removed. Calls with the Neonize engine use the "
+"standard playback."
+msgstr ""
+"Componente de reproducción de la llamada quitado. Las llamadas con el motor "
+"Neonize usan la reproducción estándar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "neteq_component_state_absent"
+msgid ""
+"Not downloaded (download size: {size}). Calls with the Neonize engine use "
+"the standard playback."
+msgstr ""
+"No descargado (tamaño de la descarga: {size}). Las llamadas con el motor "
+"Neonize usan la reproducción estándar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_bundled"
+msgid ""
+"Included in this installation of WinZapp, so there is nothing to download. "
+"Calls with the Neonize engine use it."
+msgstr ""
+"Incluido en esta instalación de WinZapp, así que no hay nada que descargar. "
+"Las llamadas con el motor Neonize lo usan."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_incomplete"
+msgid ""
+"Download incomplete or damaged. Calls with the Neonize engine use the "
+"standard playback until it is downloaded again."
+msgstr ""
+"Descarga incompleta o dañada. Las llamadas con el motor Neonize usan la "
+"reproducción estándar hasta que se vuelva a descargar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_installed"
+msgid ""
+"Downloaded. Calls with the Neonize engine use it to play the other person's "
+"voice more smoothly."
+msgstr ""
+"Descargado. Las llamadas con el motor Neonize lo usan para reproducir la voz"
+" de la otra persona con más fluidez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "neteq_component_state_unavailable"
+msgid ""
+"This version of WinZapp does not offer the component for download yet. Calls"
+" with the Neonize engine use the standard playback."
+msgstr ""
+"Esta versión de WinZapp todavía no ofrece el componente para descargar. Las "
+"llamadas con el motor Neonize usan la reproducción estándar."
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 #, python-brace-format
 msgctxt "network_install_location_message"
@@ -11047,6 +11176,7 @@ msgid "Downloaded. Noise reduction uses the neural model."
 msgstr "Descargado. La reducción de ruido usa el modelo neuronal."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/noise_model_section.py
 msgctxt "noise_reducer_background_busy"
 msgid ""
@@ -18529,6 +18659,7 @@ msgstr ""
 "transcripción se descartó."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/noise_model_section.py
 #: client/ui/dialogs/noise_reducer_dialog.py
 #: client/ui/dialogs/transcription_queue.py

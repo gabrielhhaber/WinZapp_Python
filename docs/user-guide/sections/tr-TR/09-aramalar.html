@@ -1,6 +1,15 @@
 <!--nav: 📞 Aramalar-->
 <p class="lead">Sesli ve görüntülü aramaları telefonunuza uzanmadan doğrudan WinZapp'ta yapabilir, yanıtlayabilir ve reddedebilirsiniz.</p>
 <p>Bire bir ve grup Neonize aramaları: NetEQ ile oynatma, ağ dalgalanmalarını ve ses kaybını azaltır; gerektiğinde otomatik olarak uyumlu oynatmaya dönülür. Grup aramasında her kişinin sesinin kendi NetEQ'su vardır. Bileşen mevcut olduğunda otomatik çalışır. Canlı çeviri ve NetEQ tarafından desteklenmeyen aygıtlar, ayar değişikliği gerektirmeden uyumlu oynatmayı kullanır. Birinin telefonu her ses paketinde bir öncekinin kopyasını gönderdiğinde, kaybolan paket bir tahminle doldurulmak yerine bu kopyadan kurtarılır.</p>
+<p>Ayarlar &gt; Aramalar içindeki "Arama oynatma bileşeni" düğmesi, salt okunur "Arama oynatma bileşeni (NetEQ)" alanını ve "İndir", "Kaldır" ve "Kapat" düğmelerini içeren bir pencere açar (Esc de pencereyi kapatır). Alan, bileşenin durumunu bildirir:</p>
+<ul>
+  <li><strong>İndirilmedi:</strong> indirme boyutuyla birlikte; "İndir" bileşeni getirir.</li>
+  <li><strong>İndirme tamamlanmadı veya bozuk:</strong> "İndir" bileşeni yeniden indirip onarır; "Kaldır" kalanları siler.</li>
+  <li><strong>İndirildi:</strong> Neonize motoruyla yapılan aramalar, karşı tarafın sesini daha akıcı oynatmak için bunu kullanır (indirmeden sonra, bir sonraki aramadan itibaren); "Kaldır" onu siler.</li>
+  <li><strong>Bu WinZapp kurulumuna dahil:</strong> bileşen Neonize motoruyla birlikte geldi, indirilecek bir şey yok.</li>
+  <li><strong>Bu sürümde sunulmuyor:</strong> WinZapp'ın bu sürümü bileşeni henüz indirme için sunmuyor ve "İndir" kullanılamaz.</li>
+</ul>
+<p>"İndir", indirme boyutunu göstererek onay ister ve "İptal" düğmeli bir ilerleme penceresi açar; "Güncellemeleri ve yazıya döküm indirmelerini ilerleme penceresi olmadan arka planda indir" (Ayarlar &gt; Genel) işaretliyse indirme arka planda yapılır. İşlem bitince WinZapp sonucu söyler. "Kaldır" da onay ister. Bileşen kullanımdaysa WinZapp kaldırılamadığını bildirir: WinZapp'ı kapatıp yeniden açın ve bir arama yapmadan önce bileşeni kaldırın. Bileşen olmadan Neonize motoruyla yapılan aramalar standart oynatmayı, yani yukarıda anlatılan uyumlu modu kullanır; ayar değişikliği gerekmez.</p>
 <p>Neonize aramaları: ses, yerel motora doğrudan bir yerel bağlantı üzerinden aktarılır; bağlantı kullanılamadığında otomatik olarak Socket.IO kullanılır. Ayarları değiştirmeniz gerekmez. Arama kontrolleri normal bağlantıyı kullanmaya devam eder.</p>
 <p>Neonize bire bir aramalarında gelen ses, motorda yinelenen bir bekleme olmadan oynatma tamponuna ulaşır. Ağ gecikmesindeki değişimlere otomatik uyum etkin kalır ve ayarları değiştirmeniz gerekmez.</p>
 <p>Neonize aramalarında mikrofon sesi dönüştürme optimizasyonu otomatiktir ve ayarları değiştirmenizi gerektirmez. Yüklü motor optimizasyonu desteklemiyorsa WinZapp uyumlu işleme yöntemini kullanmaya devam eder.</p>
