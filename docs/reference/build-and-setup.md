@@ -10,7 +10,7 @@ Two supported ways to get the Python environment, and **both must keep working**
 # uv (recommended for a fresh checkout: fetches Python 3.13 itself, installs from uv.lock)
 uv sync
 uv run setup-api                      # clones + builds client/api/ (WPPConnect Server) — one-time
-uv run setup-neonize                  # installs Go/MinGW with winget if needed, then prepares Neonize
+uv run setup-neonize                  # installs Go/MinGW with winget if needed, then prepares Neonize (--with-neteq adds Rust + C++ tools)
 
 # venv + pip
 python -m venv venv

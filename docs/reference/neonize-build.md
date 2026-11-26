@@ -30,8 +30,10 @@ What the patches carry today:
   `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
   and Visual C++ Build Tools. It uses a static CRT and ships its notices.
   Sources, lockfile and helper invalidate the installed artifact identity.
-  `uv run setup-neonize` prepares Rustup, the pinned Rust toolchain and the
-  Visual C++ Build Tools as well as Go and MinGW, using winget for missing
+  `uv run setup-neonize` prepares only Go and MinGW; the NetEq toolchain is
+  opt-in because Visual C++ Build Tools weigh several GB.
+  `uv run setup-neonize --with-neteq` also prepares Rustup, the pinned Rust
+  toolchain and the Visual C++ Build Tools, using winget for missing
   installers. Existing installations are reused; the default Rust toolchain
   is not changed. The sidecar is optional for direct `build_neonize.py`
   builds: source builders who want it run `rustup toolchain

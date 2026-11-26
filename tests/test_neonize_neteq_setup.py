@@ -82,16 +82,32 @@ def test_unavailable_linker_after_install_stops_before_rust(tools, monkeypatch):
     assert tools.calls == []
 
 
-def test_setup_checks_neteq_even_when_go_and_gcc_are_present(monkeypatch):
+@pytest.mark.parametrize("with_neteq", [True, False])
+def test_neteq_is_prepared_only_when_requested(monkeypatch, with_neteq):
     checked = []
     monkeypatch.setattr(setup.sys, "platform", "win32")
     monkeypatch.setattr(setup, "_path_from_registry", lambda: "refreshed")
     monkeypatch.setattr(setup, "_has_tool", lambda *a: True)
     monkeypatch.setattr(neteq, "ensure_neteq_tools", lambda: checked.append(True))
     monkeypatch.setenv("PATH", "original")
-    setup.ensure_build_tools()
-    assert checked == [True]
+    setup.ensure_build_tools(with_neteq=with_neteq)
+    assert checked == ([True] if with_neteq else [])
     assert setup.os.environ["PATH"] == "refreshed"
+
+
+@pytest.mark.parametrize("argv, expected", [
+    (["--with-neteq"], True), (["--force"], False), (["--force", "--with-neteq"], True)])
+def test_cli_consumes_the_with_neteq_flag(monkeypatch, argv, expected):
+    from winzapp_tools import cli
+    seen = {}
+    monkeypatch.setattr(cli.sys, "argv", ["setup-neonize", *argv])
+    monkeypatch.setattr(setup, "ensure_build_tools",
+                        lambda with_neteq=False: seen.update(neteq=with_neteq))
+    monkeypatch.setattr(cli, "_exec", lambda command, cwd: seen.update(command=command))
+    cli.setup_neonize()
+    assert seen["neteq"] is expected
+    assert "--with-neteq" not in seen["command"]
+    assert seen["command"][2:] == [a for a in argv if a != "--with-neteq"]
 
 
 @pytest.mark.parametrize("returncode", [1, 0])
