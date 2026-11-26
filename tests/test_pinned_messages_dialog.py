@@ -72,6 +72,21 @@ class TestRows:
         assert pinned_list.toggle_all(["a", "b"], {"a", "b", "x"}) == ([], ["a", "b"])
         assert pinned_list.toggle_all([], set()) == ([], [])
 
+    def test_selection_within_narrows_then_returns_the_rest(self):
+        holder = SimpleNamespace(selected_messages={"a", "x", "y"})
+        with pinned_list.selection_within(holder, ["a", "b", ""]) as outside:
+            assert holder.selected_messages == {"a"}
+            assert outside == {"x", "y"}
+            holder.selected_messages.discard("a")
+        assert holder.selected_messages == {"x", "y"}
+
+    def test_selection_within_restores_even_when_the_action_raises(self):
+        holder = SimpleNamespace(selected_messages={"x"})
+        with pytest.raises(RuntimeError):
+            with pinned_list.selection_within(holder, ["a"]):
+                raise RuntimeError
+        assert holder.selected_messages == {"x"}
+
     def test_kept_index_follows_the_message_or_its_place(self):
         rows = [message("a"), message("b")]
         assert pinned_list.kept_index(rows, "b", 0) == 1
@@ -301,6 +316,30 @@ class TestWindowKeys:
         keys(window, "messages.ID_CTRL_C")
         panel.run_message_command.assert_called_once_with(message("a"), "ID_CTRL_C")
         window.EndModal.assert_not_called()
+
+    def test_an_action_reaches_only_the_windows_part_of_the_selection(self, keys):
+        """Messages selected in the conversation and not pinned used to be
+        what Ctrl+Shift+P, Delete or Ctrl+C on a pin acted on."""
+        panel = Panel([message("a"), message("b")],
+                      records=[message("a"), message("b"), message("x")])
+        panel.selected_messages.update({"b", "x"})
+        window = Window(panel)
+        seen = []
+        panel.run_message_command.side_effect = (
+            lambda msg, command: seen.append(set(panel.selected_messages)))
+        keys(window, "messages.ID_CTRL_SHIFT_P")
+        assert seen == [{"b"}]
+        assert panel.selected_messages == {"b", "x"}
+        panel._refresh_message_rows_by_ids.assert_called_with(["x"])
+
+    def test_an_action_clearing_the_selection_keeps_the_outside_part(self, keys):
+        panel = Panel([message("a")], records=[message("a"), message("x")])
+        panel.selected_messages.update({"a", "x"})
+        window = Window(panel)
+        panel.run_message_command.side_effect = (
+            lambda msg, command: panel.selected_messages.clear())
+        keys(window, "messages.ID_DELETE_MSG")
+        assert panel.selected_messages == {"x"}
 
     def test_unpinning_takes_the_row_out_without_rewriting_it_twice(self, keys):
         panel = Panel([message("a"), message("b")])

@@ -8,6 +8,8 @@ runs with the window open; one that takes the person into the conversation
 first, since the composer behind a modal window cannot take the focus.
 """
 
+from contextlib import contextmanager
+
 #: run on the pinned message with the window open
 IN_PLACE = (
     "messages.ID_ALT_SHIFT_D",          # message data
@@ -127,3 +129,20 @@ def kept_index(rows, keep_id, fallback):
     if not rows:
         return -1
     return min(max(fallback, 0), len(rows) - 1)
+
+
+@contextmanager
+def selection_within(holder, row_ids):
+    """While the window runs an action: `holder.selected_messages` holds only
+    what is selected among the window's rows, so Copy, Unpin or Delete on a
+    pin never reach messages selected in the conversation and not shown here.
+    The ones left out come back afterwards; the action's own changes to the
+    window's part (a selection cleared, a message deleted) are kept.
+    Yields the ids left out."""
+    rows = {mid for mid in row_ids if mid}
+    outside = set(holder.selected_messages) - rows
+    holder.selected_messages.difference_update(outside)
+    try:
+        yield outside
+    finally:
+        holder.selected_messages.update(outside)

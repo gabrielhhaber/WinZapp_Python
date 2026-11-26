@@ -11,7 +11,9 @@ it and runs that action (PinnedMessagesMixin._show_pinned_messages_picker).
 
 The selection keys work as in the message list (Ctrl+Space, Shift+arrows,
 Ctrl+Shift+Space) on the conversation's own selection, so Copy, Unpin and
-Delete reach every selected pinned message.
+Delete reach every selected pinned message, and only those: a message
+selected in the conversation and not listed here is set aside while the
+action runs (core/pinned_list.selection_within) and stays selected.
 """
 
 import logging
@@ -20,7 +22,8 @@ import wx
 
 from core.pinned_list import (
     SELECT, SELECT_ALL, SELECT_NEXT, SHOW_FOLDER,
-    command_of, kept_index, key_action, message_id, toggle_all, visible_pins,
+    command_of, kept_index, key_action, message_id, selection_within, toggle_all,
+    visible_pins,
 )
 from ui.dialogs.labelled_control import add_labelled
 from ui.shortcut_bindings import matches
@@ -137,12 +140,18 @@ class PinnedMessagesDialog(wx.Dialog):
         changed: an unpinned or deleted message leaves the list."""
         if message is None:
             return
-        self._panel._resident_message_index(message)
+        panel = self._panel
+        panel._resident_message_index(message)
         before = self._record_ids()
-        try:
-            action()
-        except Exception:
-            logging.exception("[pinned-messages] action failed")
+        # The window's keys act on the window's part of the selection only.
+        with selection_within(panel, [message_id(m) for m in self._rows]) as outside:
+            try:
+                action()
+            except Exception:
+                logging.exception("[pinned-messages] action failed")
+        if outside:
+            # Their rows were redrawn unselected if the action rewrote the list.
+            panel._refresh_message_rows_by_ids(sorted(outside))
         if self._leaving or not self:
             return
         self._gone |= {message_id(m) for m in self._rows
