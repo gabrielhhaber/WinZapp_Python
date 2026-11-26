@@ -384,6 +384,10 @@ if (process.env.AUTHENTICATION_API_KEY) {
 // '--disable-gpu' itself is kept — it's the one that actually saves
 // CPU/memory in a windowless session, and on its own still leaves the
 // software rasterizer fallback available.
+// 'OmniboxEverywhere' is Chromium's floating "Search with Chromium" bar
+// (Alt+Space). It registers a status icon in the Windows notification area,
+// which NVDA reads as a stray "Search with Chromium, button" for as long as
+// the WPPConnect browser runs (issue #936). WinZapp never uses it.
 const optimizedBrowserArgs = [
   '--disable-renderer-accessibility',
   '--no-sandbox',
@@ -408,7 +412,7 @@ const optimizedBrowserArgs = [
   '--disable-speech-api',
   '--disable-renderer-backgrounding',
   '--disable-backgrounding-occluded-windows',
-  '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction',
+  '--disable-features=OptimizationGuideOnDeviceModel,PromptAPIForGeminiNano,AISummarization,HelpMeWrite,OptimizationGuide,OptimizationHints,OptimizationTargetPrediction,OmniboxEverywhere',
   '--disable-ipc-flooding-protection',
   '--disable-breakpad',
   '--password-store=basic',
