@@ -519,9 +519,14 @@ class ShortcutsTabMixin:
             elif shortcut.id in CALL_KEYS:
                 self._call_hotkeys[CALL_KEYS[shortcut.id]] = (dialog.vk, dialog.binding[0])
             else:
+                binding = None if dialog.binding is None else list(dialog.binding)
+                default = default_binding(shortcut, i18n.t)
+                # The shipped key (the window opens on it, so ticking only
+                # "every account" lands here) is no choice: the command
+                # follows the default, and so a later change of it, as Reset.
                 self._stage_shortcut(
-                    shortcut.id, None if dialog.binding is None else list(dialog.binding),
-                    shared=dialog.shared)
+                    shortcut.id, binding, shared=dialog.shared,
+                    remove=binding == (None if default is None else list(default)))
             self._shortcut_edit_finished()
         finally:
             dialog.Destroy()

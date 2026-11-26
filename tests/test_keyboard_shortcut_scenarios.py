@@ -286,6 +286,40 @@ class TestOneCommandForThisAccountOnly:
         # Kept, so moving it back to the account brings its key back.
         assert dialog._sharing['own'] == {'main.account[1]': [6, ord('7')]}
 
+    def _change(self, monkeypatch, dialog, shortcut_id, binding, shared):
+        class _Capture:
+            def __init__(self, *args, **kwargs):
+                self.binding, self.vk, self.shared = binding, 0, shared
+
+            def ShowModal(self):
+                return wx.ID_OK
+
+            def Destroy(self):
+                pass
+        monkeypatch.setattr('ui.dialogs.shortcuts_tab.ShortcutCaptureDialog', _Capture)
+        dialog._shortcuts_dialog = object()
+        dialog._selected_shortcut = lambda: spec(shortcut_id)
+        dialog._shortcut_is_shared = lambda s: not shared
+        dialog._shortcut_edit_finished = lambda: None
+        dialog._accept_shortcut = lambda *a, **kw: True   # conflicts: their own tests
+        dialog._change_shortcut()
+
+    def test_ticking_only_every_account_stores_no_key(self, monkeypatch):
+        """The window opens on the shipped key; storing it would stop the
+        command from following a later change of the default."""
+        dialog = _shared_stub(default_shared=False)
+        shortcut = spec('main.account[1]')
+        default = default_binding(shortcut, dialog.main_window.i18n.t)
+        assert default is not None
+        self._change(monkeypatch, dialog, 'main.account[1]', tuple(default), shared=True)
+        assert dialog._sharing['scope'] == {'main.account[1]': True}
+        assert dialog._sharing['shared'] == {} and dialog._sharing['own'] == {}
+
+    def test_a_new_key_in_the_change_window_is_stored(self, monkeypatch):
+        dialog = _shared_stub(default_shared=False)
+        self._change(monkeypatch, dialog, 'main.account[1]', (6, ord('7')), shared=True)
+        assert dialog._sharing['shared'] == {'main.account[1]': [6, ord('7')]}
+
     def test_the_change_window_starts_from_the_general_check_box(self):
         dialog = _shared_stub(default_shared=False, scope={'main.account[2]': True})
         assert dialog._shortcut_is_shared(spec('main.account[1]')) is False
