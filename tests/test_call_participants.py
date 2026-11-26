@@ -287,7 +287,22 @@ def test_active_call_button_dispatches_the_current_id_without_a_window():
         voice_call_window=object(), _voice_call_last_announced_state="ACTIVE",
         show_call_participants=lambda *a, **kw: requests.append((a, kw)))
     CallParticipantsMixin._show_active_call_participants(stub)
-    assert requests == [(("C1", PERSON["jid"]), {"parent": stub.voice_call_window})]
+    assert requests == [(("C1", PERSON["jid"]),
+                         {"parent": stub.voice_call_window, "title": None})]
+
+
+def test_the_active_call_window_is_titled_like_the_calls_row():
+    """A joined call filed under the own chat carries its people's names;
+    titling the window after the chat named it after the account."""
+    requests = []
+    stub = SimpleNamespace(
+        _active_voice_call={"call_id": "C1", "peer_jid": PERSON["jid"], "name": "Ana, Bruno"},
+        voice_call_window=object(), _voice_call_last_announced_state="ACTIVE",
+        show_call_participants=lambda *a, **kw: requests.append(kw["title"]))
+    CallParticipantsMixin._show_active_call_participants(stub)
+    stub._active_voice_call["name"] = PERSON["jid"]     # only the JID: no name
+    CallParticipantsMixin._show_active_call_participants(stub)
+    assert requests == ["Ana, Bruno", None]
 
 
 def test_participants_control_waits_for_a_connected_real_call():

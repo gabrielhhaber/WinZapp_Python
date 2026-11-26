@@ -63,8 +63,14 @@ class CallParticipantsMixin:
         active = getattr(self, "_active_voice_call", None) or {}
         if not active_participants_available(active, getattr(self, "_voice_call_last_announced_state", "")):
             return
+        # A joined call filed under the own chat is named after its people;
+        # the chat's own name would be the account's.  A name that is only
+        # the peer's JID is no name, so the chat's display name is kept.
+        name = active.get("name") or ""
+        title = name if name and name != active.get("peer_jid") else None
         self.show_call_participants(active.get("call_id"), active.get("peer_jid"),
-                                    parent=getattr(self, "voice_call_window", None))
+                                    parent=getattr(self, "voice_call_window", None),
+                                    title=title)
 
     def show_call_participants(self, call_id, chat_jid, *, parent=None, title=None, people=()):
         """*title* names a call filed under the own chat after its people;
