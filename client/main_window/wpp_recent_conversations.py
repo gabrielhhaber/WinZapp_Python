@@ -70,5 +70,7 @@ def ask_once(main_window, post=api_post):
 
 def start(main_window):
     """`ask_once` off the sync thread (the route can take a few seconds)."""
-    threading.Thread(target=ask_once, args=(main_window,), daemon=True,
+    # No `args=`: sync tests swap threading.Thread for a fake that calls
+    # target() bare, so the target is a closure.
+    threading.Thread(target=lambda: ask_once(main_window), daemon=True,
                      name="wpp-recent-conversations").start()

@@ -59,3 +59,20 @@ def test_route_and_controller_exist():
     assert "DeviceController.requestRecentConversations" in routes
     assert "export async function requestRecentConversations" in ctl
     assert "RECENT_CONVERSATIONS_ON_DEMAND_REQUEST" in ctl
+
+
+def test_start_hands_the_thread_a_bare_callable(monkeypatch):
+    """Sync tests replace threading.Thread with a fake that calls target()."""
+    made = []
+
+    class _Thread:
+        def __init__(self, target=None, **kw):
+            made.append(target)
+
+        def start(self):
+            made[-1]()
+
+    monkeypatch.setattr(rc.threading, "Thread", _Thread)
+    monkeypatch.setattr(engines, "loaded_engine", lambda mw: engines.NEONIZE)
+    rc.start(_window(413))
+    assert len(made) == 1
