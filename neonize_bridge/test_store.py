@@ -1,8 +1,33 @@
 from store import Store
+import sqlite3
 
 
 def _msg(i, ts):
     return {"id": {"id": i}, "t": ts, "body": i}
+
+
+def test_wal_keeps_durable_commits_readable_during_delivery(tmp_path):
+    path = tmp_path / "bridge.db"
+    store = Store(str(path))
+    reader = sqlite3.connect(path.resolve().as_uri() + "?mode=ro", uri=True, timeout=0)
+    try:
+        assert store._conn.execute("PRAGMA journal_mode").fetchone()[0] == "wal"
+        assert store._conn.execute("PRAGMA synchronous").fetchone()[0] == 2  # FULL
+        store.message("c", _msg("committed", 1))
+        store._conn.execute("BEGIN IMMEDIATE")
+        store._conn.execute("UPDATE msgs SET ts=2 WHERE chat='c'")
+        # A committed snapshot remains readable while a writer holds a transaction.
+        assert reader.execute("SELECT ts FROM msgs WHERE id='committed'").fetchone()[0] == 1
+        store._conn.commit()
+        assert reader.execute("SELECT ts FROM msgs WHERE id='committed'").fetchone()[0] == 2
+    finally:
+        reader.close()
+        store.close()
+    reopened = Store(str(path))
+    try:
+        assert reopened.messages("c")[0]["id"]["id"] == "committed"
+    finally:
+        reopened.close()
 
 
 def test_latest_and_previous(tmp_path):

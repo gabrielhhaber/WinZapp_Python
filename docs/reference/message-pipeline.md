@@ -25,4 +25,16 @@ Event and snapshot entry points retire only the incompatible cached pairs touche
 
 ## A backlog delivered as live events
 
+UI handlers enqueue reaction records, delivery status, contact observations and
+the local-read map through `DatabaseBridge.queue_message`, `queue_message_status`,
+`queue_contacts` and `queue_metadata`. `core/event_writes.py` snapshots values on
+admission, coalesces reactions/status/metadata by key, and batches writes on the
+database loop. Status updates merge only ack fields into the current stored
+message, so delayed acks cannot undo an edit or revoke. Ordered contact
+observations compare their previous fields with the stored row before applying,
+so a newer local save/remove wins. Different keys are retained, including on a
+failed reset. Close drains accepted work within the bridge's
+existing shutdown budget, and destructive resets fence pending generations.
+The synchronous APIs remain for workers and callers that need a committed result.
+
 After a long absence WhatsApp hands the missed messages over the WebSocket *after* the sync round has ended (measured 2026-11-13, Neonize, slow link: about 1,500 `received-message` events in four minutes following a one-second sync; WPPConnect does the same). `main_window/backlog_flood.py` recognises it — several messages sent more than five minutes before they arrive, within a few seconds — and, while it lasts, shows "updating conversations" instead of an idle status and keeps `on_new_message()`, `on_historical_message()` and `on_chat_unread_update()` from touching the chat list, which is rebuilt once at the end (and once a minute if the flood goes on). Data, unread counts and the database are updated as usual. It deliberately does not touch `_sync_completed`: the health checker and the unread gate read that flag. On Neonize the bridge also forwards WhatsApp's own account of the backlog as the Socket.IO event `offline-sync` (`neonize_bridge/offline_sync.py`, from whatsmeow's `OfflineSyncPreview`/`OfflineSyncCompleted`; payload `state` `started` with `messages` and `total`, or `completed` with `count` — only `state` and `messages` are read, the rest is for the logs): `WebSocketClient.on_offline_sync` hands it to `note_offline_sync()`, which starts the hold at the announcement when at least five messages are waiting and tolerates up to 60 s of silence until `completed` (or until that silence, if `completed` never comes). WPPConnect has no such signal. Separately, `core/notification_burst.py` lets the first three message notifications of a burst through and stays quiet until arrivals drop under three per second (three by default; `general.notification_burst_limit`, Settings > General > Notifications) (foreground sound and speech, toast, sound-only alike), counted at the point of emission so a muted chat cannot use up the allowance.

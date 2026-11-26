@@ -1,7 +1,8 @@
-"""One async metadata write plus one replaceable full snapshot, on the DB loop.
+"""One async write plus one pending snapshot, on the DB loop.
 
 Only offers/reservations cross threads. Transactions are never cancelled or
 timed out here; close/reset fences run on the same async gate as writes.
+An optional merge combines keyed event updates instead of replacing a full map.
 """
 import asyncio
 import logging
@@ -10,17 +11,23 @@ from concurrent.futures import Future
 
 
 class LatestMetadataWrite:
-    def __init__(self, write):
+    def __init__(self, write, *, merge=None, label="presence-names"):
         self._write = write
+        self._merge = merge
+        self._label = label
         self._lock = threading.Lock()
         self._gate = asyncio.Lock()
         self._pending = self._active = self._latest = None
+        self._uncommitted = {}
         self._generation = 0
 
     def offer(self, value):
         """Copy the full value; return a lease only when a runner is needed."""
         snapshot = dict(value)
         with self._lock:
+            if self._merge is not None:
+                self._uncommitted = self._merge(self._uncommitted, snapshot)
+                snapshot = dict(self._uncommitted)
             self._pending = self._latest = self._generation, snapshot
             return self._reserve()
 
@@ -59,9 +66,20 @@ class LatestMetadataWrite:
                         continue  # A completed reset invalidated this old value.
                     try:
                         await self._write(snapshot)
+                        if self._merge is not None:
+                            with self._lock:
+                                for key, value in snapshot.items():
+                                    if self._uncommitted.get(key) is value:
+                                        self._uncommitted.pop(key, None)
+                                if self._pending is not None:
+                                    self._pending = (self._generation, dict(self._uncommitted)) \
+                                        if self._uncommitted else None
                     except Exception as error:
-                        logging.warning("[presence-names] write failed: %s", type(error).__name__)
+                        logging.warning("[%s] write failed: %s", self._label, type(error).__name__)
                         with self._lock:
+                            if self._merge is not None and self._pending is not None:
+                                self._pending = self._latest = (
+                                    self._generation, self._merge(snapshot, self._pending[1]))
                             if self._pending is None:
                                 if generation == self._generation:
                                     self._pending = item
@@ -90,16 +108,22 @@ class LatestMetadataWrite:
         try:
             async with self._gate:
                 with self._lock:
-                    previous = self._latest
+                    previous = ((self._generation, dict(self._uncommitted))
+                                if self._merge is not None else self._latest)
                     self._generation += 1
                     self._pending = self._latest = None
+                    self._uncommitted = {}
                 try:
                     return await operation()
                 except Exception:
                     # A failed reset did not authorize losing accepted names.
                     # A newer offer during the reset still takes precedence.
                     with self._lock:
-                        if self._latest is None and previous is not None:
+                        if self._merge is not None and previous is not None:
+                            self._uncommitted = self._merge(previous[1], self._uncommitted)
+                            self._pending = self._latest = (
+                                self._generation, dict(self._uncommitted))
+                        elif self._latest is None and previous is not None:
                             self._pending = self._latest = self._generation, previous[1]
                     raise
         except Exception:

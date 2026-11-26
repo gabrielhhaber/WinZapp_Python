@@ -56,7 +56,7 @@ class _Panel(ReactionsMixin):
         self.main_window = SimpleNamespace(
             get_chat=self.chats.get,
             send_reaction=lambda jid, key, emoji: self.sent.append((jid, key, emoji)) or success,
-            db=SimpleNamespace(insert_message=lambda jid, record: self.persisted.append((jid, record))),
+            db=SimpleNamespace(queue_message=lambda jid, record: self.persisted.append((jid, record))),
             _track_last_reaction=lambda jid, record: self.previews.append(jid),
             _schedule_set_chats=lambda: None,
             _schedule_save_settings=lambda: None,

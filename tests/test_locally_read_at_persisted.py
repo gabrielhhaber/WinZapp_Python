@@ -46,7 +46,7 @@ class _FakeDB:
         self.metadata = dict(metadata or {})
         self.writes = []
 
-    def set_metadata_json(self, key, value):
+    def queue_metadata(self, key, value):
         self.writes.append((key, value))
         self.metadata[key] = value
 
@@ -143,7 +143,7 @@ class TestPersistIsSafeWithoutADatabase:
 
     def test_a_failing_database_write_does_not_propagate(self):
         class _BrokenDB:
-            def set_metadata_json(self, key, value):
+            def queue_metadata(self, key, value):
                 raise RuntimeError("db is gone")
 
         stub = _Stub(_chat(), db=_BrokenDB())

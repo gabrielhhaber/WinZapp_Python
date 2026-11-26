@@ -355,7 +355,7 @@ class ReactionsMixin:
         else:
             records.append(reaction_record)
         try:
-            self.main_window.db.insert_message(jid, reaction_record)
+            self.main_window.db.queue_message(jid, reaction_record)
         except Exception:
             logging.exception("[conversations] insert reaction failed")
         return reaction_record
