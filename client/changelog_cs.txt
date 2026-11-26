@@ -121,7 +121,7 @@ NOVINKY
 
 - Neonize: když telefon posílá historii zpráv, WinZapp to oznámí a požádá vás, abyste na telefonu nechali WhatsApp otevřený na obrazovce, upozorní, když telefon přestane (s procentem), když začne znovu posílat a když skončí; dokud je zastavený, WinZapp se telefonu každých 90 sekund ptá na zbytek.
 
-- Neonize: chaty, které WhatsApp pro iPhone vynechává z první dávky historie (nově posílá jen 400), se nově také vyžádají a naimportují. Když telefon neodešle seznam vynechaných, WinZapp po dokončení historie párování požádá telefon o chybějící chaty a před prohlášením synchronizace za dokončenou několik minut čeká na odpověď.
+- Neonize: chaty, které WhatsApp pro iPhone vynechává z první dávky historie (nově posílá jen 400), se nově také vyžádají a naimportují. Když telefon neodešle seznam vynechaných, WinZapp po dokončení historie párování požádá telefon o chybějící chaty a před prohlášením synchronizace za dokončenou několik minut čeká na odpověď. Na WPPConnect WinZapp po první synchronizaci jednou požádá telefon o chaty nad rámec první dávky, když se seznam blíží tomuto limitu.
 
 - Neonize: smazání seznamu ho také odebere z jeho chatů, takže neukazují na seznam, který už neexistuje.
 

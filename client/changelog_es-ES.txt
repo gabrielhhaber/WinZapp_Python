@@ -121,7 +121,7 @@ NOVEDADES
 
 - Neonize: mientras el teléfono envía el historial de mensajes, WinZapp lo avisa y te pide que mantengas WhatsApp abierto en la pantalla del teléfono, avisa cuando el teléfono se detiene (con el porcentaje), cuando vuelve a enviar y cuando termina; mientras está detenido, WinZapp le pide el resto al teléfono cada 90 segundos.
 
-- Neonize: los chats que WhatsApp para iPhone deja fuera del primer lote de historial (ahora envía solo 400) ahora también se piden y se importan. Cuando el teléfono no envía la lista de las que quedaron fuera, WinZapp, al terminar el historial del emparejamiento, le pide al teléfono las conversaciones que faltan y espera la respuesta unos minutos antes de dar la sincronización por completada.
+- Neonize: los chats que WhatsApp para iPhone deja fuera del primer lote de historial (ahora envía solo 400) ahora también se piden y se importan. Cuando el teléfono no envía la lista de las que quedaron fuera, WinZapp, al terminar el historial del emparejamiento, le pide al teléfono las conversaciones que faltan y espera la respuesta unos minutos antes de dar la sincronización por completada. En WPPConnect, tras la primera sincronización, WinZapp pide una vez al teléfono las conversaciones más allá de ese primer lote cuando la lista se acerca a ese límite.
 
 - Neonize: eliminar una lista también la quita de sus chats, que ya no siguen apuntando a una lista que no existe.
 

@@ -661,6 +661,14 @@ routes.get(
   statusConnection,
   DeviceController.olderHistoryState
 );
+// Asks the phone for the chats past the 399 its first batch is capped at
+// (WhatsApp Web's own RECENT_CONVERSATIONS_ON_DEMAND request).
+routes.post(
+  '/api/:session/request-recent-conversations',
+  verifyToken,
+  statusConnection,
+  DeviceController.requestRecentConversations
+);
 // Read-only diagnostic: is WhatsApp Web's history-sync pipeline alive at all?
 routes.get(
   '/api/:session/history-sync-status',
