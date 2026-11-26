@@ -53,6 +53,14 @@ class ConversationInfoMixin:
         if self._is_recording:
             self._toggle_pause_recording(event)
             return
+        # Like the other single-message shortcuts with "bulk shortcuts" on:
+        # the selection is pinned, or unpinned when all of it already is.
+        if self._bulk_shortcuts_enabled() and self.selected_messages:
+            if self._selection_all_pinned():
+                self._on_mass_unpin_messages(event)
+            else:
+                self._on_mass_pin_messages(event)
+            return
         index = self.messages_list.GetFirstSelected()
         if index < 0:
             index = self.messages_list.GetFocusedItem()

@@ -148,7 +148,8 @@ def test_change_hands_the_main_window_to_the_capture_window(monkeypatch):
     monkeypatch.setattr("ui.dialogs.shortcuts_tab.ShortcutCaptureDialog", _Capture)
     main_window = SimpleNamespace(i18n=SimpleNamespace(t=lambda key: key), settings={})
     tab = SimpleNamespace(main_window=main_window, _shortcuts_dialog=object(),
-                          _selected_shortcut=lambda: A, _shortcut_binding=lambda s: None)
+                          _selected_shortcut=lambda: A, _shortcut_binding=lambda s: None,
+                          _shortcut_is_shared=lambda s: None)
     ShortcutsTabMixin._change_shortcut(tab)
     [(args, kwargs)] = made
     assert args[0] is tab._shortcuts_dialog

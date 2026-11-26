@@ -5405,8 +5405,9 @@ msgstr "Wyczyść zaznaczone czaty"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -10456,6 +10457,12 @@ msgid "Message text"
 msgstr "Tekst wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Za&wijaj długie wiersze"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 dzień"
@@ -11507,6 +11514,12 @@ msgstr ""
 "w tle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Powiadamiaj o &reakcjach na Twoje wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "nr_pending_send_raw"
 msgid "Send without noise reduction"
@@ -11829,8 +11842,6 @@ msgstr ""
 "czaty jednocześnie — odepnij inny czat i spróbuj ponownie."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11849,12 +11860,10 @@ msgid "Pin selected"
 msgstr "Przypnij zaznaczone"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Wybierz przypiętą wiadomość i naciśnij Enter, aby przejść do niej w "
-"historii."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "Przej&dź do wiadomości"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11884,6 +11893,12 @@ msgstr ""
 "Nie udało się wczytać przypiętych wiadomości. Spróbuj ponownie za chwilę."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Przypięte wiadomości"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 #| msgctxt "no_unread_in_conv"
@@ -11894,6 +11909,7 @@ msgstr "Przypięte wiadomości w tym czacie: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 #| msgctxt "pin_message"
 #| msgid "&Pin message"
 msgctxt "pinned_messages_title"
@@ -14651,6 +14667,16 @@ msgstr ""
 "Pozycja"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "na wszystkich kontach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "tylko na tym koncie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "Cały system"
@@ -14752,6 +14778,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "Polecenia i skróty klawiszowe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "Używaj &tych samych skrótów na wszystkich kontach"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14895,6 +14927,12 @@ msgid "Not assigned"
 msgstr "Nieprzypisany"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "&Używaj tego skrótu na wszystkich kontach"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_writing_help_label"
 msgid "Alt+Shift+H: writing help on the draft message"
@@ -14934,6 +14972,15 @@ msgstr "Nawigacja główna"
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
 msgstr "Wyszukiwanie w czacie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"Nie udało się zapisać skrótów wszystkich kont. Spróbuj ponownie za chwilę."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
@@ -15313,6 +15360,12 @@ msgstr "Ogłaszaj ładowanie &i dodawanie podglądów linków"
 msgctxt "speech_announce_media_progress_label"
 msgid "Announce media &download progress every few seconds"
 msgstr "Ogłaszaj &co kilka sekund postęp pobierania multimediów"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Ogłaszaj &liczbę przypiętych wiadomości po otwarciu czatu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17543,6 +17596,12 @@ msgstr "Wiadomości przypięte."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Czaty przywrócone z archiwum."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Wiadomości odpięte."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21929,9 +21988,16 @@ msgid "&Unpin message"
 msgstr "&Odepnij wiadomość"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Nie udało się odpiąć tej wiadomości. Spróbuj ponownie za chwilę."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Odepnij zaznaczone"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23573,6 +23639,12 @@ msgstr "&Tak"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Wczoraj o {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Wybierz przypiętą wiadomość i naciśnij Enter, aby przejść do niej w "
+#~ "historii."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

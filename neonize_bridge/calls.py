@@ -535,7 +535,8 @@ def register_events(cli, s):
                 return
             s.ringing_calls.remember(call_id, e.basicCallMeta.callCreator, now, data)
             if media is not None:
-                media.remember_offer(data)
+                media.remember_offer(
+                    data, ongoing_calls.device_jid(e.basicCallMeta.callCreator))
                 ongoing_calls.remember_offer(media, data["id"], e.basicCallMeta.callCreator, data)
             log.info("call received (video=%s group=%s multiparty=%s)",
                      data["isVideo"], data["isGroup"], data["isMultiparty"])

@@ -4,6 +4,32 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- WPPConnect, QR kodu veya telefon numarasıyla bağlanma: telefon eşleştirmeyi kabul ettikten sonra WhatsApp Web sohbetleri hâlâ açarken WinZapp artık bağlantının başarısız olduğunu söylemiyor. Eşleştirmeden 4 dakika sonra yapılan kontrol, WhatsApp Web'in yeni sürümlerinde bağlantı durumunu okuyamıyor ve çalışan bir bağlantıyı başarısız sayıyordu.
+
+- WPPConnect: PUPPETEER_EXECUTABLE_PATH ortam değişkeninde belirtilen bir tarayıcı, örneğin ARM üzerinde Windows için yerel bir Chrome, yeniden kullanılıyor; birden fazla tarayıcı sürümü indirilmişse WinZapp bulduğu ilk sürümü değil, WPPConnect'in istediğini kullanıyor.
+
+- Sabitlenen mesajlar: sohbetin sabitlenen mesajlar düğmesi artık sabitlenen mesajları listeleyen "Sabitlenen mesajlar" penceresini açıyor. Her mesajda mesaj listesinin bağlam menüsü ve kısayolları bulunur: kopyalama, iletme, tepki verme, yıldızlama, sabitlemeyi kaldırma, silme, yazıya dökme ve diğerleri, seçtiğiniz tuşlarla. Yanıtlama, düzenleme ve sizi sohbete götüren diğer işlemler pencereyi kapatır ve sohbette odaklanmış mesaj üzerinde yapılır; Enter veya "Mesaja git" sizi geçmişte o mesaja götürür.
+
+- Seçili mesajlar: bağlam menüsündeki "Toplu işlemler" altında "Seçilenlerin sabitlemesini kaldır", seçili mesajlardan sabitlenmiş olanların sabitlemesini tek seferde kaldırır. "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+Shift+P seçili mesajları sabitler, hepsi zaten sabitlenmişse sabitlemelerini kaldırır.
+
+- Ayarlar > Erişilebilirlik > Konuşulan içerik bölümünde yeni seçenek: "Bir sohbet açılınca kaç mesajın sabitlendiğini duyur", varsayılan olarak işaretli. İşaret kaldırılırsa WinZapp bir sohbet açıldığında artık "Bu sohbetteki sabitlenen mesajlar: N" demez.
+
+- Ayarlar > Genel > Bildirimler bölümünde yeni seçenek: "Mesajlarınıza gelen tepkileri bildir", varsayılan olarak işaretli. İşaret kaldırılırsa mesajlarınızdan birine gelen tepki okunmaz, ses çalmaz ve Windows bildirimlerinde görünmez; mesajın üzerinde ve sohbet listesinde görünmeye devam eder.
+
+- Mesaj metni (Alt+C): pencerede varsayılan olarak işaretli yeni "Uzun satırları kaydır" kutusu var. İşaret kaldırılırsa satır, satırın uzunluğu veya pencerenin boyutu ne olursa olsun yalnızca mesajın kendi satır sonunda biter. Seçim sonraki açılışlar için hatırlanır ve kopyalama metni yine yazıldığı gibi verir.
+
+- Aramalar: telefonda başlattığınız ve grup aramasına dönüşen bir aramaya, ondan ayrıldıktan sonra WinZapp üzerinden yeniden katılabilirsiniz: aramada kalan her kişinin sohbetinde "Devam eden sesli aramaya katıl" görünür ve Aramalar sekmesindeki satırı onların adlarını gösterir. Neonize ve WPPConnect ile çalışır.
+
+- Neonize: zaten sürmekte olan bir grup aramasına katıldığınızda, telefonu sesi WinZapp'in önceden attığı bir biçimde gönderen kişileri artık duyarsınız; onlarla kimseyi duymuyordunuz.
+
+- Neonize grup aramaları: her kişinin sesi artık bire bir aramalarda olduğu gibi kendi NetEQ oynatmasına sahip; bu, her birinin ağ dalgalanmalarını ve ses kaybını ayrı ayrı azaltır. Önceden tüm grup NetEQ olmadan karıştırılıyordu ve daha fazla kesinti ve gecikme oluyordu. Canlı çeviri ve NetEQ tarafından desteklenmeyen aygıtlar uyumlu oynatmayı kullanmaya devam eder.
+
+- Neonize aramaları: bir ses paketi kaybolduğunda ve sonraki paket onun bir kopyasını taşıdığında (bazı telefonlar bunu gönderir), WinZapp artık boşluğu bir tahminle doldurmak yerine bu kopyayı çalar.
+
+- Bir sohbette alınan JSON belgesinde, örneğin ayarların app.json dosyasında, Farklı Kaydet (Ctrl+Shift+S) artık indirilemediğini söylemek yerine dosyayı kaydeder.
+
+- Kısayollar: bir tuşu değiştirdikten hemen sonra başka bir hesaba geçtiğinizde, önceki hesap ayarlarını hâlâ kaydediyor olsa bile açılan hesap yeni tuşa yanıt verir; önceden bir şey kaydedene kadar eski tuşta kalabiliyordu.
+
 - Uzun süre çevrimdışı kaldıktan sonra yeniden bağlanma: WinZapp artık biriken mesajları, tepkileri ve okundu bilgilerini her veritabanı yazımında arayüzü dondurmadan alıyor ve Neonize motoru veritabanını daha hızlı yazıyor.
 - macOS: eşleştirme penceresinde başka bir bağlantı motoru seçmek artık WinZapp'ı o motorla yeniden başlatıyor. Önceden WinZapp'ın kendi kendine yeniden başlatılamadığı söyleniyor ve motor değiştirilmiyordu.
 - Bilinmeyen grupların geçmişi: WinZapp, henüz tanımadığı bir grubun eski iletilerini kurtarırken artık arayüzü kilitlemiyor. Önceden grubun adını arayüz iş parçacığında arıyordu ve her arama 10 saniyeye kadar sürebiliyor, bu sürede WinZapp yanıt vermiyordu. Ad artık arka planda aranıyor ve gelir gelmez görünüyor.
@@ -78,7 +104,7 @@ YENİLİKLER
 
 - Taşınabilir sürüm: ilk başlatmada, bilgisayarda kurulu WinZapp'ın bağlı hesapları varsa WinZapp, bir cihaz daha bağlamak yerine bunların bir kopyasını kullanmak isteyip istemediğinizi sorar. Kurulum yalnızca okunur; çalışıyorsa WinZapp kapatmanızı ve Yeniden Dene'yi seçmenizi ister, kopyalama başarısız olursa hiçbir şey değişmez ve yeni bir cihaz bağlanır.
 
-- Ayarlar > Kısayollar: değiştirdiğiniz tuşlar artık yalnızca değiştirdiğiniz hesapta değil, kurulumun tüm hesaplarında geçerlidir; 2. hesaba geç için ayarlanan tuş her hesaptan yanıt verir. Bu sürümle ilk başlatmada her hesabın değiştirilmiş tuşları kurulumunkilere katılır: ikisi de aynı komutu değiştirdiyse kurulumun tuşu kalır, başka bir komutun zaten kullandığı tuş dışarıda bırakılır.
+- Ayarlar > Kısayollar: değiştirdiğiniz tuşlar artık yalnızca değiştirdiğiniz hesapta değil, kurulumun tüm hesaplarında geçerlidir; 2. hesaba geç için ayarlanan tuş her hesaptan yanıt verir. Bu sürümle ilk başlatmada her hesabın değiştirilmiş tuşları kurulumunkilere katılır: ikisi de aynı komutu değiştirdiyse kurulumun tuşu kalır, başka bir komutun zaten kullandığı tuş dışarıda bırakılır. Tuşları yalnızca bir hesap için de tutabilirsiniz: aynı sekmedeki "Tüm hesaplarda aynı kısayolları kullan" kutusu işaretli gelir; işareti kaldırılınca bu hesapta değiştirdiğiniz tuşlar yalnızca onda geçerli olur, diğer hesaplar kendi tuşlarını korur. Her kısayolun değiştirme penceresinde de "Bu kısayolu tüm hesaplarda kullan" kutusu vardır; siz değiştirene kadar genel kutuyu izler. Genel kutuyu izlemeyen bir kısayol listede "tüm hesaplarda" ya da "yalnızca bu hesapta" ile görünür.
 
 - Düzenlenen mesajlar: Ses olayları'na "Mesajınızdaki düzenleme kaydedildi" (açık) ile program ön planda ve arka plandayken "Başkası tarafından düzenlenen mesaj" (kapalı) eklendi; Ayarlar > Genel > Bildirimler'e "Pencere etkinken düzenlemeleri oku" ve "Arka planda düzenlemeleri bildir" (kapalı) eklendi; her sohbetin veri penceresinde de o sohbet için farklı sesler ve duyurular seçmeye yarayan bir "Düzenlenen mesajlar" penceresi var. Başkasının düzenlemesi yalnızca WhatsApp o iletinin düzenlenmesini hâlâ kabul ettiği sürece duyurulur; bu yüzden yeniden bağlanınca tekrarlanan düzenlemeler sessiz kalır.
 

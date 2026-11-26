@@ -4,6 +4,32 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- WPPConnect, připojení kódem QR nebo telefonním číslem: když telefon spárování přijme, WinZapp už neříká, že se připojení nezdařilo, zatímco WhatsApp Web ještě otevírá chaty. Kontrola prováděná 4 minuty po spárování nedokázala v nových verzích WhatsApp Webu přečíst stav připojení a funkční připojení vyhodnotila jako neúspěšné.
+
+- WPPConnect: prohlížeč uvedený v proměnné prostředí PUPPETEER_EXECUTABLE_PATH, například nativní Chrome pro Windows na ARM, se zase používá, a když je staženo více verzí prohlížeče, WinZapp použije tu, kterou požaduje WPPConnect, ne první nalezenou.
+
+- Připnuté zprávy: tlačítko připnutých zpráv chatu teď otevírá okno „Připnuté zprávy“ se seznamem připnutých zpráv. Každá zpráva v něm má místní nabídku a klávesové zkratky seznamu zpráv: kopírování, přeposlání, reakci, označení hvězdičkou, odepnutí, smazání, přepis a ostatní, s klávesami, které jste si zvolili. Odpověď, úprava a další akce, které vedou do chatu, okno zavřou a provedou se na zprávě, na které už je v chatu fokus; Enter nebo „Přejít na zprávu“ vás k ní přenese v historii.
+
+- Vybrané zprávy: „Odepnout vybrané“ v „Hromadné akce“ místní nabídky odepne najednou vybrané zprávy, které jsou připnuté. Když je zaškrtnuto „Při výběru chatů a zpráv nahradit zkratky hromadnými akcemi“, Ctrl+Shift+P vybrané zprávy připne, nebo je odepne, když už jsou připnuté všechny.
+
+- Nová volba v Nastavení > Přístupnost > Mluvený obsah: „Při otevření chatu ohlásit počet připnutých zpráv“, ve výchozím stavu zapnutá. Když ji vypnete, WinZapp už po otevření chatu neříká „Připnuté zprávy v tomto chatu: N“.
+
+- Nová volba v Nastavení > Obecné > Oznámení: „Oznamovat reakce na vaše zprávy“, ve výchozím stavu zapnutá. Když ji vypnete, reakce na vaši zprávu se nepřečte, nepřehraje zvuk a neobjeví se v oznámeních Windows; dál je vidět u zprávy a v seznamu chatů.
+
+- Text zprávy (Alt+C): okno má nové zaškrtávací políčko „Zalamovat dlouhé řádky“, ve výchozím stavu zaškrtnuté. Když ho zrušíte, řádek končí jen tam, kde má zpráva sama zalomení řádku, bez ohledu na délku řádku nebo velikost okna. Volba se pamatuje i pro příště a kopírování dál vrací text tak, jak byl napsán.
+
+- Hovory: hovor, který jste zahájili v telefonu a který se změnil na skupinový, můžete po svém odchodu znovu připojit z WinZappu: v chatu každé osoby, která v něm zůstává, se objeví „Připojit se k probíhajícímu hlasovému hovoru“ a řádek na kartě Hovory ukazuje jejich jména. Platí pro Neonize i WPPConnect.
+
+- Neonize: když se připojíte ke skupinovému hovoru, který už probíhá, nově uslyšíte lidi, jejichž telefon posílá zvuk ve formátu, který WinZapp dříve zahazoval; s nimi jste neslyšeli nikoho.
+
+- Skupinové hovory Neonize: zvuk každé osoby má nyní vlastní přehrávání pomocí NetEQ, stejně jako v individuálních hovorech, které vyrovnává kolísání sítě a výpadky zvuku každé z nich zvlášť; dříve se celá skupina míchala bez něj, s více výpadky a zpožděním. Živý překlad a zařízení nepodporovaná NetEQ nadále používají kompatibilní přehrávání.
+
+- Hovory Neonize: když se ztratí zvukový paket a další nese jeho kopii, jak ji některé telefony posílají, WinZapp nyní přehraje tuto kopii, místo aby mezeru vyplnil odhadem.
+
+- Uložit jako (Ctrl+Shift+S) u dokumentu JSON přijatého v chatu, například souboru nastavení app.json, nyní soubor uloží, místo aby oznámilo, že ho nelze stáhnout.
+
+- Klávesové zkratky: když hned po změně klávesy přepnete na jiný účet, zobrazený účet reaguje na novou klávesu, i když předchozí účet ještě ukládá nastavení; dříve mohl zůstat u staré klávesy, dokud něco neuložil.
+
 - Opětovné připojení po dlouhé době offline: WinZapp nyní přijímá nahromaděné zprávy, reakce a potvrzení o přečtení, aniž by se při každém zápisu do databáze zasekávalo rozhraní, a engine Neonize zapisuje svou databázi rychleji.
 - macOS: volba jiného enginu připojení v okně párování teď WinZapp restartuje s tímto enginem. Dříve se zobrazilo, že se WinZapp nemohl sám restartovat, a engine se nezměnil.
 - Historie neznámých skupin: WinZapp už nezamrzá, když obnovuje staré zprávy skupiny, kterou ještě neznal. Dříve hledal název skupiny přímo ve vlákně rozhraní a každé hledání mohlo trvat až 10 sekund, během nichž WinZapp neodpovídal. Název se nyní hledá na pozadí a zobrazí se, jakmile dorazí.
@@ -78,7 +104,7 @@ NOVINKY
 
 - Přenosná verze: při prvním spuštění, když WinZapp nainstalovaný v počítači má spárované účty, se WinZapp zeptá, zda místo připojení dalšího zařízení použít jejich kopii. Instalace se jen čte; pokud běží, WinZapp vás požádá, abyste ji zavřeli a zvolili Zkusit znovu, a pokud se kopírování nezdaří, nic se nezmění a připojí se nové zařízení.
 
-- Nastavení > Klávesové zkratky: klávesy, které změníte, se nově uplatní u všech účtů instalace, nejen u toho, kde jste je změnili; klávesa nastavená pro přepnutí na účet 2 reaguje z každého účtu. Při prvním spuštění s touto verzí se změněné klávesy každého účtu přidají k těm instalace: když oba změnily tentýž příkaz, zůstane klávesa instalace, a klávesa, kterou už používá jiný příkaz, se vynechá.
+- Nastavení > Klávesové zkratky: klávesy, které změníte, se nově uplatní u všech účtů instalace, nejen u toho, kde jste je změnili; klávesa nastavená pro přepnutí na účet 2 reaguje z každého účtu. Při prvním spuštění s touto verzí se změněné klávesy každého účtu přidají k těm instalace: když oba změnily tentýž příkaz, zůstane klávesa instalace, a klávesa, kterou už používá jiný příkaz, se vynechá. Klávesy si také můžete ponechat jen pro jeden účet: políčko „Používat stejné zkratky ve všech účtech“ na téže stránce je zaškrtnuté; když ho zrušíte, klávesy, které v tomto účtu změníte, platí jen pro něj a ostatní účty si ponechají své. Okno Změnit u každé zkratky má také políčko „Používat tuto zkratku ve všech účtech“, které se řídí obecným políčkem, dokud ho nezměníte; zkratka, která se obecným políčkem neřídí, má v seznamu uvedeno „ve všech účtech“ nebo „jen v tomto účtu“.
 
 - Upravené zprávy: Zvukové události získávají „Úprava vaší zprávy uložena“ (zapnuto) a „Zprávu upravil někdo jiný“ pro program v popředí a na pozadí (vypnuto); Nastavení > Obecné > Oznámení získává „Vyslovovat úpravy, když je okno aktivní“ a „Oznamovat úpravy, když je okno na pozadí“ (vypnuto); a okno s údaji každého chatu má okno „Upravené zprávy“ pro volbu jiných zvuků a oznámení pro daný chat. Úprava od někoho jiného se oznámí, jen dokud WhatsApp úpravu dané zprávy ještě přijímá, takže úpravy přehrané po opětovném připojení zůstanou tiché.
 

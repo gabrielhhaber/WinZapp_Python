@@ -117,6 +117,9 @@ def _patched_paths(name):
 def test_every_tree_has_numbered_patches(name):
     files = sorted(os.listdir(os.path.join(HERE, "neonize_patches", name)))
     assert files and all(re.match(r"^\d{4}-.+\.patch$", f) for f in files)
+    # One patch per number, 0001 to N: branches merged separately once left
+    # main with two patches numbered alike, and the series order became a guess.
+    assert [int(f[:4]) for f in files] == list(range(1, len(files) + 1))
 
 
 def test_no_patch_carries_generated_protobuf_code():

@@ -129,9 +129,25 @@ function findExecutable(dir, names, depth) {
 function findPuppeteerChrome(headless) {
   // Preserving the cache means multiple versions can coexist. Prefer the
   // version requested by this Puppeteer instead of the first directory found.
+  //
+  // Puppeteer's own executablePath() did this until it became async (Puppeteer
+  // 25): called here synchronously it handed fs.existsSync() a Promise, which
+  // threw, so this always answered null. A browser named in
+  // PUPPETEER_EXECUTABLE_PATH (a native ARM64 Chrome, issue #912) was never
+  // used, and the cache walk below picked whatever it reached first. The same
+  // resolution, kept synchronous: the configured path first, as Puppeteer's
+  // resolveExecutablePath() does, then the build this Puppeteer asks for.
+  const configured = process.env.PUPPETEER_EXECUTABLE_PATH;
+  if (configured && fs.existsSync(configured)) return configured;
   try {
-    const executable = timedStartup('puppeteer', () => require('puppeteer'))
-      .executablePath({ browser: 'chrome', headless });
+    const browser = headless === 'shell' ? 'chrome-headless-shell' : 'chrome';
+    const { computeExecutablePath } = require('@puppeteer/browsers');
+    const { PUPPETEER_REVISIONS } = timedStartup('puppeteer', () => require('puppeteer-core'));
+    const executable = computeExecutablePath({
+      cacheDir: puppeteerCacheDir,
+      browser,
+      buildId: PUPPETEER_REVISIONS[browser],
+    });
     if (fs.existsSync(executable)) return executable;
   } catch (e) {}
   return null;

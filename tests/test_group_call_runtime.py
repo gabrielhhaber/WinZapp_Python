@@ -120,11 +120,23 @@ function fresh() {
     { id: { id: 'multi', remote: personChat.id }, callCreator: {}, isVideoCall: true, isGroupCall: true },
     { id: { id: 'ordinary', remote: personChat.id }, callCreator: {}, isGroupCall: false },
     { id: { id: 'ended', remote: wid }, callCreator: null, isGroupCall: true },
+    // started by this account on its phone: filed under its own chat, and
+    // offered in the chats of who is connected to it (not this account)
+    { id: { id: 'own', remote: pnChat.id }, callCreator: {}, isVideoCall: false, isGroupCall: true,
+      callParticipants: [
+        { participant: { _serialized: '555000099@lid' }, outcome: 71 },
+        { participant: personChat.id, outcome: 71 },
+        { participant: personChat.id, outcome: 71 },
+        { participant: { _serialized: '555000003@c.us' }, outcome: 71 },
+        { participant: { _serialized: '555000004@lid' }, outcome: 73 },
+      ] },
     record,
   ];
   assert.deepEqual(await api.list(), [
     { id: 'call-1', chatJid: group, isVideo: false },
-    { id: 'multi', chatJid: person, isVideo: true },
+    { id: 'multi', chatJid: person, isVideo: true, people: [] },
+    { id: 'own', chatJid: '555000002@c.us', isVideo: false,
+      people: [person, '555000003@s.whatsapp.net'] },
   ]);
   assert.equal(checks, 1, 'one native refresh for the entire list');
   api = fresh(); record.id.remote = personChat.id;

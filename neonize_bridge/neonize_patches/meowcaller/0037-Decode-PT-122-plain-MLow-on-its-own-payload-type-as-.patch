@@ -1,0 +1,127 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Sun, 22 Nov 2026 20:48:24 -0300
+Subject: [PATCH] Decode PT 122 (plain MLow on its own payload type) as audio
+
+Seen live: a member answered a group call that phones were already in and
+heard nobody while everyone heard it. The phones sent their audio as RTP
+payload type 122, which meowcaller dropped as an unknown payload (3888
+packets in the first 2.5 minutes, 1 decoded). Those who left and joined
+again came back on PT 120 and were heard; one who never left stayed on
+PT 122, unheard, for the whole call.
+
+WhatsApp Web registers PT 122 as "mlow-1" next to PT 120 ("mlow-1") and
+PT 121 ("mlow-red-1"), counts it as audio_rx_pkt_pt_mlow, and the server's
+voip_settings turn it on with enable_mlow_separate_pt_tx. Which of the three
+a sender uses depends on the capabilities of who is in the call when it
+joins. PT 122 is now audio and decoded like PT 120, by the call's
+negotiated codec (WhatsApp Web's parse_by_pt=0).
+
+Tested: PT 122 is classified as audio and a PT 122 stream decodes sample
+for sample like the same frames sent as PT 120, not silent; full suite
+passes.
+---
+ audio_red_test.go      | 39 +++++++++++++++++++++++++++++++++++++++
+ group_media_receive.go |  2 +-
+ rtp/rtp.go             |  6 +++++-
+ rtp/rtp_test.go        |  3 ++-
+ 4 files changed, 47 insertions(+), 3 deletions(-)
+
+diff --git a/audio_red_test.go b/audio_red_test.go
+index 2d7e6af..d409a40 100644
+--- a/audio_red_test.go
++++ b/audio_red_test.go
+@@ -60,3 +60,42 @@ func TestBrokenMlowRedPayloadIsConcealedNotDropped(t *testing.T) {
+ 		t.Fatalf("broken RED payload gave %d samples, want %d", len(got), FrameSamples)
+ 	}
+ }
++
++// Phones in a group call send plain MLow as PT 122 (mlow-1, voip_settings
++// enable_mlow_separate_pt_tx). Dropped as an unknown payload, a member who
++// joined such a call heard nobody while everyone heard it (seen live).
++func TestMlowSeparatePayloadTypeDecodesLikePT120(t *testing.T) {
++	if kind := classifyMediaPayload(rtp.RtpHeader{PayloadType: rtp.RtpPayloadTypeMlow}); kind != mediaPayloadAudio {
++		t.Fatalf("PT 122 classified as %v, want audio", kind)
++	}
++	encoder, err := newCallAudioEncoder(AudioCodecMlow)
++	if err != nil {
++		t.Fatal(err)
++	}
++	pt120, pt122 := newCallAudioDecoder(AudioCodecMlow), newCallAudioDecoder(AudioCodecMlow)
++	var energy float64
++	for n := 0; n < 8; n++ {
++		pcm := make([]float32, FrameSamples)
++		for i := range pcm {
++			pcm[i] = float32(.3 * math.Sin(2*math.Pi*220*float64(i+n*FrameSamples)/SampleRate))
++		}
++		frame, err := encoder.Encode(pcm)
++		if err != nil {
++			t.Fatal(err)
++		}
++		want := decodeAudioPayload(pt120, rtp.RtpPayloadTypeOpus, frame)
++		got := decodeAudioPayload(pt122, rtp.RtpPayloadTypeMlow, frame)
++		if len(got) != len(want) {
++			t.Fatalf("frame %d: %d samples, want %d", n, len(got), len(want))
++		}
++		for i := range got {
++			if got[i] != want[i] {
++				t.Fatalf("frame %d sample %d: %v, want %v", n, i, got[i], want[i])
++			}
++			energy += float64(got[i]) * float64(got[i])
++		}
++	}
++	if energy < 1 {
++		t.Fatalf("the PT 122 stream decoded to silence: energy %g", energy)
++	}
++}
+diff --git a/group_media_receive.go b/group_media_receive.go
+index 0c09378..91ab12e 100644
+--- a/group_media_receive.go
++++ b/group_media_receive.go
+@@ -21,7 +21,7 @@ type participantAudioDecoder interface {
+ // payload type: PT 121 (mlow-red) carries SplitRed blocks around the main
+ // frame, and decoding it as a bare frame gave silence (seen live: after a
+ // member joined a group call again, the others sent PT 121 to it and it heard
+-// nobody).
++// nobody). PT 122 (mlow-1) is a plain frame, decoded like PT 120.
+ func decodeAudioPayload(decoder participantAudioDecoder, payloadType uint8, payload []byte) []float32 {
+ 	if red, ok := decoder.(interface{ DecodeRed([]byte) []float32 }); ok && payloadType == rtp.RtpPayloadTypeMlowRed {
+ 		return red.DecodeRed(payload)
+diff --git a/rtp/rtp.go b/rtp/rtp.go
+index 14d9132..4da5a1a 100644
+--- a/rtp/rtp.go
++++ b/rtp/rtp.go
+@@ -15,6 +15,9 @@ const (
+ 	RtpPayloadTypeOpus uint8 = 120
+ 	// RtpPayloadTypeMlowRed carries MLow frames with SplitRed redundancy (mlow-red-1).
+ 	RtpPayloadTypeMlowRed uint8 = 121
++	// RtpPayloadTypeMlow carries plain MLow frames on a payload type of their own
++	// (mlow-1), sent when voip_settings enables enable_mlow_separate_pt_tx.
++	RtpPayloadTypeMlow uint8 = 122
+ 	// RtpPayloadTypeAppData carries protobuf call reactions and other RTC app data.
+ 	RtpPayloadTypeAppData uint8 = 119
+ 	// RtpPayloadTypeH264 is the WhatsApp video (H.264) RTP payload type, used to demux
+@@ -51,7 +54,8 @@ var OpusPrimingFrame2 = [5]byte{0x90, 0xb8, 0x14, 0x14, 0xc4}
+ // IsWhatsappOpusRtpPayload reports whether the payload type is WhatsApp Opus.
+ func IsWhatsappOpusRtpPayload(payloadType uint8) bool {
+ 	// Source of truth: https://github.com/oxidezap/whatsapp-rust/blob/41095d4e6ba4610e054e9ede3af1d5e88a83faee/wacore/src/voip/rtp.rs#L28-L30
+-	return payloadType == RtpPayloadTypeOpus || payloadType == RtpPayloadTypeMlowRed
++	return payloadType == RtpPayloadTypeOpus || payloadType == RtpPayloadTypeMlowRed ||
++		payloadType == RtpPayloadTypeMlow
+ }
+ 
+ // IsOpusDtxPayload reports DTX / comfort-noise frames (RFC 0x10, mlow 0x90, warmup).
+diff --git a/rtp/rtp_test.go b/rtp/rtp_test.go
+index ecc0ee5..ec8f6bb 100644
+--- a/rtp/rtp_test.go
++++ b/rtp/rtp_test.go
+@@ -235,7 +235,8 @@ func TestClassifiers(t *testing.T) {
+ 	if !IsOpusMlowSpeechPayload(bytes.Repeat([]byte{0x48}, 20)) || IsOpusMlowSpeechPayload(bytes.Repeat([]byte{0x48}, 4)) {
+ 		t.Error("mlow speech classification wrong")
+ 	}
+-	if !IsWhatsappOpusRtpPayload(120) || !IsWhatsappOpusRtpPayload(121) || IsWhatsappOpusRtpPayload(96) {
++	if !IsWhatsappOpusRtpPayload(120) || !IsWhatsappOpusRtpPayload(121) || !IsWhatsappOpusRtpPayload(122) ||
++		IsWhatsappOpusRtpPayload(96) || IsWhatsappOpusRtpPayload(123) {
+ 		t.Error("payload-type classification wrong")
+ 	}
+ }

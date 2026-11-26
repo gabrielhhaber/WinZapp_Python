@@ -169,3 +169,39 @@ def test_answer_revalidates_timed_transport_after_exclusive_rate_change(monkeypa
         for worker in (session._player_thread, session._sender_thread):
             if worker is not None:
                 worker.join(1)
+
+
+def test_the_reason_neteq_cannot_play_is_named_for_the_log():
+    assert buffer()[0].unavailable_reason is None
+    assert buffer(available=False)[0].unavailable_reason == 'no NetEq sidecar installed'
+    assert buffer(rate=44100)[0].unavailable_reason == 'device rate 44100 Hz'
+    failed = buffer()[0]
+    failed._failed = True
+    assert failed.unavailable_reason == 'NetEq failed'
+
+
+@pytest.mark.parametrize('available, translation, logged', [
+    (False, (), 'playout=compatible: no NetEq sidecar installed'),
+    (True, ('in',), 'playout=compatible: live translation'),
+])
+def test_a_call_without_neteq_logs_why_before_asking_for_the_compatible_protocol(
+        caplog, available, translation, logged):
+    # 2026-11-25: a group call fell back to the Go mixer with nothing in the log.
+    from core.call_audio import CallAudioSession
+    asked = []
+    stub = SimpleNamespace(_transport=SimpleNamespace(configure_playout=asked.append),
+                           _output_buffer=buffer(available=available)[0],
+                           _live_translation=translation)
+    with caplog.at_level('INFO'):
+        CallAudioSession._configure_transport_playout(stub)
+    assert asked == [False] and logged in caplog.text
+
+
+def test_a_call_with_neteq_asks_for_timed_audio_without_a_fallback_line(caplog):
+    from core.call_audio import CallAudioSession
+    asked = []
+    stub = SimpleNamespace(_transport=SimpleNamespace(configure_playout=asked.append),
+                           _output_buffer=buffer()[0], _live_translation=())
+    with caplog.at_level('INFO'):
+        CallAudioSession._configure_transport_playout(stub)
+    assert asked == [True] and 'playout=compatible' not in caplog.text

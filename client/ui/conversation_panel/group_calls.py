@@ -2,7 +2,9 @@
 
 A group asks call/group/ongoing. A one-to-one chat asks call/ongoing (the
 Calls tab's list) for a call with several people filed under it: WhatsApp
-files one started from a private chat under the creator's chat. While such a
+files one started from a private chat under the creator's chat, and one this
+account started on its phone under its own, offered then in the chat of each
+person connected to it (core/ongoing_calls.ongoing_for_chat). While such a
 call goes on without this device the call buttons give way to "Join"; while
 this device is in a call with the chat, to "Return to call".
 """
@@ -150,8 +152,9 @@ class GroupCallJoinPanelMixin:
                     try:
                         response = main._raise_for_call_response(
                             main._post_call_control("ongoing", {}, timeout=20), "ongoing")
-                        call = ongoing_for_chat(ongoing_entries(response.json()), jid,
-                                                self._same_call_chat)
+                        call = ongoing_for_chat(
+                            ongoing_entries(response.json()), jid, self._same_call_chat,
+                            getattr(main, "_is_self_jid", lambda _jid: False))
                     except Exception:
                         call = None
                         warn("[call] ongoing call check unavailable")
@@ -205,6 +208,7 @@ class GroupCallJoinPanelMixin:
             return
         name = self.conversation_name or conversation.get("name") or ""
         # the engine's own form of the chat: a call started from a private
-        # chat is filed under the creator's @lid (call/group/join checks it)
+        # chat is filed under the creator's @lid (call/group/join checks it),
+        # this account's own when it started the call on its phone
         main._start_call(call.get("chatJid") or jid, name, is_group=True,
                          is_video=call["isVideo"], join_call_id=call["id"])

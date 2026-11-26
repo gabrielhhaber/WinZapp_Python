@@ -4,6 +4,32 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect, connessione con codice QR o con il numero di telefono: dopo che il telefono accetta l'associazione, WinZapp non dice più che la connessione non è riuscita mentre WhatsApp Web sta ancora aprendo le chat. Il controllo fatto 4 minuti dopo l'associazione non riusciva a leggere lo stato della connessione nelle versioni recenti di WhatsApp Web e dava per fallita una connessione che funzionava.
+
+- WPPConnect: un browser indicato nella variabile d'ambiente PUPPETEER_EXECUTABLE_PATH, come un Chrome nativo per Windows su ARM, viene di nuovo usato, e quando sono scaricate più versioni del browser WinZapp usa quella richiesta da WPPConnect, non la prima che trova.
+
+- Messaggi fissati: il pulsante dei messaggi fissati della chat ora apre la finestra "Messaggi fissati", con l'elenco dei messaggi fissati. Ogni messaggio ha il menu contestuale e le scorciatoie dell'elenco dei messaggi: copiare, inoltrare, reagire, aggiungere ai preferiti, sfissare, eliminare, trascrivere e gli altri, con i tasti che hai scelto. Rispondere, modificare e le altre azioni che portano nella chat chiudono la finestra e si eseguono sul messaggio, già a fuoco nella chat; Invio o "Vai al messaggio" ti porta al messaggio nella cronologia.
+
+- Messaggi selezionati: "Sfissa selezionati", in "Azioni in blocco" nel menu contestuale, sfissa in una volta i messaggi selezionati che sono fissati. Con "Sostituisci le scorciatoie con le azioni in blocco quando selezioni chat e messaggi" attivato, Ctrl+Shift+P fissa i messaggi selezionati, oppure li sfissa quando sono già tutti fissati.
+
+- Nuova opzione in Impostazioni > Accessibilità > Contenuto parlato: "Annuncia quanti messaggi sono fissati all'apertura di una chat", attiva per impostazione predefinita. Disattivata, WinZapp non dice più "Messaggi fissati in questa chat: N" quando apri una chat.
+
+- Nuova opzione in Impostazioni > Generale > Notifiche: "Notifica le reazioni ai tuoi messaggi", attiva per impostazione predefinita. Disattivata, una reazione a un tuo messaggio non viene letta, non suona e non compare nelle notifiche di Windows; continua a comparire sul messaggio e nell'elenco delle chat.
+
+- Testo del messaggio (Alt+C): la finestra ha la nuova casella "A capo automatico delle righe lunghe", attiva per impostazione predefinita. Disattivata, una riga finisce solo dove il messaggio stesso va a capo, qualunque sia la lunghezza della riga o la dimensione della finestra. La scelta viene ricordata, e la copia restituisce sempre il testo come è stato scritto.
+
+- Chiamate: una chiamata iniziata dal telefono e diventata di gruppo si può riprendere da WinZapp dopo esserne usciti: "Unisciti alla chiamata vocale in corso" compare nella chat di ogni persona ancora presente, e la sua riga nella scheda Chiamate mostra i loro nomi. Funziona con Neonize e WPPConnect.
+
+- Neonize: entrando in una chiamata di gruppo già in corso, ora senti le persone il cui telefono invia l’audio in un formato che WinZapp prima scartava; con loro non sentivi nessuno.
+
+- Chiamate di gruppo Neonize: l’audio di ogni persona ha ora la sua riproduzione con NetEQ, come nelle chiamate individuali, che attenua le variazioni di rete e le perdite audio di ciascuna separatamente; prima tutto il gruppo veniva mixato senza, con più interruzioni e ritardo. La traduzione dal vivo e i dispositivi non supportati da NetEQ mantengono la riproduzione compatibile.
+
+- Chiamate Neonize: quando un pacchetto audio va perso e il successivo ne porta una copia, come inviano alcuni telefoni, WinZapp ora riproduce quella copia invece di riempire il vuoto con una stima.
+
+- Salva con nome (Ctrl+Shift+S) su un documento JSON ricevuto in una chat, come il file app.json delle impostazioni, ora salva il file invece di dire che non è stato possibile scaricarlo.
+
+- Scorciatoie da tastiera: passando a un altro account subito dopo aver cambiato un tasto, l’account che compare risponde al tasto nuovo anche mentre il precedente sta ancora salvando le impostazioni; prima poteva restare sul tasto vecchio finché non salvava qualcosa.
+
 - Riconnessione dopo molto tempo offline: WinZapp ora riceve i messaggi, le reazioni e le conferme di lettura accumulati senza bloccare l'interfaccia a ogni scrittura nel database, e il motore Neonize scrive il suo database più velocemente.
 - macOS: scegliere un altro motore di connessione nella finestra di associazione ora riavvia WinZapp con quel motore. Prima diceva che WinZapp non era riuscito a riavviarsi automaticamente e il motore non veniva cambiato.
 - Cronologia dei gruppi sconosciuti: WinZapp non blocca più l'interfaccia quando recupera vecchi messaggi di un gruppo che non conosceva ancora. Prima cercava il nome del gruppo nel thread dell'interfaccia, e ogni ricerca poteva durare fino a 10 secondi senza che WinZapp rispondesse. Ora il nome viene cercato in background e compare appena arriva.
@@ -78,7 +104,7 @@ WHAT'S NEW
 
 - Versione portatile: al primo avvio, quando il WinZapp installato sul computer ha account collegati, WinZapp chiede se vuoi usarne una copia invece di collegare un altro dispositivo. L'installazione viene solo letta; se è in esecuzione, WinZapp ti chiede di chiuderla e scegliere Riprova, e se la copia fallisce non cambia nulla e viene collegato un nuovo dispositivo.
 
-- Impostazioni > Scorciatoie da tastiera: i tasti che cambi ora valgono per tutti gli account dell'installazione, non solo per quello in cui li hai cambiati; un tasto impostato per passa all'account 2 risponde da ogni account. Al primo avvio con questa versione, i tasti cambiati in ogni account si uniscono a quelli dell'installazione: se entrambi hanno cambiato lo stesso comando resta il tasto dell'installazione, e un tasto che un altro comando usa già viene lasciato fuori.
+- Impostazioni > Scorciatoie da tastiera: i tasti che cambi ora valgono per tutti gli account dell'installazione, non solo per quello in cui li hai cambiati; un tasto impostato per passa all'account 2 risponde da ogni account. Al primo avvio con questa versione, i tasti cambiati in ogni account si uniscono a quelli dell'installazione: se entrambi hanno cambiato lo stesso comando resta il tasto dell'installazione, e un tasto che un altro comando usa già viene lasciato fuori. Puoi anche tenere tasti solo per un account: la casella "Usa le stesse scorciatoie in tutti gli account", nella stessa scheda, è selezionata; deselezionata, i tasti che cambi in questo account valgono solo per lui, e quelli degli altri account non cambiano. La finestra di modifica di ogni scorciatoia ha anche la casella "Usa questa scorciatoia in tutti gli account", che segue quella generale finché non la cambi; una scorciatoia che non segue la casella generale compare nell'elenco con "in tutti gli account" o "solo in questo account".
 
 - Messaggi modificati: Eventi sonori ottiene "Modifica del tuo messaggio salvata" (attivo) e "Messaggio modificato da un'altra persona" per il programma in primo piano e in background (disattivi); Impostazioni > Generale > Notifiche ottiene "Leggi le modifiche con la finestra attiva" e "Notifica le modifiche in background" (disattivi); e la finestra dei dati di ogni conversazione ha una finestra "Messaggi modificati" per scegliere suoni e annunci diversi in quella chat. La modifica di un'altra persona viene annunciata solo finché WhatsApp accetta ancora di modificare quel messaggio, quindi le modifiche riproposte dopo una riconnessione restano silenziose.
 

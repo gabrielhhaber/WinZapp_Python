@@ -5319,8 +5319,9 @@ msgstr "Vymazat vybrané chaty"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -10310,6 +10311,12 @@ msgid "Message text"
 msgstr "Text zprávy"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Zalamovat &dlouhé řádky"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 den"
@@ -11345,6 +11352,12 @@ msgid "Notify messages e&dited by others while in the background"
 msgstr "Oznamovat zprávy u&pravené ostatními, když je okno na pozadí"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Oznamovat &reakce na vaše zprávy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "nr_pending_send_raw"
 msgid "Send without noise reduction"
@@ -11670,8 +11683,6 @@ msgstr ""
 "chaty – odepněte jiný chat a zkuste to znovu."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11690,11 +11701,10 @@ msgid "Pin selected"
 msgstr "Připnout vybrané"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Vyberte připnutou zprávu a stiskněte Enter, abyste na ni přešli v historii."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "Pře&jít na zprávu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11716,6 +11726,12 @@ msgid "Pinned messages could not be loaded. Please try again in a moment."
 msgstr "Připnuté zprávy nešlo načíst. Zkuste to prosím za chvíli."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Připnuté zprávy"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 msgctxt "pinned_messages_notice"
@@ -11724,6 +11740,7 @@ msgstr "Připnuté zprávy v tomto chatu: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 msgctxt "pinned_messages_title"
 msgid "Pinned messages"
 msgstr "Připnuté zprávy"
@@ -14438,6 +14455,16 @@ msgstr ""
 "nejnovější, 0 je desátá); dvojí rychlý stisk zprávu zkopíruje, pozice"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "ve všech účtech"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "jen v tomto účtu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "Celý systém"
@@ -14537,6 +14564,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "Příkazy a klávesové zkratky"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "Používat &stejné zkratky ve všech účtech"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14675,6 +14708,12 @@ msgid "Not assigned"
 msgstr "Nepřiřazeno"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "&Používat tuto zkratku ve všech účtech"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_writing_help_label"
 msgid "Alt+Shift+H: writing help on the draft message"
@@ -14714,6 +14753,14 @@ msgstr "Hlavní navigace"
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
 msgstr "Hledání v chatu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr "Zkratky pro všechny účty nešlo uložit. Zkuste to prosím za chvíli."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
@@ -15088,6 +15135,12 @@ msgstr "O&hlašovat načítání a přidání náhledu odkazu"
 msgctxt "speech_announce_media_progress_label"
 msgid "Announce media &download progress every few seconds"
 msgstr "Každých pár sekund ohlašovat průběh &stahování médií"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Při o&tevření chatu ohlásit počet připnutých zpráv"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17264,6 +17317,12 @@ msgstr "Zprávy připnuty."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Chaty vyjmuty z archivu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Zprávy odepnuty."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21413,9 +21472,16 @@ msgid "&Unpin message"
 msgstr "O&depnout zprávu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Tuto zprávu nešlo odepnout. Zkuste to prosím za chvíli."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Odepnout vybrané"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23031,3 +23097,8 @@ msgstr "&Ano"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Včera v {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Vyberte připnutou zprávu a stiskněte Enter, abyste na ni přešli v historii."

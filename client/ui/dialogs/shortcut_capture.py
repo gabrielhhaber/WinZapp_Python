@@ -33,7 +33,8 @@ def classify_chord(mod, key, global_hotkey=False):
 
 
 class ShortcutCaptureDialog(wx.Dialog):
-    def __init__(self, parent, action, binding, global_hotkey=False, main_window=None):
+    def __init__(self, parent, action, binding, global_hotkey=False, main_window=None,
+                 shared=None):
         # The parent is the Shortcuts window (a SubPageDialog), which has no
         # main_window of its own: reading it off the parent raised
         # AttributeError on every Change (reported from an installed build).
@@ -56,6 +57,16 @@ class ShortcutCaptureDialog(wx.Dialog):
         self.hint = wx.StaticText(self, label=self.i18n.t('shortcut_capture_hint'))
         self.hint.Wrap(450)
         sizer.Add(self.hint, 0, wx.EXPAND | wx.ALL, 8)
+        # Whether this command takes the install's key or one of this
+        # account's own (main_window/shortcut_sharing.py). It starts as the
+        # general check box on Settings > Shortcuts says, unless the command
+        # was set apart; None: nothing to choose (no shared file, a system key).
+        self.shared_box = None
+        if shared is not None:
+            self.shared_box = wx.CheckBox(self, label=self.i18n.t('shortcut_use_in_all_accounts'))
+            self.shared_box.SetValue(bool(shared))
+            self.shared_box.Bind(wx.EVT_CHECKBOX, self._shared_changed)
+            sizer.Add(self.shared_box, 0, wx.ALL, 8)
         buttons = wx.StdDialogButtonSizer()
         self.ok = wx.Button(self, wx.ID_OK, self.i18n.t('ok'))
         self.ok.Enable(False)
@@ -67,6 +78,15 @@ class ShortcutCaptureDialog(wx.Dialog):
         self.CenterOnParent()
         self.Bind(wx.EVT_CHAR_HOOK, self._key)
         self.field.SetFocus()
+
+    @property
+    def shared(self):
+        return None if self.shared_box is None else bool(self.shared_box.GetValue())
+
+    def _shared_changed(self, event):
+        # Moving the command between the install and the account is a change
+        # of its own: OK applies it to the key it has now.
+        self.ok.Enable(True)
 
     def _char(self, event):
         if event.GetKeyCode() == wx.WXK_TAB:

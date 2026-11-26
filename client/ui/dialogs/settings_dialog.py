@@ -25,7 +25,9 @@ from core.audio_devices import (
 )
 from core.spell_checker import SPELL_CHECK_MODES, spell_check_mode
 from core.emoticons import emoticon_setting_enabled
-from core.notification_manager import GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS
+from core.notification_manager import (
+    GROUP_TOAST_ORDERS, NOTIFICATION_CONTENT_LEVELS,
+)
 from core.attachment_types import PASTED_AUDIO_MODES
 from core.reaction_shortcuts import (
     DEFAULT_QUICK_REACTIONS,
@@ -690,6 +692,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         notif_sizer.Add(self._notify_edits_check, 0, wx.ALL, 8)
 
+        # A reaction to one of your messages: spoken, played and notified
+        # (issue #922; core.notification_manager.reaction_notifications_enabled).
+        self._notify_reactions_check = wx.CheckBox(
+            self._notifications_page, label=i18n.t("notify_reactions_label")
+        )
+        notif_sizer.Add(self._notify_reactions_check, 0, wx.ALL, 8)
+
         # Which conversations the unread count in the tray icon and the
         # window title includes (core/unread_badge.py).
         self._discount_archived_check = wx.CheckBox(
@@ -806,6 +815,12 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._speech_page, label=i18n.t("speech_announce_recording_label")
         )
         speech_sizer.Add(self._announce_recording_check, 0, wx.ALL, 8)
+
+        # "Pinned messages in this chat: N" when a chat opens (issue #848).
+        self._announce_pinned_check = wx.CheckBox(
+            self._speech_page, label=i18n.t("speech_announce_pinned_label")
+        )
+        speech_sizer.Add(self._announce_pinned_check, 0, wx.ALL, 8)
 
         self._announce_group_multiple_check = wx.CheckBox(
             self._speech_page, label=i18n.t("speech_announce_group_multiple_label")
@@ -2568,10 +2583,14 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         notify_edits = self.main_window.settings.get("general", {}).get(
             "notify_edited_messages", False
         )
+        notify_reactions = self.main_window.settings.get("general", {}).get(
+            "notify_reactions", True
+        )
         if wanted(unit, "notifications"):
             self._keep_muted_silent_check.SetValue(keep_muted_silent)
             self._announce_edits_check.SetValue(announce_edits is True)
             self._notify_edits_check.SetValue(notify_edits is True)
+            self._notify_reactions_check.SetValue(notify_reactions is not False)
             self._discount_archived_check.SetValue(discount_archived)
             self._discount_muted_check.SetValue(discount_muted)
             self._notification_burst_spin.SetValue(burst_limit(self.main_window.settings))
@@ -2929,6 +2948,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if wanted(unit, "speech"):
             self._announce_typing_check.SetValue(speech.get("announce_typing", True))
             self._announce_recording_check.SetValue(speech.get("announce_recording", True))
+            self._announce_pinned_check.SetValue(speech.get("announce_pinned_messages", True))
             self._announce_group_multiple_check.SetValue(
                 speech.get("announce_group_multiple_activity", True)
             )
@@ -4490,6 +4510,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                 "announce_recording"
             ] = self._announce_recording_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
+                "announce_pinned_messages"
+            ] = self._announce_pinned_check.GetValue()
+            self.main_window.settings.setdefault("speech_content", {})[
                 "announce_group_multiple_activity"
             ] = self._announce_group_multiple_check.GetValue()
             self.main_window.settings.setdefault("speech_content", {})[
@@ -4579,6 +4602,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             )
             self.main_window.settings.setdefault("general", {})["notify_edited_messages"] = (
                 self._notify_edits_check.GetValue()
+            )
+            self.main_window.settings.setdefault("general", {})["notify_reactions"] = (
+                self._notify_reactions_check.GetValue()
             )
             self.main_window.settings.setdefault("general", {})["discount_archived_from_unread_badge"] = (
                 self._discount_archived_check.GetValue()
@@ -5020,6 +5046,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._keep_muted_silent_check.SetLabel(i18n.t("keep_muted_chats_silent_when_open_label"))
             self._announce_edits_check.SetLabel(i18n.t("announce_edited_messages_label"))
             self._notify_edits_check.SetLabel(i18n.t("notify_edited_messages_label"))
+            self._notify_reactions_check.SetLabel(i18n.t("notify_reactions_label"))
             self._discount_archived_check.SetLabel(i18n.t("discount_archived_from_unread_badge_label"))
             self._discount_muted_check.SetLabel(i18n.t("discount_muted_from_unread_badge_label"))
             self._notification_burst_label.SetLabel(i18n.t("notification_burst_limit_label"))
@@ -5200,6 +5227,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "speech"):
             self._announce_typing_check.SetLabel(i18n.t("speech_announce_typing_label"))
             self._announce_recording_check.SetLabel(i18n.t("speech_announce_recording_label"))
+            self._announce_pinned_check.SetLabel(i18n.t("speech_announce_pinned_label"))
             self._announce_group_multiple_check.SetLabel(
                 i18n.t("speech_announce_group_multiple_label")
             )

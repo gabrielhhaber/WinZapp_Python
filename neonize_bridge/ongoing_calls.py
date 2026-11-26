@@ -117,6 +117,25 @@ def all_rows(participants, mine, name_of) -> list:
     return rows
 
 
+def connected_people(participants, mine) -> list:
+    """The people other than this account connected to a call, by the address
+    the client shows them by (person_jid), in roster order. A call filed under
+    this account's own chat (one it created on another device, with no group)
+    is offered in each of their chats instead."""
+    return [row["jid"] for row in connected_rows(participants, mine, lambda jid, lid: "")
+            if not row["isSelf"]]
+
+
+def entry_of(call, video, participants, mine) -> dict:
+    """{id, chatJid, isVideo} as call/ongoing lists a call, plus `people`
+    (connected_people) for one filed under a person's chat: a group's call is
+    found by its group."""
+    entry = {"id": call["id"], "chatJid": call["chat"], "isVideo": bool(video)}
+    if not call["chat"].endswith("@g.us"):
+        entry["people"] = connected_people(participants, mine)
+    return entry
+
+
 def is_going_on(lobby) -> bool:
     return bool(lobby) and any(isinstance(p, dict) and p.get("state") == CONNECTED
                                for p in lobby.get("participants") or ())
@@ -228,10 +247,14 @@ def register_routes(r, *, session, ok):
             registry.forget(call["id"])
         return answer
 
-    def live_entry(media, call):
-        """{id, chatJid, isVideo} of a call still going on, or None."""
+    def mine_of(s):
+        return {user_of(s.me or ""), user_of(s.lid or "")} - {""}
+
+    def live_entry(media, call, mine):
+        """entry_of() a call still going on, or None."""
         if media.in_call(call["id"]):
-            return {"id": call["id"], "chatJid": call["chat"], "isVideo": call["video"]}
+            roster = (media.roster(call["id"]) or {}) if not call["chat"].endswith("@g.us") else {}
+            return entry_of(call, call["video"], roster.get("participants"), mine)
         try:
             lobby = lobby_of(media, call)
         except Exception as e:
@@ -239,7 +262,7 @@ def register_routes(r, *, session, ok):
             return None
         if not is_going_on(lobby):
             return None
-        return {"id": call["id"], "chatJid": call["chat"], "isVideo": bool(lobby.get("video"))}
+        return entry_of(call, lobby.get("video"), lobby.get("participants"), mine)
 
     async def group_ongoing(req):
         s = session(req)
@@ -250,7 +273,7 @@ def register_routes(r, *, session, ok):
         if not group.endswith("@g.us"):
             return error("A group chat is required", 400)
         call = known(media).for_chat(group)
-        entry = await in_thread(live_entry, media, call) if call else None
+        entry = await in_thread(live_entry, media, call, mine_of(s)) if call else None
         return ok(status="success", response=None if entry is None else {
             "id": entry["id"], "groupJid": group, "isVideo": entry["isVideo"]})
 
@@ -260,8 +283,10 @@ def register_routes(r, *, session, ok):
         if refused is not None:
             return refused
 
+        mine = mine_of(s)
+
         def collect():
-            return [e for e in (live_entry(media, c) for c in known(media).recent()) if e]
+            return [e for e in (live_entry(media, c, mine) for c in known(media).recent()) if e]
         return ok(status="success", response=await in_thread(collect))
 
     async def participants(req):
@@ -272,7 +297,7 @@ def register_routes(r, *, session, ok):
         call_id = str((await body_of(req)).get("callId") or "")
         if not call_id or len(call_id) > 512:
             return error("A call id is required", 400)
-        mine = {user_of(s.me or ""), user_of(s.lid or "")} - {""}
+        mine = mine_of(s)
 
         def name_of(jid, lid):
             found = s.db.contact_of(jid, lid)

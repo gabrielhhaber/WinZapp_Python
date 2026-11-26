@@ -21,7 +21,7 @@ def read_exact(connection, size):
 
 def validate_descriptor(value):
     if (not isinstance(value, dict) or type(value.get('protocol')) is not int
-            or value['protocol'] not in (1, 2) or type(value.get('port')) is not int
+            or value['protocol'] not in (1, 2, 3) or type(value.get('port')) is not int
             or not 0 < value['port'] < 65536
             or type(value.get('sampleRate')) is not int or value['sampleRate'] not in (16000, 48000)
             or type(value.get('generation')) is not int or not 0 < value['generation'] < 2**64
@@ -125,11 +125,16 @@ class NeonizeCallAudioTransport:
         disconnected = threading.Event()
         try:
             # Call ownership can arrive while the outgoing call is still ringing.
+            # Protocol 3 adds each group-call sender's timed PCM to protocol 2.
+            requested = 3
             while not self._closed.is_set() and not self._fallback_requested:
                 body = media_fields(self._epoch, self._stream)
                 if getattr(self, '_timed', False):
-                    body['audioProtocol'] = 2
+                    body['audioProtocol'] = requested
                 response = self._negotiate(body)
+                if response.status_code == 400 and body.get('audioProtocol') == 3:
+                    requested = 2  # a bridge that predates protocol 3
+                    continue
                 if response.status_code != 409:
                     break
                 self._closed.wait(.5)
@@ -141,7 +146,8 @@ class NeonizeCallAudioTransport:
             descriptor = response.json().get('response')
             port, secret, rate, generation = validate_descriptor(descriptor)
             protocol = descriptor['protocol']
-            header_size = 28 if protocol == 2 else 12
+            header_size = 28 if protocol >= 2 else 12
+            allowed_flags = (0, 1, 3) if protocol == 3 else (0, 1)
             connection = socket.create_connection(('127.0.0.1', port), timeout=1)
             connection.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
             with self._lock:
@@ -149,13 +155,14 @@ class NeonizeCallAudioTransport:
                     return
                 self._conn = connection
             connection.sendall(secret)
-            if read_exact(connection, 4) != (b'NZA2' if protocol == 2 else b'NZA1'):
+            if read_exact(connection, 4) != b'NZA%d' % protocol:
                 raise ValueError('invalid native audio handshake')
             with self._lock:
                 if self._closed.is_set() or self._fallback_requested:
                     return
                 self._active = True
-            logging.info('[call_audio] transport=native')
+            # Protocol 1 = the bridge plays (Go mixer in a group); 2/3 = NetEq here.
+            logging.info('[call_audio] transport=native protocol=%d', protocol)
             writer = threading.Thread(target=self._write, args=(connection, disconnected),
                                       name='call-native-microphone', daemon=True)
             writer.start()
@@ -167,13 +174,15 @@ class NeonizeCallAudioTransport:
                 if struct.unpack_from('<IQ', packet) != (rate, generation):
                     raise ValueError('native audio owner changed')
                 if len(packet) > header_size and not self._closed.is_set():
-                    if protocol == 2:
+                    if protocol >= 2:
                         timestamp, ssrc, clock, flags = struct.unpack_from('<IIII', packet, 12)
-                        if flags not in (0,1) or (flags == 1 and clock not in (16000,48000)):
+                        if flags not in allowed_flags or (flags & 1 and clock not in (16000,48000)):
                             raise ValueError('invalid native timeline')
-                        if flags == 1:
+                        if flags & 1:
+                            # Flag 3: one sender of a group call, mixed downstream.
+                            timeline = (timestamp, ssrc, clock) + ((True,) if flags == 3 else ())
                             self._receiver(packet[header_size:], rate, media_epoch=self._epoch,
-                                           timeline=(timestamp, ssrc, clock))
+                                           timeline=timeline)
                             continue
                     self._receiver(packet[header_size:], rate, media_epoch=self._epoch)
         except (OSError, EOFError, ValueError, TypeError, AttributeError):

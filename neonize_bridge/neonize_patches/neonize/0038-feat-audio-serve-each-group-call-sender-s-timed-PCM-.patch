@@ -1,0 +1,488 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Gustavo Almeida Barrios <gabarrios2006@gmail.com>
+Date: Wed, 25 Nov 2026 01:54:07 -0300
+Subject: [PATCH] feat(audio): serve each group-call sender's timed PCM over
+ native protocol 3
+
+Protocol 3 is protocol 2 (same 28-byte header and handshake shape, "NZA3")
+plus timed PCM of each group-call sender, flagged 3 (timed | mixed): the
+call record implements meowcaller's MixedTimedAudioSink only for a protocol
+3 lease, so a protocol 2 client keeps the participant mixer and a mixed
+frame that races a lease change is dropped rather than sent to a client
+that would let one sender replace the others.
+
+The single eight-frame timed channel becomes a queue bounded per sender:
+eight frames (480 ms) per SSRC, 64 in all, drop-oldest within the sender.
+A direct call keeps exactly the old bound; in a group one talker's burst no
+longer pushes the other senders' audio out.
+
+CallAudioTransportOpenV3 is exported; the Python wrapper declares it, lists
+the protocols the DLL serves (audio_protocols) and opens the highest one up
+to the protocol asked.
+
+Tested: per-sender and total bounds, protocol 3 handshake and flags on the
+wire, protocol 2 refusing group senders, unknown protocol refused; the
+existing protocol 1/2 IPC tests pass.
+---
+ goneonize/calls.go                  |   2 +-
+ goneonize/calls_audio_ipc.go        |  13 ++-
+ goneonize/calls_audio_ipc_export.go |  18 ++++
+ goneonize/calls_audio_timed.go      | 131 ++++++++++++++++++++++------
+ goneonize/calls_audio_timed_test.go | 103 +++++++++++++++++++++-
+ neonize/_binder.py                  |   3 +
+ neonize/calls.py                    |  13 ++-
+ 7 files changed, 245 insertions(+), 38 deletions(-)
+
+diff --git a/goneonize/calls.go b/goneonize/calls.go
+index 2809994..dd9a272 100644
+--- a/goneonize/calls.go
++++ b/goneonize/calls.go
+@@ -236,7 +236,7 @@ func (c *chamadaAtiva) ReadFrame() ([]float32, error) {
+ 
+ func (c *chamadaAtiva) WriteFrame(frame []float32) error {
+ 	c.recebidos.Add(1)
+-	c.pushCallAudio(encodeCallPCM(frame), 0, 0, 0, false)
++	c.pushCallAudio(encodeCallPCM(frame), 0, 0, 0, 0)
+ 	return nil
+ }
+ 
+diff --git a/goneonize/calls_audio_ipc.go b/goneonize/calls_audio_ipc.go
+index 38074a8..8d05ba0 100644
+--- a/goneonize/calls_audio_ipc.go
++++ b/goneonize/calls_audio_ipc.go
+@@ -16,7 +16,7 @@ import (
+ 
+ type callAudioIPC struct {
+ 	protocol int
+-	timed    chan timedCallAudio
++	timed    *timedCallQueue
+ 
+ 	listener *net.TCPListener
+ 	secret   [32]byte
+@@ -55,7 +55,7 @@ func openCallAudioIPC(a *chamadaAtiva, generation, stream uint64) (map[string]an
+ }
+ 
+ func openCallAudioIPCProtocol(a *chamadaAtiva, generation, stream uint64, protocol int) (map[string]any, error) {
+-	if protocol != 1 && protocol != 2 {
++	if protocol < 1 || protocol > 3 {
+ 		return nil, errors.New("unsupported audio protocol")
+ 	}
+ 	a.audioMu.Lock()
+@@ -72,7 +72,7 @@ func openCallAudioIPCProtocol(a *chamadaAtiva, generation, stream uint64, protoc
+ 	if err != nil {
+ 		return nil, err
+ 	}
+-	p := &callAudioIPC{protocol: protocol, timed: make(chan timedCallAudio, 8), listener: listener, stream: stream, done: make(chan struct{})}
++	p := &callAudioIPC{protocol: protocol, timed: newTimedCallQueue(), listener: listener, stream: stream, done: make(chan struct{})}
+ 	if _, err = rand.Read(p.secret[:]); err != nil {
+ 		listener.Close()
+ 		return nil, err
+@@ -138,10 +138,7 @@ func (p *callAudioIPC) serve(a *chamadaAtiva) {
+ 		}
+ 		drainCallMicrophone(a)
+ 		p.active = true
+-		ready := "NZA1"
+-		if p.protocol == 2 {
+-			ready = "NZA2"
+-		}
++		ready := [...]string{1: "NZA1", 2: "NZA2", 3: "NZA3"}[p.protocol]
+ 		_, err = conn.Write([]byte(ready))
+ 		a.audioMu.Unlock()
+ 		a.audioReadMu.Unlock()
+@@ -159,7 +156,7 @@ func (p *callAudioIPC) serve(a *chamadaAtiva) {
+ }
+ 
+ func (p *callAudioIPC) sendRemote(a *chamadaAtiva, conn net.Conn) {
+-	if p.protocol == 2 {
++	if p.protocol >= 2 {
+ 		p.sendTimed(a, conn)
+ 		return
+ 	}
+diff --git a/goneonize/calls_audio_ipc_export.go b/goneonize/calls_audio_ipc_export.go
+index 84b68bf..7137f3b 100644
+--- a/goneonize/calls_audio_ipc_export.go
++++ b/goneonize/calls_audio_ipc_export.go
+@@ -51,3 +51,21 @@ func CallAudioTransportOpenV2(id *C.char, call *C.char, generation C.uint64_t, s
+ 	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(capacity)), data)
+ 	return C.int(len(data))
+ }
++
++//export CallAudioTransportOpenV3
++func CallAudioTransportOpenV3(id *C.char, call *C.char, generation C.uint64_t, stream C.uint64_t, buf *C.uchar, capacity C.int) C.int {
++	a := buscarChamada(C.GoString(id), C.GoString(call))
++	if a == nil {
++		return erroSemChamada
++	}
++	if capacity < 512 {
++		return erroTamanho
++	}
++	value, err := openCallAudioIPCProtocol(a, uint64(generation), uint64(stream), 3)
++	if err != nil {
++		return erroTamanho
++	}
++	data, _ := json.Marshal(value)
++	copy(unsafe.Slice((*byte)(unsafe.Pointer(buf)), int(capacity)), data)
++	return C.int(len(data))
++}
+diff --git a/goneonize/calls_audio_timed.go b/goneonize/calls_audio_timed.go
+index 3b81918..55d5236 100644
+--- a/goneonize/calls_audio_timed.go
++++ b/goneonize/calls_audio_timed.go
+@@ -3,56 +3,129 @@ package main
+ import (
+ 	"encoding/binary"
+ 	"net"
++	"sync"
+ 	"time"
+ )
+ 
++// Protocol 2 flags: bit 0 = PCM on the sender's RTP timeline; bit 1 (protocol
++// 3 only) = one sender of a group call, to be mixed with the others.
++const (
++	callAudioFlagTimed uint32 = 1
++	callAudioFlagMixed uint32 = 2
++)
++
++// Eight <=60 ms packets (480 ms) per sender, including multi-frame decoder
++// bursts, so one talker in a group call never pushes the others out.
++const (
++	timedCallFramesPerSource = 8
++	timedCallFramesTotal     = 64
++)
++
+ type timedCallAudio struct {
+ 	pcm                    []byte
+ 	timestamp, ssrc, clock uint32
+-	timed                  bool
++	flags                  uint32
++}
++
++type timedCallQueue struct {
++	mu     sync.Mutex
++	frames []timedCallAudio
++	ready  chan struct{}
++}
++
++func newTimedCallQueue() *timedCallQueue {
++	return &timedCallQueue{ready: make(chan struct{}, 1)}
++}
++
++// push drops the oldest frame of the same sender past its share, or the
++// oldest frame of all past the total: a stale backlog is never replayed.
++func (q *timedCallQueue) push(frame timedCallAudio) {
++	q.mu.Lock()
++	same, oldest := 0, -1
++	for i, queued := range q.frames {
++		if queued.ssrc == frame.ssrc {
++			if oldest < 0 {
++				oldest = i
++			}
++			same++
++		}
++	}
++	if same >= timedCallFramesPerSource {
++		q.frames = append(q.frames[:oldest], q.frames[oldest+1:]...)
++	} else if len(q.frames) >= timedCallFramesTotal {
++		q.frames = append(q.frames[:0], q.frames[1:]...)
++	}
++	q.frames = append(q.frames, frame)
++	q.mu.Unlock()
++	select {
++	case q.ready <- struct{}{}:
++	default:
++	}
++}
++
++func (q *timedCallQueue) pop() (timedCallAudio, bool) {
++	q.mu.Lock()
++	defer q.mu.Unlock()
++	if len(q.frames) == 0 {
++		return timedCallAudio{}, false
++	}
++	frame := q.frames[0]
++	q.frames = append(q.frames[:0], q.frames[1:]...)
++	return frame, true
++}
++
++func (q *timedCallQueue) len() int {
++	q.mu.Lock()
++	defer q.mu.Unlock()
++	return len(q.frames)
+ }
+ 
+ func (a *chamadaAtiva) WantsTimedAudio() bool {
+ 	a.audioMu.Lock()
+ 	defer a.audioMu.Unlock()
+-	return a.audioIPC != nil && a.audioIPC.active && a.audioIPC.protocol == 2
++	return a.audioIPC != nil && a.audioIPC.active && a.audioIPC.protocol >= 2
++}
++
++// WantsMixedTimedAudio: a protocol 3 client runs one NetEq per group sender.
++func (a *chamadaAtiva) WantsMixedTimedAudio() bool {
++	a.audioMu.Lock()
++	defer a.audioMu.Unlock()
++	return a.audioIPC != nil && a.audioIPC.active && a.audioIPC.protocol >= 3
+ }
+ 
+ func (a *chamadaAtiva) WriteTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error {
+ 	a.recebidos.Add(1)
+-	a.pushCallAudio(encodeCallPCM(frame), timestamp, ssrc, clock, true)
++	a.pushCallAudio(encodeCallPCM(frame), timestamp, ssrc, clock, callAudioFlagTimed)
+ 	return nil
+ }
+ 
+-func (a *chamadaAtiva) pushCallAudio(pcm []byte, timestamp, ssrc, clock uint32, timed bool) {
++func (a *chamadaAtiva) WriteMixedTimedFrame(frame []float32, timestamp, ssrc, clock uint32) error {
++	a.recebidos.Add(1)
++	a.pushCallAudio(encodeCallPCM(frame), timestamp, ssrc, clock, callAudioFlagTimed|callAudioFlagMixed)
++	return nil
++}
++
++func (a *chamadaAtiva) pushCallAudio(pcm []byte, timestamp, ssrc, clock, flags uint32) {
+ 	a.audioMu.Lock()
+ 	defer a.audioMu.Unlock()
+ 	p := a.audioIPC
+-	if p == nil || !p.active || p.protocol != 2 {
++	if p == nil || !p.active || p.protocol < 2 {
+ 		a.entrada.Push(pcm)
+ 		return
+ 	}
++	if flags&callAudioFlagMixed != 0 && p.protocol < 3 {
++		// The lease changed after meowcaller chose timed group delivery: one
++		// sender alone would replace the others in a protocol 2 client.
++		return
++	}
+ 	select {
+ 	case <-a.fim:
+ 		return
+ 	default:
+ 	}
+-	// Eight <=60 ms packets, including multi-frame decoder bursts: 480 ms cap.
+ 	for len(pcm) > 0 {
+ 		n := min(len(pcm), callAudioFrameBytes(a.pcmRate))
+-		frame := timedCallAudio{append([]byte(nil), pcm[:n]...), timestamp, ssrc, clock, timed}
+-		select {
+-		case p.timed <- frame:
+-		default:
+-			select {
+-			case <-p.timed:
+-			default:
+-			}
+-			select {
+-			case p.timed <- frame:
+-			default:
+-			}
+-		}
++		p.timed.push(timedCallAudio{append([]byte(nil), pcm[:n]...), timestamp, ssrc, clock, flags})
+ 		pcm = pcm[n:]
+ 		timestamp += uint32(n / 2)
+ 	}
+@@ -69,14 +142,24 @@ func (p *callAudioIPC) sendTimed(a *chamadaAtiva, conn net.Conn) {
+ 	timer := time.NewTicker(200 * time.Millisecond)
+ 	defer timer.Stop()
+ 	for {
+-		var frame timedCallAudio
+ 		select {
+ 		case <-p.done:
+ 			return
+ 		case <-a.fim:
+ 			return
+-		case frame = <-p.timed:
+-		case <-timer.C:
++		default:
++		}
++		frame, ok := p.timed.pop()
++		if !ok {
++			select {
++			case <-p.done:
++				return
++			case <-a.fim:
++				return
++			case <-p.timed.ready:
++				continue
++			case <-timer.C: // heartbeat: an empty packet
++			}
+ 		}
+ 		packet := make([]byte, 32+len(frame.pcm))
+ 		binary.LittleEndian.PutUint32(packet, uint32(28+len(frame.pcm)))
+@@ -85,9 +168,7 @@ func (p *callAudioIPC) sendTimed(a *chamadaAtiva, conn net.Conn) {
+ 		binary.LittleEndian.PutUint32(packet[16:], frame.timestamp)
+ 		binary.LittleEndian.PutUint32(packet[20:], frame.ssrc)
+ 		binary.LittleEndian.PutUint32(packet[24:], frame.clock)
+-		if frame.timed {
+-			binary.LittleEndian.PutUint32(packet[28:], 1)
+-		}
++		binary.LittleEndian.PutUint32(packet[28:], frame.flags)
+ 		copy(packet[32:], frame.pcm)
+ 		conn.SetWriteDeadline(time.Now().Add(250 * time.Millisecond))
+ 		if _, err := conn.Write(packet); err != nil {
+diff --git a/goneonize/calls_audio_timed_test.go b/goneonize/calls_audio_timed_test.go
+index 9009887..1a6f1c2 100644
+--- a/goneonize/calls_audio_timed_test.go
++++ b/goneonize/calls_audio_timed_test.go
+@@ -53,16 +53,16 @@ func TestCallAudioTimedProtocol(t *testing.T) {
+ func TestCallAudioTimedBoundedQueueAndLegacyFallback(t *testing.T) {
+ 	a := ipcCall(48000)
+ 	defer a.encerrar()
+-	p := &callAudioIPC{protocol: 2, active: true, timed: make(chan timedCallAudio, 8)}
++	p := &callAudioIPC{protocol: 2, active: true, timed: newTimedCallQueue()}
+ 	// No listener for this pure queue test: remove the lease before cleanup.
+ 	a.audioIPC = p
+ 	for i := 0; i < 12; i++ {
+ 		a.WriteTimedFrame(make([]float32, 2880), uint32(i*2880), 42, 48000)
+ 	}
+-	if len(p.timed) != 8 {
++	if p.timed.len() != 8 {
+ 		t.Fatal("unbounded timed queue")
+ 	}
+-	first := <-p.timed
++	first, _ := p.timed.pop()
+ 	if first.timestamp != 4*2880 {
+ 		t.Fatal("stale native backlog retained")
+ 	}
+@@ -73,3 +73,100 @@ func TestCallAudioTimedBoundedQueueAndLegacyFallback(t *testing.T) {
+ 		t.Fatal("legacy fallback blocked")
+ 	}
+ }
++
++// Each group sender keeps its own 480 ms: a talker whose packets arrive in a
++// burst drops only its own oldest audio, never another sender's.
++func TestCallAudioTimedQueueBoundsEachSenderSeparately(t *testing.T) {
++	a := ipcCall(48000)
++	defer a.encerrar()
++	p := &callAudioIPC{protocol: 3, active: true, timed: newTimedCallQueue()}
++	a.audioIPC = p
++	defer func() { a.audioIPC = nil }()
++	a.WriteMixedTimedFrame(make([]float32, 2880), 0, 7, 48000)
++	for i := 0; i < 20; i++ {
++		a.WriteMixedTimedFrame(make([]float32, 2880), uint32(i*2880), 42, 48000)
++	}
++	if p.timed.len() != 9 {
++		t.Fatalf("queue holds %d frames, want 8 of the talker and 1 of the other", p.timed.len())
++	}
++	first, _ := p.timed.pop()
++	if first.ssrc != 7 || first.flags != callAudioFlagTimed|callAudioFlagMixed {
++		t.Fatalf("the quiet sender's frame was dropped or lost its flags: %+v", first)
++	}
++	next, _ := p.timed.pop()
++	if next.ssrc != 42 || next.timestamp != 12*2880 {
++		t.Fatalf("the talker kept a stale frame: %+v", next)
++	}
++	q := newTimedCallQueue()
++	for i := 0; i < timedCallFramesTotal+5; i++ {
++		q.push(timedCallAudio{ssrc: uint32(i)})
++	}
++	if q.len() != timedCallFramesTotal {
++		t.Fatal("unbounded total")
++	}
++	if oldest, _ := q.pop(); oldest.ssrc != 5 {
++		t.Fatalf("total bound kept %d, want the oldest dropped first", oldest.ssrc)
++	}
++}
++
++func TestMixedTimedAudioNeedsProtocol3(t *testing.T) {
++	a := ipcCall(48000)
++	defer a.encerrar()
++	p := &callAudioIPC{protocol: 2, active: true, timed: newTimedCallQueue()}
++	a.audioIPC = p
++	defer func() { a.audioIPC = nil }()
++	if !a.WantsTimedAudio() || a.WantsMixedTimedAudio() {
++		t.Fatal("protocol 2 must take direct timed audio only")
++	}
++	a.WriteMixedTimedFrame(make([]float32, 2880), 0, 42, 48000)
++	if p.timed.len() != 0 {
++		t.Fatal("a group sender reached a client that would let it replace the others")
++	}
++	p.protocol = 3
++	if !a.WantsTimedAudio() || !a.WantsMixedTimedAudio() {
++		t.Fatal("protocol 3 takes both direct and group timed audio")
++	}
++}
++
++func TestCallAudioProtocol3HandshakeAndGroupFlag(t *testing.T) {
++	a := ipcCall(16000)
++	defer a.encerrar()
++	d, err := openCallAudioIPCProtocol(a, 7, 1, 3)
++	if err != nil || d["protocol"] != 3 {
++		t.Fatalf("protocol 3 refused: %v %v", d, err)
++	}
++	conn, err := net.DialTimeout("tcp4", net.JoinHostPort("127.0.0.1", fmtPort(d["port"].(int))), time.Second)
++	if err != nil {
++		t.Fatal(err)
++	}
++	defer conn.Close()
++	conn.SetDeadline(time.Now().Add(time.Second))
++	secret, _ := hex.DecodeString(d["secret"].(string))
++	conn.Write(secret)
++	var header [4]byte
++	if _, err := io.ReadFull(conn, header[:]); err != nil || string(header[:]) != "NZA3" {
++		t.Fatal("protocol 3 handshake failed")
++	}
++	a.WriteMixedTimedFrame(make([]float32, 960), 960, 5, 48000)
++	a.WriteTimedFrame(make([]float32, 960), 1920, 6, 48000)
++	want := []struct{ ssrc, flags uint32 }{{5, 3}, {6, 1}}
++	for i := 0; i < len(want); {
++		if _, err := io.ReadFull(conn, header[:]); err != nil {
++			t.Fatal(err)
++		}
++		packet := make([]byte, binary.LittleEndian.Uint32(header[:]))
++		if _, err := io.ReadFull(conn, packet); err != nil {
++			t.Fatal(err)
++		}
++		if len(packet) == 28 {
++			continue
++		}
++		if binary.LittleEndian.Uint32(packet[16:]) != want[i].ssrc || binary.LittleEndian.Uint32(packet[24:]) != want[i].flags {
++			t.Fatalf("packet %d: ssrc %d flags %d", i, binary.LittleEndian.Uint32(packet[16:]), binary.LittleEndian.Uint32(packet[24:]))
++		}
++		i++
++	}
++	if _, err := openCallAudioIPCProtocol(a, 7, 2, 4); err == nil {
++		t.Fatal("an unknown protocol was accepted")
++	}
++}
+diff --git a/neonize/_binder.py b/neonize/_binder.py
+index 64c1c29..1186454 100644
+--- a/neonize/_binder.py
++++ b/neonize/_binder.py
+@@ -1034,6 +1034,9 @@ if not os.environ.get("SPHINX"):
+     if hasattr(gocode, "CallAudioTransportOpenV2"):
+         gocode.CallAudioTransportOpenV2.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallAudioTransportOpenV2.restype = ctypes.c_int
++    if hasattr(gocode, "CallAudioTransportOpenV3"):
++        gocode.CallAudioTransportOpenV3.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
++        gocode.CallAudioTransportOpenV3.restype = ctypes.c_int
+     if hasattr(gocode, "CallAudioTransportOpen"):
+         gocode.CallAudioTransportOpen.argtypes = [ctypes.c_char_p, ctypes.c_char_p, ctypes.c_uint64, ctypes.c_uint64, ctypes.c_void_p, ctypes.c_int]
+         gocode.CallAudioTransportOpen.restype = ctypes.c_int
+diff --git a/neonize/calls.py b/neonize/calls.py
+index b098e03..5f624b6 100644
+--- a/neonize/calls.py
++++ b/neonize/calls.py
+@@ -306,6 +306,14 @@ class Calls:
+             return b""
+         return buf.raw[:size]
+ 
++    def audio_protocols(self):
++        """Native PCM protocols this DLL serves: 2 adds timed direct-call PCM,
++        3 adds timed PCM of each group-call sender."""
++        if not hasattr(gocode, "CallAudioTransportOpen"):
++            return ()
++        return tuple(p for p, name in ((1, "CallAudioTransportOpen"), (2, "CallAudioTransportOpenV2"),
++                                       (3, "CallAudioTransportOpenV3")) if hasattr(gocode, name))
++
+     def open_audio_transport(self, call_id: str, generation: int, stream: int, *, protocol: int = 1):
+         """Reserve a single-use loopback PCM connection, or None on older DLLs."""
+         if not hasattr(gocode, "CallAudioTransportOpen"):
+@@ -313,7 +321,10 @@ class Calls:
+         if type(generation) is not int or not 0 < generation < 2**64 or type(stream) is not int or not 0 < stream < 2**53:
+             raise ValueError("invalid native audio owner")
+         buf = ctypes.create_string_buffer(_RESULT_BUFFER)
+-        opener = gocode.CallAudioTransportOpenV2 if protocol == 2 and hasattr(gocode, "CallAudioTransportOpenV2") else gocode.CallAudioTransportOpen
++        if protocol not in self.audio_protocols():
++            protocol = max(p for p in self.audio_protocols() if p <= protocol)
++        opener = {1: gocode.CallAudioTransportOpen, 2: getattr(gocode, "CallAudioTransportOpenV2", None),
++                  3: getattr(gocode, "CallAudioTransportOpenV3", None)}[protocol]
+         size = opener(self.uuid, call_id.encode(), generation, stream, buf, _RESULT_BUFFER)
+         if not 0 < size <= _RESULT_BUFFER:
+             raise CallError("native audio transport unavailable")

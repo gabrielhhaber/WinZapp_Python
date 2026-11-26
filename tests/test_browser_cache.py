@@ -86,30 +86,90 @@ def test_a_different_version_is_not_renamed_to_the_required_one(tmp_path):
     assert not (target / "chrome" / "win64-149.0.0.1").exists()
 
 
-def test_launcher_prefers_puppeteers_required_version_over_an_older_cache(tmp_path):
-    node = ROOT / "client" / "node" / "node.exe"
-    if not node.is_file():
-        pytest.skip("portable Node not installed")
-    browser(tmp_path / ".cache", "148.0.0.1")
-    _, required = browser(tmp_path / ".cache", "149.0.0.1")
-    source = (ROOT / "client" / "api_patches" / "start.js").read_text(encoding="utf-8")
-    # Only the real selection functions, stopping before any installer/server.
-    functions = source[:source.index("if (!findPreferredChrome())")]
-    # timedStartup() uses the real monotonic clock; this VM still owns its env.
-    script = r"""
+#: start.js's Chrome selection run in a VM. Puppeteer is what version 25 is:
+#: executablePath() answers a Promise (issue #912: called synchronously it
+#: made every lookup fail), PUPPETEER_REVISIONS names the build it wants, and
+#: @puppeteer/browsers lays the cache out as cache/<browser>/win64-<build>/.
+_SELECTION_SCRIPT = r"""
 const vm = require('vm');
+const path = require('path');
 const input = JSON.parse(process.argv[1]);
+const fakes = {
+  puppeteer: { executablePath: async () => input.required },
+  'puppeteer-core': { PUPPETEER_REVISIONS: { chrome: input.build, 'chrome-headless-shell': input.build } },
+  '@puppeteer/browsers': { computeExecutablePath: ({ cacheDir, browser, buildId }) =>
+    path.join(cacheDir, browser, `win64-${buildId}`, `${browser}-win64`, `${browser}.exe`) },
+};
 const context = { __dirname: input.dir, console,
-  process: { platform: 'win32', env: {}, hrtime: process.hrtime },
-  require: name => name === 'puppeteer'
-    ? { executablePath: () => input.required } : require(name) };
+  process: { platform: 'win32', env: input.env, hrtime: process.hrtime },
+  require: name => fakes[name] || require(name) };
 vm.runInNewContext(input.source + '\nresult = findPreferredChrome();', context);
 console.log(JSON.stringify(context.result));
 """
-    result = subprocess.run([str(node), "-e", script, json.dumps({
-        "dir": str(tmp_path), "required": str(required), "source": functions,
+
+
+def _preferred_chrome(tmp_path, build, env=None):
+    node = ROOT / "client" / "node" / "node.exe"
+    if not node.is_file():
+        pytest.skip("portable Node not installed")
+    source = (ROOT / "client" / "api_patches" / "start.js").read_text(encoding="utf-8")
+    # Only the real selection functions, stopping before any installer/server.
+    functions = source[:source.index("if (!findPreferredChrome())")]
+    result = subprocess.run([str(node), "-e", _SELECTION_SCRIPT, json.dumps({
+        "dir": str(tmp_path), "required": "unused", "build": build,
+        "env": env or {}, "source": functions,
     })], capture_output=True, text=True, timeout=15,
         creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
     assert result.returncode == 0, result.stderr
     # Startup timing emits diagnostic lines before the JSON result.
-    assert json.loads(result.stdout.splitlines()[-1]) == str(required)
+    return json.loads(result.stdout.splitlines()[-1])
+
+
+def test_launcher_prefers_puppeteers_required_version_over_an_older_cache(tmp_path):
+    browser(tmp_path / ".cache", "148.0.0.1")
+    _, required = browser(tmp_path / ".cache", "149.0.0.1")
+    assert _preferred_chrome(tmp_path, "149.0.0.1") == str(required)
+
+
+def test_without_the_required_build_the_cache_walk_still_finds_one(tmp_path):
+    _, older = browser(tmp_path / ".cache", "148.0.0.1")
+    assert _preferred_chrome(tmp_path, "157.0.0.1") == str(older)
+
+
+def test_puppeteer_executable_path_is_honoured(tmp_path):
+    """Issue #912: a native ARM64 Chrome named in PUPPETEER_EXECUTABLE_PATH
+    was never used, because the lookup always failed."""
+    browser(tmp_path / ".cache", "149.0.0.1")
+    native = tmp_path / "arm64" / "chrome.exe"
+    native.parent.mkdir()
+    native.write_bytes(b"executable")
+    env = {"PUPPETEER_EXECUTABLE_PATH": str(native)}
+    assert _preferred_chrome(tmp_path, "149.0.0.1", env) == str(native)
+
+
+def test_a_missing_configured_browser_falls_back_to_the_cache(tmp_path):
+    _, required = browser(tmp_path / ".cache", "149.0.0.1")
+    env = {"PUPPETEER_EXECUTABLE_PATH": str(tmp_path / "missing" / "chrome.exe")}
+    assert _preferred_chrome(tmp_path, "149.0.0.1", env) == str(required)
+
+
+def test_the_real_puppeteer_lays_the_cache_out_as_the_fake_does(tmp_path):
+    """The fakes above stand in for @puppeteer/browsers; check them against
+    the installed one when client/api exists (it is git-ignored)."""
+    node = ROOT / "client" / "node" / "node.exe"
+    api = ROOT / "client" / "api"
+    if not node.is_file() or not (api / "node_modules" / "@puppeteer" / "browsers").is_dir():
+        pytest.skip("portable Node or client/api not installed")
+    script = r"""
+const { computeExecutablePath } = require('@puppeteer/browsers');
+const { PUPPETEER_REVISIONS } = require('puppeteer-core');
+const build = PUPPETEER_REVISIONS.chrome;
+console.log(JSON.stringify({ build, path: computeExecutablePath({ cacheDir: process.argv[1], browser: 'chrome', buildId: build }) }));
+"""
+    result = subprocess.run([str(node), "-e", script, str(tmp_path / ".cache")], cwd=str(api),
+                            capture_output=True, text=True, timeout=30,
+                            creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+    assert result.returncode == 0, result.stderr
+    found = json.loads(result.stdout.splitlines()[-1])
+    _, expected = browser(tmp_path / ".cache", found["build"])
+    assert Path(found["path"]) == expected

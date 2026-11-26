@@ -15,6 +15,7 @@ Where to look (and where new code goes):
     window_lifecycle    activation, tray, close/hide/restore, focus, shutdown
     shortcuts           accelerator table, Alt+N navigation, output() speech funnel
     settings            first run, settings load/save/migrate/export, sounds
+    shortcut_sharing    keyboard shortcuts: the install's or this account's own, per command
     connection          connection state, suspend/resume, WebSocket, reachability
     manual_reconnect    Sync > Reconnect now (#765): channel, check, session restart
     account_link        periodic health check, "another number linked" wipe

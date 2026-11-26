@@ -212,6 +212,9 @@ class _Panel(PinnedMessagesMixin):
     _on_mass_star_messages = ConversationsPanel._on_mass_star_messages
     _on_mass_pin_messages = ConversationsPanel._on_mass_pin_messages
     _on_mass_pin_failed = ConversationsPanel._on_mass_pin_failed
+    _on_mass_unpin_messages = ConversationsPanel._on_mass_unpin_messages
+    _mass_set_pinned = ConversationsPanel._mass_set_pinned
+    _selection_all_pinned = ConversationsPanel._selection_all_pinned
     _mass_message_targets = ConversationsPanel._mass_message_targets
     _on_accel_copy_message = ConversationsPanel._on_accel_copy_message
     # Ctrl+C now asks whether a link has focus before anything else.
@@ -1683,3 +1686,125 @@ class TestMassArchiveMatchesTheRealMainWindowSignature:
         panel._on_mass_archive_chats(None)
 
         assert sorted(a[0] for a in calls) == ["a@s.whatsapp.net", "b@s.whatsapp.net"]
+
+
+class TestMassUnpin:
+    """Issue #848: the pinned messages window acts on several pins at once, so
+    a selection can be unpinned as it can be pinned — the same single batch,
+    and Ctrl+Shift+P (with "bulk shortcuts" on) unpins a selection that is
+    all pinned and pins any other."""
+
+    class _PinPanel(_Panel):
+        _on_ctrl_shift_p = ConversationsPanel._on_ctrl_shift_p
+        _is_recording = False
+
+    def _pinned(self, *ids):
+        msgs = [_msg(mid) for mid in ids]
+        for m in msgs:
+            m["pinInChat"] = True
+        return msgs
+
+    def test_unpinning_a_batch_uses_one_thread_and_asks_the_server_to_unpin(self, run_threads):
+        msgs = self._pinned("m1", "m2")
+        panel = _Panel(messages=msgs)
+        panel.selected_messages = {"m1", "m2"}
+        panel._on_mass_unpin_messages(None)
+        assert [m["pinInChat"] for m in msgs] == [False, False]
+        assert len(_CapturedThread.created) == 1
+        run_threads()
+        assert panel.main_window.pin_calls == [("grupo@g.us", "m1", False),
+                                               ("grupo@g.us", "m2", False)]
+
+    def test_rejected_unpins_are_pinned_again(self, run_threads, boxes):
+        msgs = self._pinned("m1", "m2")
+        panel = _Panel(messages=msgs)
+        panel.main_window.pin_results = iter([True, False])
+        panel.selected_messages = {"m1", "m2"}
+        panel._on_mass_unpin_messages(None)
+        run_threads()
+        assert [m["pinInChat"] for m in msgs] == [False, True]
+        assert len(boxes) == 1 and "(1/2)" in boxes[0][0]
+        assert boxes[0][1] == "unpin_message"   # not the pin box's title
+
+    def test_unpinning_skips_messages_that_are_not_pinned(self, run_threads):
+        msgs = self._pinned("m1") + [_msg("m2")]
+        panel = _Panel(messages=msgs)
+        panel.selected_messages = {"m1", "m2"}
+        panel._on_mass_unpin_messages(None)
+        run_threads()
+        assert panel.main_window.pin_calls == [("grupo@g.us", "m1", False)]
+
+    def test_ctrl_shift_p_unpins_a_selection_that_is_all_pinned(self, run_threads):
+        msgs = self._pinned("m1", "m2")
+        panel = self._PinPanel(messages=msgs)
+        panel.selected_messages = {"m1", "m2"}
+        panel._on_ctrl_shift_p(None)
+        run_threads()
+        assert {c[2] for c in panel.main_window.pin_calls} == {False}
+
+    def test_ctrl_shift_p_pins_a_mixed_selection(self, run_threads):
+        msgs = self._pinned("m1") + [_msg("m2")]
+        panel = self._PinPanel(messages=msgs)
+        panel.selected_messages = {"m1", "m2"}
+        panel._on_ctrl_shift_p(None)
+        run_threads()
+        assert panel.main_window.pin_calls == [("grupo@g.us", "m2", True)]
+
+
+class TestMassPinInAChannel:
+    """A channel's updates are pinned through the channel's own write, and only
+    by its owner and admins (channel_conversation.py): a subscriber's batch
+    has nothing to do, an admin's goes to _write_channel_pin, never to the
+    chat pin a group uses."""
+
+    CHANNEL = "123@newsletter"
+
+    class _ChannelPanel(_Panel):
+        def __init__(self, messages, admin):
+            super().__init__(messages=messages)
+            self.conversation = {"remoteJid": TestMassPinInAChannel.CHANNEL}
+            self._admin = admin
+            self.channel_writes = []
+
+        def _can_pin_channel_update(self, msg):
+            return self._admin
+
+        def _write_channel_pin(self, jid, msg, pin):
+            self.channel_writes.append((jid, msg["key"]["id"], pin))
+            return True
+
+    def _updates(self, *ids, pinned=False):
+        msgs = [_msg(mid, jid=self.CHANNEL) for mid in ids]
+        for m in msgs:
+            m["pinInChat"] = pinned
+        return msgs
+
+    def test_a_subscribers_batch_has_nothing_to_do(self, run_threads):
+        msgs = self._updates("u1", "u2")
+        panel = self._ChannelPanel(msgs, admin=False)
+        panel.selected_messages = {"u1", "u2"}
+        panel._on_mass_pin_messages(None)
+        run_threads()
+        assert panel.main_window.announced == ["mass_nothing_to_do"]
+        assert panel.channel_writes == [] and panel.main_window.pin_calls == []
+        assert _CapturedThread.created == []
+        assert [m["pinInChat"] for m in msgs] == [False, False]
+
+    def test_an_admin_pins_through_the_channels_write(self, run_threads):
+        msgs = self._updates("u1", "u2")
+        panel = self._ChannelPanel(msgs, admin=True)
+        panel.selected_messages = {"u1", "u2"}
+        panel._on_mass_pin_messages(None)
+        run_threads()
+        assert panel.channel_writes == [(self.CHANNEL, "u1", True), (self.CHANNEL, "u2", True)]
+        assert panel.main_window.pin_calls == []
+        assert [m["pinInChat"] for m in msgs] == [True, True]
+
+    def test_an_admin_unpins_through_the_channels_write(self, run_threads):
+        msgs = self._updates("u1", pinned=True)
+        panel = self._ChannelPanel(msgs, admin=True)
+        panel.selected_messages = {"u1"}
+        panel._on_mass_unpin_messages(None)
+        run_threads()
+        assert panel.channel_writes == [(self.CHANNEL, "u1", False)]
+        assert msgs[0]["pinInChat"] is False

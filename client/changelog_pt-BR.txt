@@ -4,6 +4,32 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- WPPConnect, conectar com QR-CODE ou pelo número de telefone: depois que o celular aceita o pareamento, o WinZapp não diz mais que a conexão falhou enquanto o WhatsApp Web ainda está abrindo as conversas. A verificação feita 4 minutos depois do pareamento não conseguia ler o estado da conexão nas versões recentes do WhatsApp Web e dava como falha uma conexão que estava funcionando.
+
+- WPPConnect: um navegador indicado na variável de ambiente PUPPETEER_EXECUTABLE_PATH, como um Chrome nativo do Windows em ARM, volta a ser usado, e, quando há mais de uma versão do navegador baixada, o WinZapp usa a que a WPPConnect pede, e não a primeira que encontra.
+
+- Mensagens fixadas: o botão de mensagens fixadas da conversa agora abre a janela "Mensagens fixadas", com a lista das fixadas. Cada mensagem dela tem o menu de contexto e os atalhos da lista de mensagens: copiar, encaminhar, reagir, favoritar, desafixar, apagar, transcrever e os demais, com as teclas que você escolheu. Responder, editar e as outras ações que levam à conversa fecham a janela e são feitas na mensagem, já em foco na conversa; Enter ou "Ir para a mensagem" leva até ela no histórico.
+
+- Mensagens selecionadas: "Desafixar selecionadas", em "Ações em massa" no menu de contexto, desafixa de uma vez as mensagens selecionadas que estão fixadas. Com "Substituir atalhos por ações em massa ao selecionar conversas e mensagens" marcado, Ctrl+Shift+P fixa as mensagens selecionadas, ou as desafixa quando todas já estão fixadas.
+
+- Nova opção em Configurações > Acessibilidade > Conteúdo falado: "Informar quantas mensagens estão fixadas ao abrir uma conversa", marcada por padrão. Desmarcada, o WinZapp deixa de dizer "Mensagens fixadas nesta conversa: N" ao abrir uma conversa.
+
+- Nova opção em Configurações > Geral > Notificações: "Notificar reações às suas mensagens", marcada por padrão. Desmarcada, uma reação a uma mensagem sua não é falada, não toca som e não aparece nas notificações do Windows; ela continua aparecendo na mensagem e na lista de conversas.
+
+- Texto da mensagem (Alt+C): a janela ganha a caixa "Quebrar linhas longas", marcada por padrão. Desmarcada, uma linha só termina onde a própria mensagem tem uma quebra de linha, qualquer que seja o tamanho da linha ou da janela. A escolha vale para as próximas vezes, e copiar continua entregando o texto como foi escrito.
+
+- Ligações: uma ligação que você começou pelo celular e que virou ligação em grupo pode ser retomada pelo WinZapp depois que você sai dela: "Entrar na ligação de voz em andamento" aparece na conversa de cada pessoa que continua nela, e a linha da aba Ligações mostra o nome delas. Vale para Neonize e WPPConnect.
+
+- Neonize: ao entrar numa ligação em grupo que já está em andamento, você agora ouve as pessoas cujo celular manda o áudio num formato que o WinZapp antes descartava; com elas, você não ouvia ninguém.
+
+- Ligações em grupo no Neonize: o áudio de cada pessoa agora tem a sua própria reprodução com NetEQ, como nas chamadas individuais, que suaviza as variações de rede e as perdas de áudio de cada uma separadamente; antes, o grupo todo era misturado sem ele, com mais falhas e atraso. A tradução ao vivo e os dispositivos não atendidos pelo NetEQ continuam usando o modo compatível.
+
+- Ligações Neonize: quando um pacote de áudio se perde e o seguinte traz uma cópia dele, como alguns celulares mandam, o WinZapp agora toca essa cópia, em vez de preencher a falha com uma estimativa.
+
+- Salvar como (Ctrl+Shift+S) um documento JSON recebido numa conversa, como o arquivo app.json das configurações, agora salva o arquivo, em vez de dizer que não foi possível baixá-lo.
+
+- Atalhos: ao passar para outra conta logo depois de trocar uma tecla, a conta que aparece responde à tecla nova mesmo quando a anterior ainda está gravando as configurações; antes ela podia ficar com a tecla antiga até salvar alguma coisa.
+
 - Reconexão depois de muito tempo offline: o WinZapp agora recebe as mensagens, reações e confirmações de leitura acumuladas sem travar a interface a cada gravação no banco de dados, e o motor Neonize grava o seu banco mais rápido.
 - macOS: escolher outro motor de conexão na janela de pareamento agora reinicia o WinZapp nele. Antes aparecia que o WinZapp não conseguiu se reiniciar sozinho, e o motor não era alterado.
 - Histórico de grupos desconhecidos: o WinZapp não trava mais a interface ao recuperar mensagens antigas de um grupo que ainda não conhecia. Antes ele buscava o nome do grupo na própria thread da interface, e cada busca podia levar até 10 segundos sem que o WinZapp respondesse. Agora o nome é buscado em segundo plano e aparece assim que chega.
@@ -78,7 +104,7 @@ NOVIDADES
 
 - Versão portátil: no primeiro início, quando o WinZapp instalado no computador tem contas vinculadas, o WinZapp pergunta se você quer usar uma cópia delas em vez de vincular mais um dispositivo. A instalação só é lida; se ela estiver aberta, o WinZapp pede que você a feche e escolha Repetir, e, se a cópia falhar, nada é alterado e um novo dispositivo é vinculado.
 
-- Configurações > Atalhos: as teclas que você troca agora valem para todas as contas da instalação, e não só para aquela em que você as trocou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro início com esta versão, as teclas trocadas em cada conta entram nas da instalação: se as duas trocaram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora.
+- Configurações > Atalhos: as teclas que você troca agora valem para todas as contas da instalação, e não só para aquela em que você as trocou; uma tecla definida para ir para a conta 2 responde em todas as contas. No primeiro início com esta versão, as teclas trocadas em cada conta entram nas da instalação: se as duas trocaram o mesmo comando, vale a da instalação, e uma tecla que outro comando já usa fica de fora. Você também pode manter teclas só para uma conta: a caixa "Usar os mesmos atalhos em todas as contas", na mesma aba, vem marcada; desmarcada, as teclas que você trocar nesta conta valem só para ela, e as das outras contas não mudam. A janela de alteração de cada atalho tem também a caixa "Usar este atalho em todas as contas", que segue a caixa geral até você mudá-la; um atalho que não segue a caixa geral aparece na lista com "em todas as contas" ou "só nesta conta".
 
 - Mensagens editadas: Eventos de som ganha "Edição da sua mensagem salva" (ativado) e "Mensagem editada por outra pessoa" com o programa em primeiro e em segundo plano (desativados); Configurações > Geral > Notificações ganha "Ler edições com a janela ativa" e "Notificar edições em segundo plano" (desativados); e a janela de dados de cada conversa tem uma janela "Mensagens editadas" para escolher sons e avisos diferentes naquela conversa. A edição de outra pessoa só é anunciada enquanto o WhatsApp ainda aceita editar aquela mensagem, então edições repetidas na reconexão ficam em silêncio.
 

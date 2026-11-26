@@ -4,6 +4,32 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- WPPConnect, connecting with a QR code or a phone number: after the phone accepts the pairing, WinZapp no longer says the connection failed while WhatsApp Web is still opening the chats. The check made 4 minutes after pairing could not read the connection state on recent WhatsApp Web versions and reported a working connection as failed.
+
+- WPPConnect: a browser named in the PUPPETEER_EXECUTABLE_PATH environment variable, such as a native Chrome for Windows on ARM, is used again, and when more than one browser version is downloaded WinZapp uses the one WPPConnect asks for, not the first one it finds.
+
+- Pinned messages: a chat's pinned messages button now opens the "Pinned messages" window, listing the pinned messages. Each one has the message list's context menu and shortcuts: copy, forward, react, star, unpin, delete, transcribe and the rest, with the keys you chose. Reply, edit and the other actions that take you into the chat close the window and run on the message, focused in the chat; Enter or "Go to message" takes you to it in the history.
+
+- Selected messages: "Unpin selected", under "Bulk actions" in the context menu, unpins every selected message that is pinned at once. With "Replace shortcuts with bulk actions when selecting chats and messages" checked, Ctrl+Shift+P pins the selected messages, or unpins them when all of them are already pinned.
+
+- New option in Settings > Accessibility > Spoken content: "Announce how many messages are pinned when a chat opens", checked by default. Unchecked, WinZapp no longer says "Pinned messages in this chat: N" when you open a chat.
+
+- New option in Settings > General > Notifications: "Notify reactions to your messages", checked by default. Unchecked, a reaction to one of your messages is not spoken, plays no sound and does not appear in Windows notifications; it still shows on the message and in the chat list.
+
+- Message text (Alt+C): the window has a new "Wrap long lines" box, checked by default. Unchecked, a line only ends where the message itself has a line break, whatever the length of the line or the size of the window. The choice is kept for next time, and copying still gives the text as it was written.
+
+- Calls: a call you started on your phone that became a group call can be rejoined from WinZapp after you leave it: "Join ongoing voice call" appears in the chat of each person still in it, and its row in the Calls tab shows their names. Works with Neonize and WPPConnect.
+
+- Neonize: joining a group call already under way, you now hear the people whose phones send audio in a format WinZapp used to drop; with them, you heard nobody.
+
+- Neonize group calls: each person's audio now has its own NetEQ playback, as in one-to-one calls, which smooths network jitter and audio loss for each of them separately; before, the whole group was mixed without it, with more gaps and delay. Live translation and devices not supported by NetEQ keep compatible playback.
+
+- Neonize calls: when an audio packet is lost and the next one carries a copy of it, as some phones send, WinZapp now plays that copy instead of filling the gap with an estimate.
+
+- Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
+
+- Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
+
 - Reconnecting after a long time offline: WinZapp now receives the accumulated messages, reactions and read receipts without freezing the interface on every database write, and the Neonize engine writes its database faster.
 - macOS: choosing another connection engine in the pairing window now restarts WinZapp on it. It used to say that WinZapp could not restart by itself, and the engine was not changed.
 - History of unknown groups: WinZapp no longer freezes its interface when it recovers old messages of a group it did not know yet. It used to look up the group's name on the interface thread, and each lookup could take up to 10 seconds during which WinZapp did not respond. The name is now looked up in the background and appears as soon as it arrives.
@@ -78,7 +104,7 @@ WHAT'S NEW
 
 - Portable version: on its first start, when the WinZapp installed on the computer has paired accounts, WinZapp asks whether to use a copy of them instead of linking one more device. The installation is only read; if it is running, WinZapp asks you to close it and choose Retry, and if the copy fails nothing is changed and a new device is linked.
 
-- Settings > Shortcuts: the keys you change now apply to every account of the installation, not only the one where you changed them; a key set for switch to account 2 answers from every account. On the first start with this version, each account's changed keys join the installation's: where both changed a command the installation's key stays, and a key that another command already uses is left out.
+- Settings > Shortcuts: the keys you change now apply to every account of the installation, not only the one where you changed them; a key set for switch to account 2 answers from every account. On the first start with this version, each account's changed keys join the installation's: where both changed a command the installation's key stays, and a key that another command already uses is left out. You can also keep keys for one account only: the "Use the same shortcuts in every account" box on the same page comes checked; unchecked, the keys you change in this account apply to it alone, and the other accounts keep theirs. Each shortcut's Change window also has a "Use this shortcut in every account" box, which follows the general one until you change it; a shortcut that does not follow the general box shows "every account" or "this account only" in the list.
 
 - Edited messages: Sound events gains "Edit of your message saved" (on) and "Message edited by someone else" for the program in the foreground and in the background (off); Settings > General > Notifications gains "Speak edits while the window is active" and "Notify edits while in the background" (off); and each conversation's data window has an "Edited messages" window to choose different sounds and announcements for that chat. Someone else's edit is announced only while WhatsApp still accepts an edit of that message, so edits replayed after a reconnection stay silent.
 

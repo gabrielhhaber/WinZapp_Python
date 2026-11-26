@@ -259,7 +259,7 @@ def test_timed_native_protocol_keeps_timestamp_ssrc_and_clock(monkeypatch, no_wr
                            lambda *a,**k:received.append((a,k)))
     transport.configure_playout(True)
     transport._run()
-    assert bodies[0]['audioProtocol']==2
+    assert bodies[0]['audioProtocol']==3  # protocol 3; a protocol 2 descriptor is still taken
     assert received==[((pcm,16000),{'media_epoch':'a'*32,'timeline':(2**32-960,42,48000)})]
 
 
@@ -288,7 +288,7 @@ def test_fallback_during_negotiation_cannot_activate_neteq(monkeypatch):
 def test_rate_downgrade_cancels_pending_timed_negotiation(monkeypatch):
     transport = None
     def negotiate(body):
-        assert body['audioProtocol'] == 2
+        assert body['audioProtocol'] == 3
         transport.configure_playout(False)
         return response(descriptor(protocol=2))
     transport, fallback = configured(negotiate)
@@ -327,3 +327,52 @@ def test_timed_session_queue_is_bounded_and_keeps_original_owner():
     item=session._output_queue.get_nowait()
     assert item.timestamp==12*960 and item.epoch=='a'*32 and item.ssrc==42
     session.stop(notify_bridge=False)
+
+
+def _protocol3_run(monkeypatch, packets, protocol=3, handshake=b'NZA3'):
+    data = handshake + b''.join(struct.pack('<I', len(p)) + p for p in packets)
+    connection = Connection(data)
+    monkeypatch.setattr(native.socket, 'create_connection', lambda *a, **k: connection)
+    received = []
+    transport, _ = configured(lambda body: response(descriptor(protocol=protocol, sampleRate=16000)),
+                              lambda *a, **k: received.append((a, k)))
+    transport.configure_playout(True)
+    transport._run()
+    return received, connection
+
+
+def test_protocol_3_keeps_each_group_senders_timeline_and_marks_it_mixed(monkeypatch, no_writer):
+    pcm = b'\x01\x02' * 960
+    group = struct.pack('<IQIIII', 16000, 7, 960, 42, 48000, 3) + pcm
+    direct = struct.pack('<IQIIII', 16000, 7, 1920, 43, 48000, 1) + pcm
+    received, _ = _protocol3_run(monkeypatch, [group, direct])
+    assert received == [((pcm, 16000), {'media_epoch': 'a'*32, 'timeline': (960, 42, 48000, True)}),
+                        ((pcm, 16000), {'media_epoch': 'a'*32, 'timeline': (1920, 43, 48000)})]
+
+
+def test_a_group_sender_flag_is_refused_outside_protocol_3(monkeypatch, no_writer):
+    group = struct.pack('<IQIIII', 16000, 7, 960, 42, 48000, 3) + b'\x00\x00' * 960
+    received, connection = _protocol3_run(monkeypatch, [group], protocol=2, handshake=b'NZA2')
+    assert not received and connection.closed
+
+
+def test_a_bridge_that_predates_protocol_3_is_asked_for_protocol_2(monkeypatch, no_writer):
+    bodies = []
+    def negotiate(body):
+        bodies.append(dict(body))
+        if body['audioProtocol'] == 3:
+            return response(status=400)
+        return response(descriptor(protocol=2, sampleRate=16000))
+    monkeypatch.setattr(native.socket, 'create_connection', lambda *a, **k: Connection(b'NZA2'))
+    transport, _ = configured(negotiate)
+    transport.configure_playout(True)
+    transport._run()
+    assert [b['audioProtocol'] for b in bodies] == [3, 2]
+
+
+@pytest.mark.parametrize('protocol', [1, 2, 3])
+def test_the_negotiated_protocol_is_logged(monkeypatch, no_writer, caplog, protocol):
+    # Protocol 1 means the bridge mixes a group call; the log must tell it apart.
+    with caplog.at_level('INFO'):
+        _protocol3_run(monkeypatch, [], protocol=protocol, handshake=b'NZA%d' % protocol)
+    assert f'transport=native protocol={protocol}' in caplog.text

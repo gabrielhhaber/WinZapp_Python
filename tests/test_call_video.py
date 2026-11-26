@@ -722,6 +722,22 @@ def test_an_ordinary_contact_is_still_callable(monkeypatch):
     assert stub._active_voice_call["is_video"] is True
 
 
+def test_a_call_this_account_started_on_its_phone_can_be_joined(monkeypatch):
+    """REGRESSION (2026-11-22): a call this account started on its phone, with
+    no group, is filed under its own chat. Joining it from WinZapp after
+    leaving it on the phone was refused as a call to itself ("Voice calling is
+    not available in this chat"); only placing a call there is refused."""
+    monkeypatch.setattr("main.wx.CallAfter", lambda fn, *a, **kw: None)
+    monkeypatch.setattr("main.threading.Thread", lambda *a, **kw: _NoThread())
+    stub = _SelfChatMainWindow()
+
+    stub._start_call("5511999999999@s.whatsapp.net", "Ana e Bia", is_video=False,
+                     is_group=True, join_call_id="C1")
+
+    assert ("voice_call_individual_only", True) not in stub.announcements
+    assert stub._active_voice_call["call_id"] == "C1"
+
+
 def test_the_camera_is_refused_when_there_is_no_call_at_all(monkeypatch):
     """REGRESSION: the post-open guard compares the call by identity, and
     None-is-None passed as "same call". A camera opened after the call's grace

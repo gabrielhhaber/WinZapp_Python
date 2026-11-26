@@ -5,6 +5,12 @@ import wx
 from core.conversation_view import conversation_in_view
 
 
+def announce_pinned_count(settings) -> bool:
+    """Settings > Spoken content: say how many messages are pinned when a
+    chat opens (on by default, issue #848)."""
+    return bool((settings or {}).get("speech_content", {}).get("announce_pinned_messages", True))
+
+
 class PinnedMessagesMixin:
     def _init_pinned_messages_button(self, sizer):
         self._pinned_messages = []
@@ -13,6 +19,7 @@ class PinnedMessagesMixin:
         self._pinned_snapshot_known = False
         self._pinned_writes = set()
         self._pinned_deferred_read = {}
+        self._pinned_window = None
         self._pinned_messages_btn = wx.Button(
             self.conversation_panel,
             label=self.main_window.i18n.t("pinned_messages_title"),
@@ -106,11 +113,12 @@ class PinnedMessagesMixin:
         self._update_pinned_messages_button()
         if changed:
             self._repaint_or_repopulate(changed)
+        self._refresh_pinned_messages_window()
         if not visible:
             return
         if show:
             self._show_pinned_messages_picker()
-        elif announce and messages:
+        elif announce and messages and announce_pinned_count(getattr(self.main_window, "settings", None)):
             self.main_window.output(
                 i18n.t("pinned_messages_notice").format(count=len(messages)))
 
@@ -150,6 +158,14 @@ class PinnedMessagesMixin:
                 pins.pop(mid, None)
         self._pinned_messages = list(pins.values())
         self._update_pinned_messages_button()
+        self._refresh_pinned_messages_window()
+
+    def _refresh_pinned_messages_window(self):
+        # Optimistic unpins can be rolled back after the action returns;
+        # authoritative reads can arrive while the modal window stays open.
+        dialog, jid = getattr(self, "_pinned_window", None) or (None, "")
+        if dialog is not None and (self.conversation or {}).get("remoteJid") == jid:
+            dialog.pins_changed()
 
     def _begin_pinned_message_write(self, jid):
         job = (jid, object())
@@ -176,29 +192,55 @@ class PinnedMessagesMixin:
         self._load_pinned_messages(show=True)
 
     def _show_pinned_messages_picker(self):
+        """The pinned messages window: the message list's own menu and keys on
+        each pin (ui/dialogs/pinned_messages_dialog.py). Enter, or an action
+        that belongs in the conversation (reply, edit...), closes it on the
+        message; that action then runs there."""
+        from ui.dialogs.pinned_messages_dialog import PinnedMessagesDialog
         i18n = self.main_window.i18n
-        messages = list(self._pinned_messages)
-        if not messages:
+        if not self._pinned_messages:
             self.main_window.output(i18n.t("pinned_messages_empty"))
             return
         visit = self._pinned_visit
-        choices = [self._render_message_line(m).replace("\r", " ").replace("\n", " ")
-                   for m in messages]
-        dialog = wx.SingleChoiceDialog(
-            self, i18n.t("pinned_messages_choose"),
-            i18n.t("pinned_messages_title"), choices)
+        dialog = PinnedMessagesDialog(self, self.main_window)
+        # Kept for close_locked_pinned_window(), with the chat it lists.
+        self._pinned_window = (dialog, (self.conversation or {}).get("remoteJid", ""))
         try:
             result = dialog.ShowModal()
-            selected = dialog.GetSelection()
+            target, then = dialog.target, dialog.then
         finally:
+            self._pinned_window = None
             dialog.Destroy()
-        if result == wx.ID_OK and visit is self._pinned_visit and 0 <= selected < len(messages):
-            self._jump_to_pinned_message(messages[selected])
+        if (result != wx.ID_OK or target is None or visit is not self._pinned_visit
+                or getattr(self.main_window, "_shutting_down", False)):
+            return
+        self._jump_to_pinned_message(target)
+        if then is not None:
+            then()
+
+    def close_locked_pinned_window(self, jids=None):
+        """Locking the vault closes the pinned messages window of a chat it
+        hides (MainWindow.lock_chat_vault), or, with *jids*, of a chat the
+        phone has just locked (core/remote_chat_lock.py; its aliases), which
+        closes even with the vault open, as its conversation does: left open,
+        it kept listing that chat's pins over the main list."""
+        dialog, jid = getattr(self, "_pinned_window", None) or (None, "")
+        if dialog is None:
+            return
+        if jid in jids if jids is not None else self.main_window.is_chat_hidden_by_vault(jid):
+            dialog.close_for_lock()
 
     def _jump_to_pinned_message(self, message):
+        index = self._resident_message_index(message)
+        if index >= 0:
+            self._focus_message_row(index)
+
+    def _resident_message_index(self, message):
+        """Where *message* is in the message list, adding an old pin outside
+        the loaded history to it first; -1 when it has no id."""
         mid = (message.get("key") or {}).get("id")
         if not mid:
-            return
+            return -1
         index = self._find_index_by_msg_id(mid)
         if index < 0:
             # Keep existing content/star/media metadata when the message is already resident.
@@ -214,5 +256,4 @@ class PinnedMessagesMixin:
             finally:
                 self._pinned_jump_id = ""
             index = self._find_index_by_msg_id(mid)
-        if index >= 0:
-            self._focus_message_row(index)
+        return index

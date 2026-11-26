@@ -216,7 +216,7 @@ def test_participants_button_opens_only_the_selected_live_unlocked_call():
     panel._populate_all()
     assert panel._ongoing_participants_btn.shown
     panel._show_ongoing_participants()
-    assert opened == [(("C1", GROUP), {"parent": panel})]
+    assert opened == [(("C1", GROUP), {"parent": panel, "title": "Grupo", "people": ()})]
     panel.main_window._locked_jids.add(GROUP)
     panel._show_ongoing_participants()
     assert len(opened) == 1
@@ -264,3 +264,52 @@ def test_the_call_of_a_one_to_one_chat_is_found_under_the_creators_lid():
 def test_what_a_chat_offers_in_place_of_its_call_buttons(ongoing, active, kind):
     from core.ongoing_calls import chat_call_button
     assert chat_call_button(PERSON_CHAT, ongoing, active, same_chat) == kind
+
+
+ME_LID = "555000099@lid"
+
+
+def test_the_people_of_a_call_are_read_canonical_and_only_when_valid():
+    rows = ongoing_entries({"response": [
+        {**CALL, "id": "M1", "chatJid": ME_LID,
+         "people": ["555000002@c.us", "555000002@s.whatsapp.net", "bad", 7, "555000003@lid"]},
+        {**CALL, "id": "M2", "chatJid": PERSON, "people": "not a list"}]})
+    assert rows[0]["ongoing"]["people"] == ["555000002@s.whatsapp.net", "555000003@lid"]
+    assert "people" not in rows[1]["ongoing"]
+
+
+def test_a_call_this_account_started_on_its_phone_is_offered_in_its_peoples_chats():
+    """Reported 2026-11-22: the creator left the call on the phone and could
+    not join it from WinZapp, where it was filed under the account itself."""
+    from core.ongoing_calls import ongoing_for_chat
+    is_self = lambda jid: jid == ME_LID
+    entries = ongoing_entries({"response": [
+        {**CALL, "id": "M1", "chatJid": ME_LID, "people": [CREATOR_LID, "555000003@lid"]}]})
+    assert ongoing_for_chat(entries, PERSON_CHAT, same_chat, is_self) == {
+        "id": "M1", "groupJid": PERSON_CHAT, "chatJid": ME_LID, "isVideo": False}
+    assert ongoing_for_chat(entries, "555000003@lid", same_chat, is_self)["id"] == "M1"
+    assert ongoing_for_chat(entries, "555000004@lid", same_chat, is_self) is None
+    # someone else's call is offered only in its creator's chat
+    assert ongoing_for_chat(entries, PERSON_CHAT, same_chat) is None
+
+
+def test_open_conversation_of_a_call_started_on_the_phone_goes_to_a_person():
+    from core.ongoing_calls import ongoing_conversation_jid
+    is_self = lambda jid: jid == ME_LID
+    own, = ongoing_entries({"response": [{**CALL, "chatJid": ME_LID, "people": [PERSON_CHAT]}]})
+    group, = ongoing_entries({"response": [CALL]})
+    assert ongoing_conversation_jid(own, is_self) == PERSON_CHAT
+    assert ongoing_conversation_jid(group, is_self) == GROUP
+
+
+def test_a_live_row_named_by_its_people_is_joined_by_that_name():
+    panel = Panel()
+    panel._ongoing_entries = ongoing_entries({"response": [
+        {**CALL, "chatJid": ME_LID, "people": [PERSON_CHAT]}]})
+    panel.main_window.ongoing_call_people_text = (
+        lambda ongoing: "Maria" if ongoing.get("people") else "")
+    panel._populate_all()
+    assert panel._lists[TAB_ONGOING].items[0].startswith("Maria: ")
+    panel._on_item_activated(None)
+    assert panel.joins == [((ME_LID, "Maria"), {
+        "is_group": True, "is_video": False, "join_call_id": "C1"})]

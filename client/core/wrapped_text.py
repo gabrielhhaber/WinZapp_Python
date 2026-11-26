@@ -49,6 +49,41 @@ def word_wrap(text: str, width: int = 100) -> str:
     return "\n".join(out)
 
 
+def message_viewer_wraps(settings) -> bool:
+    """The "Wrap long lines" box of the message text window (Alt+C), kept
+    between openings. On by default; off, only the message's own line breaks
+    start a new line (issue #923)."""
+    section = (settings or {}).get("user_interface") or {}
+    return section.get("message_viewer_word_wrap", True) is not False
+
+
+def viewer_text(text: str, wrap: bool = True) -> str:
+    """What the message text window shows: the wrap, or the message with only
+    its own line breaks. Both keep the original's length, so
+    ``original_range()`` serves either."""
+    return word_wrap(text) if wrap else normalize_newlines(text)
+
+
+def native_position(shown: str, offset: int) -> int:
+    """The text control position of string *offset* in *shown*: the inverse
+    of ``selection_offsets()``. A plain Windows multiline edit counts each
+    line break as two positions (CRLF) and each character in UTF-16 units.
+    Switching the wrap keeps the string offsets, not these positions."""
+    offset = max(0, min(offset, len(shown)))
+    head = shown[:offset].replace("\n", "\r\n")
+    return len(head.encode("utf-16-le")) // 2
+
+
+def switch_wrap(settings, text: str, wrap: bool, offset: int):
+    """The message text window's wrap box was toggled: keep the choice in
+    *settings* and return ``(shown, native)``, the text to show and the
+    control position of string *offset* in it, so the reading position stays
+    on the same character in the other view."""
+    settings.setdefault("user_interface", {})["message_viewer_word_wrap"] = bool(wrap)
+    shown = viewer_text(text, wrap)
+    return shown, native_position(shown, offset)
+
+
 def selection_offsets(get_range, get_string_selection, frm: int, to: int):
     """Turn a text control's selection into ``(start, end)`` string offsets.
 

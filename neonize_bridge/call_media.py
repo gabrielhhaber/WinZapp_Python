@@ -298,14 +298,16 @@ class CallMedia(CallIngressMixin, CallNativeAudioMixin):
         return True
 
     @_serialized
-    def remember_offer(self, data):
+    def remember_offer(self, data, creator=""):
         """calls.py hands over each incoming offer (whatsmeow's view of it: the
-        peer by number), so this call's later states carry the same peer."""
+        peer by number), so this call's later states carry the same peer.
+        `creator`: the creator's device JID (ongoing_calls.device_jid), which
+        the lobby query of a call that becomes a group call names."""
         with self._lock:
             self._calls.setdefault(data["id"], {
                 "id": data["id"], "peer": data.get("peerJid", ""), "outgoing": False,
                 "state": "INCOMING_RING", "video": bool(data.get("isVideo")),
-                "group": data.get("groupJid") or ""})
+                "group": data.get("groupJid") or "", "creator": creator or ""})
 
     def set_call_group(self, call_id, group):
         """A multiparty call that came without its group learned it (the lobby
@@ -478,6 +480,7 @@ class CallMedia(CallIngressMixin, CallNativeAudioMixin):
                 continue
             if not roster.get("group"):
                 continue                    # a private call: no roster to follow
+            self._remember_promoted(call_id, _call)
             participants = roster.get("participants")
             self._note_participants(call_id, participants)
             connected = roster_connected(participants, mine)
@@ -488,6 +491,23 @@ class CallMedia(CallIngressMixin, CallNativeAudioMixin):
                 reported[call_id] = seen
             self.emit("call-participants", {"session": self.name, "callId": call_id,
                                             "connected": list(connected)})
+
+    def _remember_promoted(self, call_id, call):
+        """A one-to-one call someone added people to is a group call from then
+        on: like one that rang as a group call, it can be left and joined again,
+        so the Calls tab and its chat offer it (ongoing_calls.py). It is filed
+        where WhatsApp files it, under the chat it was placed in: the caller's
+        for a call that rang here, the person called for one placed here."""
+        registry = ongoing_calls.known(self)
+        if call.get("link") or registry.get(call_id) is not None:
+            return
+        creator = call.get("creator") or ""
+        if not creator and call.get("outgoing"):
+            own = getattr(self, "own_creator", None)
+            creator = own() if callable(own) else ""
+        group = call.get("group")
+        chat = group if isinstance(group, str) and group else msgmap.jid_wpp(call.get("peer") or "")
+        registry.remember(call_id, creator, chat, call.get("video"))
 
     def placed_group(self, call_id):
         """{"groupJid", "isVideo"} of a group call placed here, or None."""

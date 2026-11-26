@@ -81,6 +81,11 @@ class _Window:
     _apply_global_settings = MainWindow._apply_global_settings
     _share_keyboard_shortcuts = MainWindow._share_keyboard_shortcuts
     _pull_shared_shortcuts = MainWindow._pull_shared_shortcuts
+    _shared_shortcut_mirror = MainWindow._shared_shortcut_mirror
+    _compose_shortcuts = MainWindow._compose_shortcuts
+    _route_imported_shortcuts = MainWindow._route_imported_shortcuts
+    shortcut_sharing_state = MainWindow.shortcut_sharing_state
+    choose_keyboard_shortcuts = MainWindow.choose_keyboard_shortcuts
     _persist_global_settings = MainWindow._persist_global_settings
     choose_global_settings = MainWindow.choose_global_settings
     install_wide_values = MainWindow.install_wide_values

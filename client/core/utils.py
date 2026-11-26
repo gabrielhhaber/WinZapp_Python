@@ -1077,6 +1077,9 @@ DEFAULT_SETTINGS = {
         # notified with it in the background (core/edit_alerts.py, #824).
         "announce_edited_messages": False,
         "notify_edited_messages": False,
+        # A reaction to one of your messages: spoken, played and notified
+        # (core.notification_manager.reaction_notifications_enabled, #922).
+        "notify_reactions": True,
         "discount_archived_from_unread_badge": True,
         "discount_muted_from_unread_badge": True,
         # Message notifications let through per second when many arrive at
@@ -1257,6 +1260,9 @@ DEFAULT_SETTINGS = {
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
         "starred_prefix_enabled": False,
+        # The message text window (Alt+C) wraps long lines at ~100 characters
+        # (core/wrapped_text.py). Off: only the message's own breaks (#923).
+        "message_viewer_word_wrap": True,
         # How the "also delete the media from your phone" box of the delete
         # confirmations starts. On is WhatsApp Web's own default and what
         # WinZapp did before the box existed, so no migration.
@@ -1382,6 +1388,8 @@ DEFAULT_SETTINGS = {
         "typing_sound_interval": 3,
         "typing_sound_silence_capture": True,
         "announce_recording": True,
+        # "Pinned messages in this chat: N" when a chat opens (issue #848).
+        "announce_pinned_messages": True,
         # Groups: name everyone typing/recording at once; off = the old
         # one-participant preview, speech and Alt+T.
         "announce_group_multiple_activity": True,

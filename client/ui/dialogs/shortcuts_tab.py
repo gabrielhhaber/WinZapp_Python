@@ -6,6 +6,7 @@ from core.keyboard_shortcuts import (
     sanitize_overrides,
 )
 from core.call_logic import CALL_HOTKEY_DEFAULTS, call_hotkey_setting
+from core.shared_shortcuts import effective_overrides, is_shared, own_seeded, scope_choice
 from core.shortcut_catalog import SHORTCUTS
 from ui.shortcut_names import shortcut_name, hotkey_binding
 from ui.accessible import AccessibleShortcutCapture
@@ -142,6 +143,12 @@ def shortcuts_help_text(window, i18n):
 
 
 class ShortcutsTabMixin:
+    # No shared file until _build_shortcuts_page() finds one: every key is
+    # then the account's own, as on a legacy install.
+    _sharing = None
+    _sharing_loaded = None
+    _shortcuts_shared_box = None
+
     def _build_shortcuts_page(self):
         i18n = self.main_window.i18n
         self._shortcut_overrides = sanitize_overrides(
@@ -149,6 +156,15 @@ class ShortcutsTabMixin:
         # What the page opened on: OK writes the shortcuts only when they
         # differ, so an untouched page never undoes another account's change.
         self._shortcut_overrides_loaded = copy.deepcopy(self._shortcut_overrides)
+        # The install's keys and this account's own, command by command
+        # (main_window/shortcut_sharing.py); None on a window without the
+        # shared file, where every key is simply this account's.
+        state = getattr(self.main_window, 'shortcut_sharing_state', None)
+        self._sharing = state() if state is not None else None
+        self._sharing_loaded = copy.deepcopy(self._sharing)
+        if self._sharing is not None:
+            self._shortcut_overrides = self._effective_shortcuts()
+            self._shortcut_overrides_loaded = copy.deepcopy(self._shortcut_overrides)
         general = self.main_window.settings.get('general', {})
         self._call_hotkeys = {key: call_hotkey_setting(general, key) for key in CALL_HOTKEY_DEFAULTS}
         # What the rows started from: a key left alone is not saved, so one
@@ -161,6 +177,13 @@ class ShortcutsTabMixin:
         self._shortcuts_hint = wx.StaticText(page, label=i18n.t('shortcut_settings_hint'))
         self._shortcuts_hint.Wrap(580)
         sizer.Add(self._shortcuts_hint, 0, wx.EXPAND | wx.ALL, 8)
+        self._shortcuts_shared_box = None
+        if self._sharing is not None:
+            self._shortcuts_shared_box = wx.CheckBox(
+                page, label=i18n.t('shortcut_shared_all_accounts'))
+            self._shortcuts_shared_box.SetValue(self._sharing['default_shared'])
+            self._shortcuts_shared_box.Bind(wx.EVT_CHECKBOX, self._on_shortcuts_shared_box)
+            sizer.Add(self._shortcuts_shared_box, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         # Down arrow goes from the search into the results, as in the
         # settings' own search; Up from the first row comes back.
         self._shortcut_search_label = wx.StaticText(page, label=i18n.t('shortcut_search_label'))
@@ -251,8 +274,68 @@ class ShortcutsTabMixin:
             rows_with_binding(self._shortcut_rows, self._shortcut_binding,
                               getattr(self, '_shortcut_chord', None)),
             lambda s: i18n.t(SCOPE_LABELS[s.scope]).replace('&', ''),
-            lambda s: f'{action_text(s, i18n.t)}: {shortcut_name(self._shortcut_binding(s), i18n)}',
+            self._shortcut_row_text,
             self._shortcut_search.GetValue())
+
+    def _shortcut_row_text(self, shortcut):
+        i18n = self.main_window.i18n
+        text = f'{action_text(shortcut, i18n.t)}: {shortcut_name(self._shortcut_binding(shortcut), i18n)}'
+        shared = self._shortcut_is_shared(shortcut)
+        # Said only on a command set apart from the general check box: on
+        # every row it would be read before each command and mean nothing.
+        if shared is None or shared == self._sharing['default_shared']:
+            return text
+        return f"{text}, {i18n.t('shortcut_row_all_accounts' if shared else 'shortcut_row_this_account')}"
+
+    # ── The install's keys or this account's own ─────────────────────────────
+
+    def _shortcut_is_shared(self, shortcut):
+        """Whether the command takes the install's key; None when there is no
+        choice to make (no shared file, or a key outside the overrides)."""
+        if self._sharing is None or shortcut.id in GLOBAL_IDS:
+            return None
+        return is_shared(shortcut.id, self._sharing['scope'], self._sharing['default_shared'])
+
+    def _effective_shortcuts(self):
+        state = self._sharing
+        return effective_overrides(state['shared'], state['own'], state['scope'],
+                                   state['default_shared'])
+
+    def _stage_shortcut(self, shortcut_id, binding=None, *, remove=False, shared=None):
+        """One command's key edited on the page: `binding` (None for no key)
+        or, with `remove`, back to the shipped one; in the home `shared`
+        names, which is stored as its own choice only where it differs from
+        the general check box."""
+        if self._sharing is None:
+            if remove:
+                self._shortcut_overrides.pop(shortcut_id, None)
+            else:
+                self._shortcut_overrides[shortcut_id] = binding
+            return
+        state = self._sharing
+        if shared is not None:
+            choice = scope_choice(shared, state['default_shared'])
+            if choice is None:
+                state['scope'].pop(shortcut_id, None)
+            else:
+                state['scope'][shortcut_id] = choice
+        home = state['shared'] if is_shared(shortcut_id, state['scope'],
+                                            state['default_shared']) else state['own']
+        if remove:
+            home.pop(shortcut_id, None)
+        else:
+            home[shortcut_id] = binding
+        self._shortcut_overrides = self._effective_shortcuts()
+
+    def _on_shortcuts_shared_box(self, event=None):
+        state = self._sharing
+        now = bool(self._shortcuts_shared_box.GetValue())
+        state['own'] = own_seeded(state['shared'], state['own'], state['scope'],
+                                  state['default_shared'], now)
+        state['default_shared'] = now
+        self._shortcut_overrides = self._effective_shortcuts()
+        self._refresh_shortcut_rows()
+        self._mark_dirty()
 
     def _refresh_shortcut_rows(self):
         """Rebuild the tree, keeping the command that was selected selected
@@ -423,7 +506,8 @@ class ShortcutsTabMixin:
         i18n = self.main_window.i18n
         dialog = ShortcutCaptureDialog(self._shortcuts_dialog, action_text(shortcut, i18n.t),
                                        self._shortcut_binding(shortcut), shortcut.id in GLOBAL_IDS,
-                                       main_window=self.main_window)
+                                       main_window=self.main_window,
+                                       shared=self._shortcut_is_shared(shortcut))
         try:
             if dialog.ShowModal() != wx.ID_OK:
                 return
@@ -435,7 +519,14 @@ class ShortcutsTabMixin:
             elif shortcut.id in CALL_KEYS:
                 self._call_hotkeys[CALL_KEYS[shortcut.id]] = (dialog.vk, dialog.binding[0])
             else:
-                self._shortcut_overrides[shortcut.id] = list(dialog.binding)
+                binding = None if dialog.binding is None else list(dialog.binding)
+                default = default_binding(shortcut, i18n.t)
+                # The shipped key (the window opens on it, so ticking only
+                # "every account" lands here) is no choice: the command
+                # follows the default, and so a later change of it, as Reset.
+                self._stage_shortcut(
+                    shortcut.id, binding, shared=dialog.shared,
+                    remove=binding == (None if default is None else list(default)))
             self._shortcut_edit_finished()
         finally:
             dialog.Destroy()
@@ -464,7 +555,7 @@ class ShortcutsTabMixin:
         elif shortcut.id in CALL_KEYS:
             self._call_hotkeys[CALL_KEYS[shortcut.id]] = None
         else:
-            self._shortcut_overrides[shortcut.id] = None
+            self._stage_shortcut(shortcut.id, None)
         self._shortcut_edit_finished()
 
     def _reset_shortcut(self, event=None):
@@ -483,10 +574,15 @@ class ShortcutsTabMixin:
             return
         candidate = default_binding(shortcut, self.main_window.i18n.t)
         if self._accept_shortcut(shortcut, candidate):
-            self._shortcut_overrides.pop(shortcut.id, None)
+            self._stage_shortcut(shortcut.id, remove=True)
             self._shortcut_edit_finished()
 
     def _reset_all_shortcuts(self, event=None):
+        # Every command back to its shipped key, each in its own home: a
+        # command following the install resets it for every account that
+        # follows it too, as the one key it is.
+        for shortcut_id in list(self._shortcut_overrides):
+            self._stage_shortcut(shortcut_id, remove=True)
         self._shortcut_overrides.clear()
         self._call_hotkeys = dict(CALL_HOTKEY_DEFAULTS)
         self._hotkey_field._vk = self._hotkey_field._mod = 0
@@ -500,15 +596,22 @@ class ShortcutsTabMixin:
 
     def _apply_shortcut_values(self):
         overrides = copy.deepcopy(self._shortcut_overrides)
-        if overrides != getattr(self, '_shortcut_overrides_loaded', None):
-            # The shortcuts are the install's (core/shared_shortcuts.py): an
-            # explicit choice, written to the shared file even when it equals
-            # what this account last pulled, as the language is.
-            choose = getattr(self.main_window, 'choose_global_settings', None)
-            if choose is not None:
-                choose({SECTION: overrides})
-            else:  # the dialog on a plain frame (its tests), without the mixin
-                self.main_window.settings[SECTION] = overrides
+        if self._sharing is not None:
+            # The install's part and this account's own, each to its home
+            # (main_window/shortcut_sharing.py), only when the page changed
+            # something: an untouched page never undoes another account's
+            # change.
+            if self._sharing != self._sharing_loaded:
+                # False: the install's part was not written (and was said);
+                # the page keeps its loaded state so the next OK tries again.
+                if self.main_window.choose_keyboard_shortcuts(
+                        copy.deepcopy(self._sharing), self._sharing_loaded['shared']) is not False:
+                    self._sharing_loaded = copy.deepcopy(self._sharing)
+                    self._shortcut_overrides_loaded = overrides
+        elif overrides != getattr(self, '_shortcut_overrides_loaded', None):
+            # No shared file (the dialog on a plain frame, a legacy install):
+            # the account's settings are the only copy.
+            self.main_window.settings[SECTION] = overrides
             self._shortcut_overrides_loaded = copy.deepcopy(overrides)
         general = self.main_window.settings.setdefault('general', {})
         loaded = getattr(self, '_call_hotkeys_loaded', None) or {}
@@ -548,6 +651,8 @@ class ShortcutsTabMixin:
     def _refresh_shortcut_labels(self):
         i18n = self.main_window.i18n
         self._shortcuts_hint.SetLabel(i18n.t('shortcut_settings_hint'))
+        if self._shortcuts_shared_box is not None:
+            self._shortcuts_shared_box.SetLabel(i18n.t('shortcut_shared_all_accounts'))
         self._shortcut_list.SetName(i18n.t('shortcut_settings_list'))
         self._shortcut_search_label.SetLabel(i18n.t('shortcut_search_label'))
         self._shortcut_search.SetName(i18n.t('shortcut_search_label').replace('&', ''))

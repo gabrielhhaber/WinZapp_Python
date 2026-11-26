@@ -5278,8 +5278,9 @@ msgstr "مسح الدردشات المحددة"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -10240,6 +10241,12 @@ msgid "Message text"
 msgstr "نص الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "التفاف الأس&طر الطويلة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "يوم واحد"
@@ -11264,6 +11271,12 @@ msgid "Notify messages e&dited by others while in the background"
 msgstr "إ&شعار بالرسائل التي عدّلها آخرون في الخلفية"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "إشعار بردود ال&فعل على رسائلك"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "nr_pending_send_raw"
 msgid "Send without noise reduction"
@@ -11585,8 +11598,6 @@ msgstr ""
 "الواحدة — قم بإلغاء تثبيت دردشة أخرى وحاول مرة أخرى."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11605,10 +11616,10 @@ msgid "Pin selected"
 msgstr "تثبيت المحدد"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr "اختر رسالة مثبتة واضغط Enter للانتقال إليها في السجل."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "ا&ذهب إلى الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11630,6 +11641,12 @@ msgid "Pinned messages could not be loaded. Please try again in a moment."
 msgstr "لم يمكن تحميل الرسائل المثبتة. يرجى المحاولة مرة أخرى بعد لحظة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "ال&رسائل المثبتة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 msgctxt "pinned_messages_notice"
@@ -11638,6 +11655,7 @@ msgstr "الرسائل المثبتة في هذه الدردشة: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 msgctxt "pinned_messages_title"
 msgid "Pinned messages"
 msgstr "الرسائل المثبتة"
@@ -14339,6 +14357,16 @@ msgstr ""
 "الضغط مرتين بسرعة تنسخ الرسالة، الموضع"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "في جميع الحسابات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "في هذا الحساب فقط"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "نظامي"
@@ -14434,6 +14462,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "الأوامر واختصارات لوحة المفاتيح"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "استخدام نفس الاختصارات في &جميع الحسابات"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14572,6 +14606,12 @@ msgid "Not assigned"
 msgstr "غير مخصص"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "استخدام هذا الاختصار في &جميع الحسابات"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_writing_help_label"
 msgid "Alt+Shift+H: writing help on the draft message"
@@ -14611,6 +14651,15 @@ msgstr "التنقل الرئيسي"
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
 msgstr "بحث الدردشة"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"لم يمكن حفظ الاختصارات في جميع الحسابات. الرجاء المحاولة مرة أخرى بعد لحظة."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
@@ -14984,6 +15033,12 @@ msgstr "&الإعلان عن تحميل معاينات الروابط وإضاف
 msgctxt "speech_announce_media_progress_label"
 msgid "Announce media &download progress every few seconds"
 msgstr "الإعلان عن تقدم تنزيل الوسائط &كل بضع ثوانٍ"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "الإعلان عن عدد ال&رسائل المثبتة عند فتح دردشة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17143,6 +17198,12 @@ msgstr "تم تثبيت الرسائل."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "تم إلغاء أرشفة الدردشات."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "تم إلغاء تثبيت الرسائل."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21236,9 +21297,16 @@ msgid "&Unpin message"
 msgstr "إلغ&اء تثبيت الرسالة"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "لم يمكن إلغاء تثبيت هذه الرسالة. يرجى المحاولة مرة أخرى بعد لحظة."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "إلغاء تثبيت المحدد"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -22825,6 +22893,10 @@ msgstr "&نعم"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "أمس في {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr "اختر رسالة مثبتة واضغط Enter للانتقال إليها في السجل."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

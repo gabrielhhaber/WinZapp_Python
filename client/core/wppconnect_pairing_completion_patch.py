@@ -197,7 +197,7 @@ assert V1_WAIT_FOR_IN_CHAT.count(_V1_LOOP) == 1
 assert V1_WAIT_FOR_IN_CHAT.count(_V1_RETURN_TRUE) == 1
 assert V1_WAIT_FOR_IN_CHAT.endswith(_V1_RETURN_END)
 
-PATCHED_WAIT_FOR_IN_CHAT = (
+V2_WAIT_FOR_IN_CHAT = (
     V1_WAIT_FOR_IN_CHAT
     .replace(
         _V1_LOOP,
@@ -218,7 +218,70 @@ PATCHED_WAIT_FOR_IN_CHAT = (
         1,
     )
 )
-assert PATCHED_WAIT_FOR_IN_CHAT.count("wzPairingSettled = true") == 2
+assert V2_WAIT_FOR_IN_CHAT.count("wzPairingSettled = true") == 2
+
+# v3 (issue #912, 2.1.3.0 on Windows ARM64): the 240 s check read both modules
+# in one evaluate, and WhatsApp Web does not always have them (wa-js #3813).
+# Measured over CDP on 2026-11-25 in an isolated WPPConnect: on the full
+# document of 2.3000.1055837054, WPP.whatsapp.Socket.state and
+# WPP.whatsapp.BackendEventBus.socketState both answer (the same value); on the
+# login-only document of 1055857453, Socket and Stream are undefined while
+# BackendEventBus.socketState still answers. One throwing read rejected the
+# whole evaluate and lost the other: "socket unknown, stream unknown", and the
+# pairing was reported as not completed whatever the page was doing. Each
+# value is now read on its own, the socket state from BackendEventBus when
+# Socket is missing, and with no socket state at all a stream in SYNCING or
+# MAIN (only a connected socket produces them) counts as connected; anything
+# else still reaches the dialog.
+#
+# Those two fallbacks only ever answer where Socket is missing, and the page
+# measured without it is the login-only document: the stuck page this bound
+# exists for (#913 keeps it off `/` on main). Its socket is CONNECTED for the
+# QR/link exchange, so a CONNECTED bus there proves nothing about the chats
+# ever opening. A fallback therefore counts only with WPP.conn.isRegistered()
+# true on the same read: the stored login a page that is not logged in lacks.
+# The Socket module's own state, when it exists, still decides on its own.
+_V2_STATE_PROBE = (
+    "                const wzState = await this.page\n"
+    "                    .evaluate(() => ({ socket: WPP.whatsapp.Socket.state, stream: WPP.whatsapp.Stream.mode }))\n"
+    "                    .catch(() => null);\n"
+    "                if (wzState?.socket === 'CONNECTED') {\n"
+)
+#: Stream modes that only a connected socket produces (wa-js StreamMode).
+CONNECTED_STREAM_MODES = ("SYNCING", "MAIN")
+_V3_STATE_PROBE = (
+    "                // Each value on its own: a missing module (WhatsApp Web does not\n"
+    "                // always have Socket or Stream) must not take the others with it.\n"
+    "                const wzState = await this.page\n"
+    "                    .evaluate(() => {\n"
+    "                        const read = (get) => { try { return get() ?? null; } catch (e) { return null; } };\n"
+    "                        const own = read(() => WPP.whatsapp.Socket.state);\n"
+    "                        return {\n"
+    "                            socket: own ?? read(() => WPP.whatsapp.BackendEventBus.socketState),\n"
+    "                            ownSocket: own !== null,\n"
+    "                            stream: read(() => WPP.whatsapp.Stream.mode),\n"
+    "                            registered: read(() => WPP.conn.isRegistered()),\n"
+    "                        };\n"
+    "                    })\n"
+    "                    .catch(() => null);\n"
+    "                // Without the Socket module the page may be the login-only one,\n"
+    "                // connected for the link alone: a fallback needs the stored login.\n"
+    "                if (wzState?.ownSocket ? wzState.socket === 'CONNECTED' :\n"
+    "                    wzState?.registered === true && (wzState.socket === 'CONNECTED' ||\n"
+    "                        (!wzState.socket && "
+    + "[" + ", ".join(f"'{mode}'" for mode in CONNECTED_STREAM_MODES) + "]"
+    + ".includes(wzState.stream)))) {\n"
+)
+_V2_GIVE_UP_REPORT = "stream ${wzState?.stream ?? 'unknown'}).`);\n"
+_V3_GIVE_UP_REPORT = (
+    "stream ${wzState?.stream ?? 'unknown'}, registered ${wzState?.registered ?? 'unknown'}).`);\n")
+assert V2_WAIT_FOR_IN_CHAT.count(_V2_STATE_PROBE) == 1
+assert V2_WAIT_FOR_IN_CHAT.count(_V2_GIVE_UP_REPORT) == 1
+PATCHED_WAIT_FOR_IN_CHAT = (
+    V2_WAIT_FOR_IN_CHAT
+    .replace(_V2_STATE_PROBE, _V3_STATE_PROBE, 1)
+    .replace(_V2_GIVE_UP_REPORT, _V3_GIVE_UP_REPORT, 1)
+)
 
 # --- 3. waitForLogin's post-scan check --------------------------------------
 
@@ -447,7 +510,7 @@ STEPS = (
     ("checkInChat stream-mode check", "async waitForInChat()",
      (), ORIGINAL_CHECK_IN_CHAT_PROBE, PATCHED_CHECK_IN_CHAT_PROBE),
     ("waitForInChat pairing bound", "async waitForInChat()",
-     (V1_WAIT_FOR_IN_CHAT,), ORIGINAL_WAIT_FOR_IN_CHAT, PATCHED_WAIT_FOR_IN_CHAT),
+     (V2_WAIT_FOR_IN_CHAT, V1_WAIT_FOR_IN_CHAT), ORIGINAL_WAIT_FOR_IN_CHAT, PATCHED_WAIT_FOR_IN_CHAT),
     # Same runtime gate as the two above, plus REQUIRES below: its wait
     # relies on waitForInChat()'s bounds and wzPairingSettled to end.
     ("checkQrCode wait after a QR link", "async waitForInChat()",

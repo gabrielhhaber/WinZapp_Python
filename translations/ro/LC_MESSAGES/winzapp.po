@@ -5363,8 +5363,9 @@ msgstr "Goliți conversațiile selectate"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -10422,6 +10423,12 @@ msgid "Message text"
 msgstr "Textul mesajului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "Î&ncadrează rândurile lungi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 zi"
@@ -11468,6 +11475,12 @@ msgid "Notify messages e&dited by others while in the background"
 msgstr "Notifică mesajele e&ditate de alții în fundal"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Notifică &reacțiile la mesajele dvs."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "nr_pending_send_raw"
 msgid "Send without noise reduction"
@@ -11793,8 +11806,6 @@ msgstr ""
 "încercați din nou."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11815,11 +11826,10 @@ msgid "Pin selected"
 msgstr "Fixează selecția"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Selectați un mesaj fixat și apăsați Enter pentru a merge la el în istoric."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "&Accesați mesajul"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11843,6 +11853,12 @@ msgstr ""
 "momente."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Mesaje fixate"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 msgctxt "pinned_messages_notice"
@@ -11851,6 +11867,7 @@ msgstr "Mesaje fixate în acest chat: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 msgctxt "pinned_messages_title"
 msgid "Pinned messages"
 msgstr "Mesaje fixate"
@@ -14610,6 +14627,16 @@ msgstr ""
 "poziția"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "în toate conturile"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "doar în acest cont"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "Întregul sistem"
@@ -14711,6 +14738,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "Comenzi și comenzi rapide"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "&Folosește aceleași comenzi rapide în toate conturile"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14856,6 +14889,12 @@ msgid "Not assigned"
 msgstr "Neatribuită"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "&Folosește această comandă rapidă în toate conturile"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_writing_help_label"
 msgid "Alt+Shift+H: writing help on the draft message"
@@ -14895,6 +14934,16 @@ msgstr "Navigare principală"
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
 msgstr "Căutare în conversație"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"Comenzile rapide ale tuturor conturilor nu au putut fi salvate. Vă rugăm să "
+"încercați din nou peste un moment."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
@@ -15277,6 +15326,12 @@ msgstr "Anunțați încărcarea și adăugarea &previzualizărilor linkurilor"
 msgctxt "speech_announce_media_progress_label"
 msgid "Announce media &download progress every few seconds"
 msgstr "Anunțați &la câteva secunde progresul descărcării media"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Anunțați câte mesaje sunt &fixate la deschiderea unei conversații"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17482,6 +17537,12 @@ msgstr "Mesaje fixate."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Conversații dezarhivate."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Fixarea mesajelor a fost anulată."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21743,11 +21804,18 @@ msgid "&Unpin message"
 msgstr "&Anulați fixarea mesajului"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr ""
 "Fixarea acestui mesaj nu a putut fi anulată. Încercați din nou peste câteva "
 "momente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Anulați fixarea selecției"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23396,6 +23464,11 @@ msgstr "&Da"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri la {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Selectați un mesaj fixat și apăsați Enter pentru a merge la el în istoric."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

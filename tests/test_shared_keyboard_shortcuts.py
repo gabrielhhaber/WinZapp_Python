@@ -8,6 +8,7 @@ process with its own settings.json, and the overrides lived there: account 2
 had never seen them. They now live in global/app.json, mirrored into every
 account's settings like the language (core/shared_shortcuts.py).
 """
+import copy
 from unittest.mock import Mock
 
 import pytest
@@ -21,6 +22,7 @@ from core.shared_shortcuts import (
 )
 from core.shortcut_catalog import SHORTCUTS
 from main_window import settings as settings_module
+from main_window import shortcut_sharing
 from tests.test_global_settings_reconcile import _Window, _stored, _unrelated_save
 
 CTRL_SHIFT = 6
@@ -148,12 +150,230 @@ class TestComingForward:
         one = _account(tmp_path)
         two = _account(tmp_path)
         _choose_shortcuts(one, {"main.account[1]": _key(3)})
-        two.settings[SECTION] = {"main.account[2]": _key(4)}
+        # The mirror of the install's copy is what the sync compares;
+        # settings[SECTION] is composed from it (main_window/shortcut_sharing.py).
+        two._shared_shortcut_mirror()[SECTION] = {"main.account[2]": _key(4)}
 
         two._pull_shared_shortcuts()
 
-        assert two.settings[SECTION] == {"main.account[2]": _key(4)}
+        assert two._shared_shortcut_mirror()[SECTION] == {"main.account[2]": _key(4)}
         assert refreshed == []
+
+
+class TestTheSharedFileIsLocked:
+    """The switch that brings this window forward often sets off a save in the
+    account being left, which holds app.json's lock at that very instant. The
+    pull used to be dropped then, leaving this window on the old keys."""
+
+    @pytest.fixture
+    def later(self, monkeypatch):
+        calls = []
+        monkeypatch.setattr(settings_module.wx, "CallLater",
+                            lambda ms, fn, *a: calls.append((ms, fn, a)))
+        return calls
+
+    def _locked(self, window, times):
+        from coord_locks import LockTimeout
+        real = window._app_settings.get_snapshot
+        left = [times]
+
+        def get_snapshot(key):
+            if left[0]:
+                left[0] -= 1
+                raise LockTimeout("held by another account")
+            return real(key)
+        window._app_settings.get_snapshot = get_snapshot
+
+    def test_the_pull_is_tried_again_and_takes_the_keys(self, tmp_path, refreshed, later):
+        one = _account(tmp_path)
+        two = _account(tmp_path)
+        _choose_shortcuts(one, USERS)
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts()
+        assert _answers(two, "main.account[1]") != (CTRL_SHIFT, ord("3"))
+        (_ms, retry, args), = later
+        retry(*args)
+
+        assert _answers(two, "main.account[1]") == (CTRL_SHIFT, ord("3"))
+        assert refreshed == [two]
+
+    def test_it_gives_up_after_the_last_try(self, tmp_path, later):
+        two = _account(tmp_path)
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts(attempt=shortcut_sharing._PULL_RETRIES)
+
+        assert later == []
+
+    def test_not_while_the_window_shuts_down(self, tmp_path, later):
+        two = _account(tmp_path)
+        two._shutting_down = True
+        self._locked(two, times=1)
+
+        two._pull_shared_shortcuts()
+
+        assert later == []
+
+
+class TestAKeyForOneAccountOnly:
+    """Settings > Shortcuts: a general check box (the install's keys, on by
+    default) and one per command, which follows it until set apart."""
+
+    def _choose(self, window, **changes):
+        state = window.shortcut_sharing_state()
+        before = copy.deepcopy(state["shared"])
+        for key, value in changes.items():
+            state[key] = value
+        window.choose_keyboard_shortcuts(state, before)
+        window.save_settings()
+
+    def test_ok_while_another_account_holds_the_file_says_so_and_keeps_its_state(self, tmp_path):
+        """The write used to escape OK, skipping the account's save and
+        leaving the dialog open on half-changed memory."""
+        from coord_locks import LockTimeout
+        window = _account(tmp_path)
+        spoken = []
+        window.output = lambda text, interrupt=False: spoken.append(text)
+        real_update = window._app_settings.update
+
+        def locked(*_a, **_kw):
+            raise LockTimeout("held by another account")
+        window._app_settings.update = locked
+        state = window.shortcut_sharing_state()
+        before = copy.deepcopy(state["shared"])
+        state["shared"] = {"main.account[1]": _key(3)}
+        state["own"] = {"main.account[2]": _key(4)}
+        state["scope"] = {"main.account[2]": False}
+
+        assert window.choose_keyboard_shortcuts(copy.deepcopy(state), before) is False
+        assert spoken == ["shortcuts_shared_save_failed"]
+        # The mirror keeps what the file holds; the account's own part landed.
+        assert window._shared_shortcut_mirror()[SECTION] == before
+        assert _answers(window, "main.account[2]") == (CTRL_SHIFT, ord("4"))
+        assert _answers(window, "main.account[1]") != (CTRL_SHIFT, ord("3"))
+        window.save_settings()
+
+        # The next OK, with the lock free, writes the install's part.
+        window._app_settings.update = real_update
+        assert window.choose_keyboard_shortcuts(copy.deepcopy(state), before) is True
+        assert _answers(window, "main.account[1]") == (CTRL_SHIFT, ord("3"))
+        assert spoken == ["shortcuts_shared_save_failed"]
+
+    def test_a_command_set_apart_keeps_its_key_when_the_install_changes(self, tmp_path):
+        one = _account(tmp_path)
+        two = _account(tmp_path)
+        self._choose(two, own={"main.account[1]": _key(7)}, scope={"main.account[1]": False})
+
+        _choose_shortcuts(one, USERS)
+        _unrelated_save(two)
+
+        assert _answers(two, "main.account[1]") == (CTRL_SHIFT, ord("7"))
+        # Every other command still follows the install.
+        assert _answers(two, "main.account[2]") == (CTRL_SHIFT, ord("4"))
+        assert _answers(one, "main.account[1]") == (CTRL_SHIFT, ord("3"))
+
+    def test_the_account_own_key_never_reaches_the_install(self, tmp_path):
+        _account(tmp_path)
+        two = _account(tmp_path)
+        self._choose(two, own={"main.account[1]": _key(7)}, scope={"main.account[1]": False})
+
+        assert _stored(tmp_path, SECTION) == {}
+
+    def test_with_the_general_box_unticked_nothing_the_install_does_reaches_it(self, tmp_path):
+        one = _account(tmp_path)
+        two = _account(tmp_path)
+        self._choose(two, default_shared=False)
+
+        _choose_shortcuts(one, USERS)
+        _unrelated_save(two)
+
+        assert _answers(two, "main.account[1]") == (3, ord("1"))   # shipped Ctrl+Alt+1
+
+    def test_the_choices_survive_a_restart(self, tmp_path):
+        two = _account(tmp_path)
+        self._choose(two, own={"main.account[1]": _key(7)}, scope={"main.account[1]": False})
+
+        again = _Window(tmp_path, general=two.settings["general"])
+        again.i18n = Mock(t=_identity)
+        again._shortcut_targets = ()
+        for key in (shared_shortcuts.OWN_KEY, shared_shortcuts.SCOPE_KEY):
+            again.settings[key] = two.settings[key]
+        again._apply_global_settings()
+
+        assert _answers(again, "main.account[1]") == (CTRL_SHIFT, ord("7"))
+
+    def test_ok_writes_only_what_the_page_changed(self, tmp_path):
+        """The page edits the install's keys as it found them on opening;
+        another account's change since is kept."""
+        one = _account(tmp_path)
+        two = _account(tmp_path)
+        state = two.shortcut_sharing_state()
+        before = copy.deepcopy(state["shared"])
+        _choose_shortcuts(one, {"main.account[2]": _key(4)})
+
+        state["shared"]["main.account[1]"] = _key(3)
+        two.choose_keyboard_shortcuts(state, before)
+
+        assert _stored(tmp_path, SECTION) == {"main.account[1]": _key(3),
+                                              "main.account[2]": _key(4)}
+
+    def test_an_import_sends_each_key_to_its_home(self, tmp_path):
+        _account(tmp_path)
+        two = _account(tmp_path)
+        self._choose(two, scope={"main.account[1]": False})
+
+        with two._save_lock:
+            two.settings[SECTION] = {"main.account[1]": _key(7), "main.account[2]": _key(4)}
+            two._route_imported_shortcuts()
+            two._persist_global_settings(explicit=(SECTION,))
+
+        assert _stored(tmp_path, SECTION) == {"main.account[2]": _key(4)}
+        assert two.settings[shared_shortcuts.OWN_KEY] == {"main.account[1]": _key(7)}
+        assert _answers(two, "main.account[1]") == (CTRL_SHIFT, ord("7"))
+
+    def test_nothing_to_choose_without_the_shared_file(self):
+        window = _Window.__new__(_Window)
+        window.settings = {}
+        window._app_settings = None
+        assert window.shortcut_sharing_state() is None
+
+
+class TestTheTwoHomes:
+    def test_a_command_follows_the_general_box_until_set_apart(self):
+        assert shared_shortcuts.is_shared("a", {}, True) is True
+        assert shared_shortcuts.is_shared("a", {}, False) is False
+        assert shared_shortcuts.is_shared("a", {"a": False}, True) is False
+
+    def test_a_choice_equal_to_the_general_box_is_not_stored(self):
+        assert shared_shortcuts.scope_choice(True, True) is None
+        assert shared_shortcuts.scope_choice(False, True) is False
+
+    def test_the_effective_set_takes_each_command_from_its_home(self):
+        effective = shared_shortcuts.effective_overrides(
+            {"a": [6, 49], "b": [6, 50]}, {"a": [6, 55], "c": [6, 56]}, {"a": False}, True)
+        assert effective == {"a": [6, 55], "b": [6, 50]}
+
+    def test_routing_keeps_the_other_home_entries(self):
+        shared, own = shared_shortcuts.route_effective(
+            {"a": [6, 55], "b": [6, 50]}, {"a": [6, 49], "x": None}, {"b": [6, 51]},
+            {"a": False}, True)
+        assert shared == {"a": [6, 49], "b": [6, 50]}
+        assert own == {"a": [6, 55], "b": [6, 51]}
+
+    def test_only_what_changed_is_applied(self):
+        result = shared_shortcuts.apply_changes(
+            {"a": 1, "b": 2, "c": 3}, {"a": 1, "b": 2}, {"a": 9})
+        assert result == {"a": 9, "c": 3}
+
+    def test_unticking_seeds_only_commands_that_follow_it_and_have_no_key(self):
+        own = shared_shortcuts.own_seeded(
+            {"a": [6, 49], "b": [6, 50], "c": [6, 51]}, {"b": [6, 57]}, {"c": True},
+            True, False)
+        assert own == {"a": [6, 49], "b": [6, 57]}
+
+    def test_ticking_seeds_nothing(self):
+        assert shared_shortcuts.own_seeded({"a": [6, 49]}, {}, {}, False, True) == {}
 
 
 class TestFirstStartOnThisVersion:

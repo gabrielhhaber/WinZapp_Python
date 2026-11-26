@@ -1,4 +1,5 @@
 """Build the locked, optional NetEq sidecar as part of the Neonize artifact."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -8,6 +9,58 @@ import subprocess
 RUST = '1.91.1'
 TARGET = 'x86_64-pc-windows-msvc'
 DLL = 'winzapp_call_neteq.dll'
+# Names the sidecar, its notices and stamp; the sidecar files are kept under them.
+STAMP = 'NETEQ_SOURCE.sha256'
+SIDECAR = (DLL, 'NETEQ_NOTICES.txt', 'NETEQ_DEPENDENCY_NOTICES.txt', STAMP, 'neteq_rust_licenses')
+SOURCES = ('Cargo.toml', 'Cargo.lock', 'src/lib.rs', 'THIRD_PARTY_NOTICES.txt')
+
+
+def source_digest(source):
+    """SHA-256 of the NetEq sources a sidecar is built from (line endings ignored)."""
+    digest = hashlib.sha256()
+    for name in SOURCES:
+        digest.update(name.encode() + b'\0' + (Path(source) / name).read_bytes().replace(b'\r\n', b'\n'))
+    return digest.hexdigest()
+
+
+def read_sidecar(folder):
+    """{relative path: bytes} of the sidecar a package folder holds; {} without its DLL."""
+    folder = Path(folder)
+    if not (folder / DLL).is_file():
+        return {}
+    kept = {}
+    for name in SIDECAR:
+        path = folder / name
+        files = [path] if path.is_file() else sorted(p for p in path.rglob('*') if p.is_file())
+        for item in files:
+            kept[item.relative_to(folder).as_posix()] = item.read_bytes()
+    return kept
+
+
+def restore_sidecar(package, kept, digest, *, installed=False):
+    """Put a kept sidecar back into a package built without Rust, or (with
+    ``installed``) into a venv whose new build brought none.
+
+    A sidecar stamped with other sources is stale and stays out; an unstamped
+    one (copied from a CI artifact) is kept, its ABI is checked when loaded.
+    Returns whether it was restored."""
+    if not kept:
+        return False
+    origin = 'the installed copy' if installed else 'the previous build'
+    stamp = kept.get(STAMP)
+    if stamp is not None and stamp.decode('ascii', 'replace').strip() != digest:
+        print(f'WARNING: the NetEq sidecar kept from {origin} was built from other '
+              'sources; leaving it out', flush=True)
+        return False
+    for name, content in kept.items():
+        path = Path(package) / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(content)
+    what = ('the new build has no NetEq sidecar; keeping the installed one' if installed
+            else 'Rust not found; reusing the NetEq sidecar of the previous build')
+    print('WARNING: ' + what
+          + ('' if stamp is not None else ' (it carries no source stamp)'), flush=True)
+    return True
 
 
 def dependency_notices(metadata):
@@ -55,6 +108,7 @@ def build(package, *, system="windows"):
                    env=env, check=True)
     shutil.copy2(work / 'neteq-target' / TARGET / 'release' / DLL, Path(package) / DLL)
     shutil.copy2(source / 'THIRD_PARTY_NOTICES.txt', Path(package) / 'NETEQ_NOTICES.txt')
+    (Path(package) / STAMP).write_text(source_digest(source) + '\n', encoding='ascii')
     metadata = subprocess.run([cargo, f'+{RUST}-{TARGET}', 'metadata', '--locked',
                                '--format-version', '1', '--filter-platform', TARGET,
                                '--manifest-path', str(source / 'Cargo.toml')],

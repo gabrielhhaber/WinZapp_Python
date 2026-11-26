@@ -7,6 +7,7 @@ from core.call_log_participants import (
     participants_title,
 )
 from core.call_matching import is_placeholder_call_id
+from core.ongoing_calls import is_own_chat_call
 from core.call_participants import active_participants_available, held_here
 from core.jid_device import strip_device_suffix
 from core.call_roster import note_seen, remember, user_of
@@ -36,17 +37,49 @@ class CallParticipantsMixin:
         names = [self.chat_display_name({"remoteJid": jid, "name": ""}) for jid in ordered]
         return participants_title(names, self.i18n.t)
 
+    def ongoing_call_people_text(self, ongoing) -> str:
+        """"A, B e mais 3 pessoas" for a live call (core/ongoing_calls.py)
+        named after the people connected to it, as the phone names it: one
+        filed under this account's own chat (it started the call on its
+        phone), or a one-to-one call that became a group call. "" for any
+        other call, which keeps its chat's name."""
+        if not isinstance(ongoing, dict) or not ongoing.get("people"):
+            return ""
+        chat_jid = str(ongoing.get("chatJid") or "")
+        mine = {user_of(j) for j in (getattr(self, "my_jid", ""), getattr(self, "my_lid", ""))} - {""}
+        person = lambda jid: CallParticipantsMixin._call_person(self, jid)
+        others = other_call_participants(ongoing["people"], mine, person)
+        own = is_own_chat_call(ongoing, self._is_self_jid)
+        if not others or not (own or is_upgraded_call(chat_jid, others)):
+            return ""
+        # whoever started the call first, as for a call record: the chat's
+        # person, unless this account started it
+        ordered = order_call_participants(
+            others, "" if own else chat_jid, lambda jid: not is_unsaved_contact(self, jid), person)
+        names = [self.chat_display_name({"remoteJid": jid, "name": ""}) for jid in ordered]
+        return participants_title(names, self.i18n.t)
+
     def _show_active_call_participants(self, _event=None):
         active = getattr(self, "_active_voice_call", None) or {}
         if not active_participants_available(active, getattr(self, "_voice_call_last_announced_state", "")):
             return
+        # A joined call filed under the own chat is named after its people;
+        # the chat's own name would be the account's.  A name that is only
+        # the peer's JID is no name, so the chat's display name is kept.
+        name = active.get("name") or ""
+        title = name if name and name != active.get("peer_jid") else None
         self.show_call_participants(active.get("call_id"), active.get("peer_jid"),
-                                    parent=getattr(self, "voice_call_window", None))
+                                    parent=getattr(self, "voice_call_window", None),
+                                    title=title)
 
-    def show_call_participants(self, call_id, chat_jid, *, parent=None):
+    def show_call_participants(self, call_id, chat_jid, *, parent=None, title=None, people=()):
+        """*title* names a call filed under the own chat after its people;
+        a lock on *chat_jid* or on any of *people* closes the window."""
         if not call_id or is_placeholder_call_id(call_id) or getattr(self, "_shutting_down", False):
             return
-        allowed = lambda: not getattr(self, "is_chat_locked", lambda _jid: False)(chat_jid)
+        jids = [chat_jid, *people]
+        allowed = lambda: not any(
+            getattr(self, "is_chat_locked", lambda _jid: False)(jid) for jid in jids)
         if not allowed():
             # The words the dialog itself uses for a call it may not show;
             # they do not reveal that the chat is locked.
@@ -54,7 +87,7 @@ class CallParticipantsMixin:
             return
         from ui.dialogs.call_participants import CallParticipantsDialog
         dialog = CallParticipantsDialog(parent or self, self, call_id,
-                                        self.chat_display_name(chat_jid), allowed,
+                                        title or self.chat_display_name(chat_jid), allowed,
                                         invite_chat=self._call_invite_chat(call_id, chat_jid))
         self._call_participants_dialog = dialog     # for on_call_participants
         try:

@@ -42,7 +42,9 @@ from core.transcription import (
 from core.wrapped_text import (
     original_range,
     selection_offsets,
-    word_wrap,
+    message_viewer_wraps,
+    switch_wrap,
+    viewer_text,
 )
 
 
@@ -66,11 +68,27 @@ class MessageMenuMixin:
     """
 
     def on_messages_context_menu(self, event):
-        index = self.messages_list.GetFirstSelected()
-        if index < 0 or index >= len(self._sorted_messages):
+        menu = self._message_context_menu(self.messages_list.GetFirstSelected())
+        if menu is None:
             return
+        self.PopupMenu(menu)
+        menu.Destroy()
+
+    def _message_context_menu(self, index, leave=None):
+        """The context menu of the message at *index*, or None (no message
+        there, or the unread separator). The caller pops it up and destroys it.
+
+        *leave* wraps the handlers of the items that take the person into the
+        conversation (reply, edit, go to the quoted message, another chat, a
+        call): a window listing messages over the conversation, such as the
+        pinned messages (ui/dialogs/pinned_messages_dialog.py), closes first
+        and runs them on the message once it is focused.
+        """
+        if index < 0 or index >= len(self._sorted_messages):
+            return None
         if self._is_separator(self._sorted_messages[index]):
-            return  # no context menu for separator
+            return None  # no context menu for separator
+        go       = leave or (lambda handler: handler)
         msg      = self._sorted_messages[index]
         msg_type = msg.get("messageType", "")
         msg_id   = msg.get("key", {}).get("id", "")
@@ -86,7 +104,7 @@ class MessageMenuMixin:
                 msg, str((self.conversation or {}).get("remoteJid") or "")):
             return_item = menu.Append(
                 wx.ID_ANY, f"{i18n.t('return_call_button')}\tCtrl+Shift+R")
-            self.Bind(wx.EVT_MENU, lambda e, m=msg: self._return_call(m), return_item)
+            self.Bind(wx.EVT_MENU, go(lambda e, m=msg: self._return_call(m)), return_item)
             menu.AppendSeparator()
 
         if getattr(self, "selected_messages", None):
@@ -112,6 +130,10 @@ class MessageMenuMixin:
             pin_item = mass_menu.Append(
                 wx.ID_ANY, f"{i18n.t('pin_selected')}\tCtrl+Alt+Shift+X")
             self.Bind(wx.EVT_MENU, self._on_mass_pin_messages, pin_item)
+            # No shortcut of its own: Ctrl+Shift+P unpins the selection when
+            # every selected message is pinned (_on_ctrl_shift_p).
+            unpin_item = mass_menu.Append(wx.ID_ANY, i18n.t('unpin_selected'))
+            self.Bind(wx.EVT_MENU, self._on_mass_unpin_messages, unpin_item)
 
             save_item = mass_menu.Append(
                 wx.ID_ANY, f"{i18n.t('save_selected')}\tCtrl+Alt+Shift+S")
@@ -164,7 +186,7 @@ class MessageMenuMixin:
             )
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, m=msg, c=ctx_reply: self._on_menu_goto_quoted(m, c),
+                go(lambda e, m=msg, c=ctx_reply: self._on_menu_goto_quoted(m, c)),
                 goto_item,
             )
             menu.AppendSeparator()
@@ -254,7 +276,7 @@ class MessageMenuMixin:
                 converse_card_item = menu.Append(wx.ID_ANY, i18n.t("converse"))
                 self.Bind(
                     wx.EVT_MENU,
-                    lambda e, j=_card_jid: self._on_contact_converse(None, jid=j),
+                    go(lambda e, j=_card_jid: self._on_contact_converse(None, jid=j)),
                     converse_card_item,
                 )
             save_card_item = menu.Append(
@@ -293,7 +315,7 @@ class MessageMenuMixin:
             reply_item = menu.Append(wx.ID_ANY, f"{i18n.t('reply_message')}\tAlt+R")
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, m=msg: self._on_menu_reply(m),
+                go(lambda e, m=msg: self._on_menu_reply(m)),
                 reply_item,
             )
 
@@ -313,7 +335,7 @@ class MessageMenuMixin:
                 )
                 self.Bind(
                     wx.EVT_MENU,
-                    lambda e, m=msg, pj=_participant_jid: self._on_menu_reply_private(m, pj),
+                    go(lambda e, m=msg, pj=_participant_jid: self._on_menu_reply_private(m, pj)),
                     private_reply_item,
                 )
                 _pname = self._get_participant_name(_participant_jid, msg)
@@ -323,7 +345,7 @@ class MessageMenuMixin:
                 )
                 self.Bind(
                     wx.EVT_MENU,
-                    lambda e, pj=_participant_jid, pn=_pname: self._on_menu_converse_private(pj, pn),
+                    go(lambda e, pj=_participant_jid, pn=_pname: self._on_menu_converse_private(pj, pn)),
                     converse_item,
                 )
 
@@ -516,7 +538,7 @@ class MessageMenuMixin:
             edit_item = menu.Append(wx.ID_ANY, f"{i18n.t('edit_message')}\tAlt+E")
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, i=index, m=msg: self._on_menu_edit_message(i, m),
+                go(lambda e, i=index, m=msg: self._on_menu_edit_message(i, m)),
                 edit_item,
             )
 
@@ -548,7 +570,7 @@ class MessageMenuMixin:
             restore_item = menu.Append(wx.ID_ANY, f"{i18n.t('restore_unsent_reply')}\tAlt+E")
             self.Bind(
                 wx.EVT_MENU,
-                lambda e, m=msg: self._on_restore_unsent_reply(m),
+                go(lambda e, m=msg: self._on_restore_unsent_reply(m)),
                 restore_item,
             )
 
@@ -575,8 +597,7 @@ class MessageMenuMixin:
         )
 
         refresh_popup_shortcuts(self, 'messages', menu)
-        self.PopupMenu(menu)
-        menu.Destroy()
+        return menu
 
     # ── Message context menu handlers ────────────────────────────────────────
 
@@ -965,11 +986,12 @@ class MessageMenuMixin:
         panel = wx.Panel(dlg)
         sizer = wx.BoxSizer(wx.VERTICAL)
         text_ctrl = wx.TextCtrl(
-            panel, value=word_wrap(text),
+            panel, value=viewer_text(text, message_viewer_wraps(self.main_window.settings)),
             style=wx.TE_MULTILINE | wx.TE_READONLY | wx.TE_DONTWRAP,
         )
         sizer.Add(text_ctrl, 1, wx.EXPAND | wx.ALL, 8)
-        # The wrap above is only for line-by-line reading. Copying hands out
+        # The wrap above (unless the box below is off, #923) is only for
+        # line-by-line reading. Copying hands out
         # the message as written: the same range of the original, with its
         # spaces where the wrap put breaks. Ctrl+C / Ctrl+Insert are consumed
         # here; the native context menu's Copy arrives as EVT_TEXT_COPY.
@@ -1001,6 +1023,23 @@ class MessageMenuMixin:
 
         text_ctrl.Bind(wx.EVT_KEY_DOWN, _on_text_key)
         text_ctrl.Bind(wx.EVT_TEXT_COPY, _copy_original)
+
+        # "Wrap long lines" (issue #923): off shows only the message's own
+        # line breaks. Both views have the original's length, so the reading
+        # position and the copy above survive the switch.
+        settings = self.main_window.settings
+        wrap_check = wx.CheckBox(panel, label=i18n.t("msg_text_word_wrap"))
+        wrap_check.SetValue(message_viewer_wraps(settings))
+
+        def _on_wrap(event):
+            point = len(text_ctrl.GetRange(0, text_ctrl.GetInsertionPoint()))
+            shown, native = switch_wrap(settings, text, wrap_check.GetValue(), point)
+            self.main_window._schedule_save_settings()
+            text_ctrl.ChangeValue(shown)
+            text_ctrl.SetInsertionPoint(native)
+
+        wrap_check.Bind(wx.EVT_CHECKBOX, _on_wrap)
+        sizer.Add(wrap_check, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
         close_btn = wx.Button(panel, wx.ID_CANCEL, label=i18n.t("close"))
         sizer.Add(close_btn, 0, wx.ALIGN_RIGHT | wx.RIGHT | wx.BOTTOM, 8)
         panel.SetSizer(sizer)

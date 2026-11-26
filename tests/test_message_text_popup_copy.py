@@ -6,9 +6,13 @@ out those extra line breaks, splitting the message wherever the wrap had.
 
 
 from core.wrapped_text import (
+    message_viewer_wraps,
+    native_position,
     normalize_newlines,
     original_range,
     selection_offsets,
+    switch_wrap,
+    viewer_text,
     word_wrap,
 )
 from tests.god_modules import conversations_method_source
@@ -125,9 +129,74 @@ def test_an_empty_selection_copies_nothing():
 
 def test_popup_copies_through_the_original_range_not_the_control_text():
     body = conversations_method_source("_show_message_text_popup")
-    assert "value=word_wrap(text)" in body
+    assert "value=viewer_text(text, message_viewer_wraps(self.main_window.settings))" in body
     assert "selection_offsets(" in body
     assert "original_range(text, *offsets)" in body
     assert "pyperclip.copy(copied)" in body
     assert "wx.EVT_TEXT_COPY" in body
     assert "wx.WXK_INSERT" in body
+
+
+# ── The window's "Wrap long lines" box (#923) ──
+
+def test_the_viewer_wraps_by_default():
+    assert message_viewer_wraps({}) is True
+    assert message_viewer_wraps(None) is True
+    assert message_viewer_wraps({"user_interface": {}}) is True
+    assert message_viewer_wraps({"user_interface": {"message_viewer_word_wrap": True}}) is True
+    assert viewer_text(LONG) == word_wrap(LONG)
+
+
+def test_turned_off_only_the_messages_own_breaks_remain():
+    settings = {"user_interface": {"message_viewer_word_wrap": False}}
+    assert message_viewer_wraps(settings) is False
+    text = LONG + "\r\nsegunda linha\n" + LONG
+    shown = viewer_text(text, wrap=False)
+    assert shown == LONG + "\nsegunda linha\n" + LONG
+    assert shown.count("\n") == 2
+
+
+def test_unwrapped_view_still_copies_the_original_range():
+    text = LONG + "\nfim"
+    shown = viewer_text(text, wrap=False)
+    assert original_range(text, 0, len(shown)) == text
+    start = shown.index("fim")
+    assert original_range(text, start, len(shown)) == "fim"
+
+
+def test_switching_the_wrap_keeps_the_reading_position():
+    """The box turns the string offset back into a native position of the
+    other view: CRLF and emoji count as two, as in a Windows edit."""
+    text = "oi \U0001F600\n" + "\U0001F600 palavra " * 30 + "\nfim"
+    for wrap in (True, False):
+        shown = viewer_text(text, wrap)
+        ctrl = _FakeWinEdit(shown)
+        for offset in (0, 5, shown.index("fim"), len(shown)):
+            native = native_position(shown, offset)
+            assert native == ctrl.native_pos(offset, shown)
+            assert len(ctrl.GetRange(0, native)) == offset
+    assert native_position("abc", 99) == 3
+    assert native_position("abc", -1) == 0
+
+
+def test_the_window_has_the_wrap_box_and_remembers_it():
+    body = conversations_method_source("_show_message_text_popup")
+    assert 'i18n.t("msg_text_word_wrap")' in body
+    assert "wrap_check.SetValue(message_viewer_wraps(settings))" in body
+    assert "switch_wrap(settings, text, wrap_check.GetValue(), point)" in body
+    assert "_schedule_save_settings()" in body
+    assert "text_ctrl.ChangeValue(shown)" in body
+    assert "text_ctrl.SetInsertionPoint(native)" in body
+
+
+def test_toggling_the_wrap_keeps_the_choice_and_the_reading_position():
+    text = "oi \U0001F600\n" + "palavra " * 30 + "fim"
+    settings = {}
+    shown, native = switch_wrap(settings, text, False, text.index("fim"))
+    assert settings == {"user_interface": {"message_viewer_word_wrap": False}}
+    assert shown == viewer_text(text, False)
+    assert native == native_position(shown, shown.index("fim"))
+    shown, native = switch_wrap(settings, text, True, shown.index("fim"))
+    assert settings["user_interface"]["message_viewer_word_wrap"] is True
+    assert shown == word_wrap(text) and shown.count("\n") > 1
+    assert native == native_position(shown, shown.index("fim"))

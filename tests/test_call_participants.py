@@ -287,7 +287,22 @@ def test_active_call_button_dispatches_the_current_id_without_a_window():
         voice_call_window=object(), _voice_call_last_announced_state="ACTIVE",
         show_call_participants=lambda *a, **kw: requests.append((a, kw)))
     CallParticipantsMixin._show_active_call_participants(stub)
-    assert requests == [(("C1", PERSON["jid"]), {"parent": stub.voice_call_window})]
+    assert requests == [(("C1", PERSON["jid"]),
+                         {"parent": stub.voice_call_window, "title": None})]
+
+
+def test_the_active_call_window_is_titled_like_the_calls_row():
+    """A joined call filed under the own chat carries its people's names;
+    titling the window after the chat named it after the account."""
+    requests = []
+    stub = SimpleNamespace(
+        _active_voice_call={"call_id": "C1", "peer_jid": PERSON["jid"], "name": "Ana, Bruno"},
+        voice_call_window=object(), _voice_call_last_announced_state="ACTIVE",
+        show_call_participants=lambda *a, **kw: requests.append(kw["title"]))
+    CallParticipantsMixin._show_active_call_participants(stub)
+    stub._active_voice_call["name"] = PERSON["jid"]     # only the JID: no name
+    CallParticipantsMixin._show_active_call_participants(stub)
+    assert requests == ["Ana, Bruno", None]
 
 
 def test_participants_control_waits_for_a_connected_real_call():
@@ -308,6 +323,22 @@ def test_a_locked_chats_participants_are_refused_out_loud_without_a_dialog(monke
         i18n=SimpleNamespace(t=lambda key: key),
         output=lambda text, interrupt=False: spoken.append((text, interrupt)))
     CallParticipantsMixin.show_call_participants(stub, "C1", PERSON["jid"])
+    assert spoken == [("call_participants_ended", True)]
+
+
+def test_a_locked_person_of_a_call_filed_under_the_own_chat_is_refused_too(monkeypatch):
+    """The window of a call named after its people would list a locked
+    contact even though the call's own chat is not locked."""
+    spoken = []
+
+    def no_dialog(*_a, **_kw):
+        raise AssertionError("a locked person's call must not open")
+    monkeypatch.setattr("ui.dialogs.call_participants.CallParticipantsDialog", no_dialog)
+    stub = SimpleNamespace(is_chat_locked=lambda jid: jid == PERSON["jid"],
+        i18n=SimpleNamespace(t=lambda key: key),
+        output=lambda text, interrupt=False: spoken.append((text, interrupt)))
+    CallParticipantsMixin.show_call_participants(
+        stub, "C1", "555000099@lid", title="Ana", people=[PERSON["jid"]])
     assert spoken == [("call_participants_ended", True)]
 
 

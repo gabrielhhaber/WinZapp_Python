@@ -1188,11 +1188,14 @@ class MessageRenderingMixin:
         return True
 
     def _render_message_line(self, msg, index: int | None = None, total: int | None = None,
-                             include_quoted_preview: bool = True) -> str:
+                             include_quoted_preview: bool = True,
+                             pin_marker: bool = True) -> str:
         """Produce the full display string for a single message row.
 
         include_quoted_preview=False drops the ", mensagem citada: ..." clause.
         Only link detection passes it — see _message_own_links().
+        pin_marker=False drops the "📌 Pinned" lead, which the pinned
+        messages window, where every row is pinned, would read on each one.
         """
         if isinstance(msg, dict) and msg.get("_type") == "empty_placeholder":
             # A new or empty one-to-one chat also gets the notices WhatsApp
@@ -1260,7 +1263,7 @@ class MessageRenderingMixin:
                                or (not sender and hide_unnamed_sender_numbers_enabled(
                                    self.main_window.settings)))]
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
-        if msg.get("pinInChat"):
+        if msg.get("pinInChat") and pin_marker:
             pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
         # Settings > User interface > "Announce 'Starred' at the start of the
         # message" (default off): off keeps the word as a trailing clause

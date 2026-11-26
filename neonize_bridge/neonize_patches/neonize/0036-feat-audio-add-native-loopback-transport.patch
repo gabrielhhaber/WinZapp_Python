@@ -17,10 +17,10 @@ Subject: [PATCH] feat(audio): add native loopback transport
  create mode 100644 goneonize/calls_audio_ipc_test.go
 
 diff --git a/goneonize/calls.go b/goneonize/calls.go
-index 5016e87..29d7ecb 100644
+index b43b49d..0421179 100644
 --- a/goneonize/calls.go
 +++ b/goneonize/calls.go
-@@ -164,6 +164,10 @@ func registrar(cliente, formato string, args ...any) {
+@@ -183,6 +183,10 @@ func registrar(cliente, formato string, args ...any) {
  
  // chamadaAtiva liga uma chamada do meowcaller as filas de audio do Python.
  type chamadaAtiva struct {
@@ -31,7 +31,7 @@ index 5016e87..29d7ecb 100644
  	pcmRate       int
  	generation    uint64
  	call          *meowcaller.Call
-@@ -193,6 +197,11 @@ func (c *chamadaAtiva) encerrar() {
+@@ -212,6 +216,11 @@ func (c *chamadaAtiva) encerrar() {
  	c.uma.Do(func() {
  		close(c.fim)
  		c.entrada.Close()

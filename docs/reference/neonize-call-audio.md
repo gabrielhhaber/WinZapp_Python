@@ -134,9 +134,9 @@ runs in the device callback. The upstream algorithm's local CPU/allocation
 cost still needs hardware acceptance; this is not a hard realtime guarantee.
 
 Source/codec epochs, large timestamp discontinuities and device/rate changes
-discard the old native state. Groups, live translation, unsupported device
-rates, missing/incompatible components and legacy peers retain compatible
-playback. Starting live translation releases native transport for that audio
+discard the old native state. Live translation, unsupported device rates,
+missing/incompatible components and legacy peers retain compatible playback
+(groups: see "Group calls: one NetEq per sender" below). Starting live translation releases native transport for that audio
 session. Runtime render failures produce silence and a flag; the worker logs
 once, closes the component and releases native transport back to Socket.IO.
 Device switching still does not emit `call:audio:stop`.
@@ -153,6 +153,41 @@ Merge on recovery, arbitrary device periods, strided writes, ABI bounds,
 timestamp wrap/source replacement, optional loading and fallback. The built
 DLL is exercised without devices. Real-call/provider/hardware acceptance is
 still outstanding; no end-to-end quality parity is claimed.
+
+## Group calls: one NetEq per sender
+
+Protocol 3 (`audioProtocol=3`, `CallAudioTransportOpenV3`, handshake `NZA3`)
+is protocol 2 plus flag 3 (timed | mixed): one sender of a group call, on its
+own SSRC and PCM-unit RTP timeline. The client asks for 3; the bridge asks a
+neonize whose `Calls.audio_protocols()` lacks 3 for protocol 2 (an older
+wrapper would otherwise open protocol 1), and the client asks again for 2
+when an older bridge answers 400. Flag 3 is refused outside protocol 3.
+
+With a protocol 3 lease the call record is a meowcaller
+`MixedTimedAudioSink`: in a group each participant's decoded frame is written
+timed (meowcaller 0042) instead of entering the participant mixer, whose
+ticker drops whatever was waiting while such a sink is attached. Concealed
+frames are not sent (each NetEq conceals its sender); recovered PT 121 frames
+are. The roster still decides who is heard. The native queue keeps 480 ms
+(8 frames) per sender and 64 frames in all, drop-oldest within the sender, so
+a direct call keeps the old bound and one talker cannot push others out.
+
+The client gives every sender its own NetEq and its own FIR history
+(`PerSenderResampler`); the device callback renders each 10 ms block from
+every NetEq and sums them, clipped to [-1, 1], as WebRTC's mixer pulls each
+receive stream. A direct (flag 1) frame keeps one sender: other streams close.
+A sender silent for 5 s is closed by the worker; past 16 senders the least
+recently heard one is. The player's timed ingress holds 8 frames per sender
+heard plus one.
+
+Fallback keeps the layers of direct calls, plus one: group senders never
+enter the single-source reservoir, where they would interleave. Without
+NetEq (missing or old DLL, unsupported rate, failure) or during live
+translation they are dropped, and the worker releases the native transport
+outside the output lock, so the bridge's participant mixer takes the group
+back over Socket.IO. A mixed frame that races a lease change to protocol 2 is
+dropped in Go. Older DLLs, wrappers and bridges negotiate protocol 2 or 1 and
+keep the mixer.
 
 ## Answer and stream ownership
 
@@ -207,7 +242,7 @@ not prove speech intelligibility, physical output routing, or installed acceptan
 
 `call_audio_pcm.py` uses a 97-tap streaming Blackman FIR before 3:1 decimation
 (1 ms group delay). When `Calls.resample_pcm48_to16` is available, the FIR runs
-in Go through `CallResamplePCM48To16` (neonize patch 0033). The bridge retains
+in Go through `CallResamplePCM48To16` (neonize patch 0034). The bridge retains
 the 96-sample history and incomplete capture bytes per microphone stream;
 the native function is stateless and accepts at most 100 ms plus history.
 Changing calls, stopping a stream or replacing it discards that history as
@@ -231,7 +266,7 @@ not remove Socket.IO or change playback thresholds.
 ## One playback reservoir for direct Neonize audio
 
 The bridge's `chamadaAtiva` queue now advertises meowcaller's optional
-`BufferedAudioSink` capability (neonize 0034, meowcaller 0037). Its downstream
+`BufferedAudioSink` capability (neonize 0035, meowcaller 0038). Its downstream
 device callback already owns an adaptive reservoir, so decoded direct-call PCM
 is delivered immediately instead of waiting for the next RTP packet and a
 second native prefill. Sinks without the capability retain the original native
@@ -283,8 +318,19 @@ Late/duplicate packets never reach the stateful decoder twice. A missing
 predecessor is released when another packet arrives after 60 ms, or the queue
 reaches three packets; there is no timer that invents packets while idle.
 Opus uses decoder PLC for gaps up to 120 ms before decoding the following
-packet. The MLow port has no PLC API: its fallback is a short decay to silence,
-not FEC or reconstructed speech. Large discontinuities retain the existing
+packet. MLow conceals like G.711 Appendix I (meowcaller 0015): the last pitch
+period repeated, full level for 20 ms, faded out over 60 ms and cross-faded
+into the next decoded frame; a frame whose range decode fails restores the
+decoder state and is concealed instead. On PT 121 (mlow-red) the packet after
+a loss can give the lost frame back (meowcaller 0041): once the stream has
+shown a SplitRed block equal, byte for byte, to the main frame of an earlier
+packet, that block position is trusted (only when exactly one of the last
+three main frames matches: identical silence or comfort-noise frames at the
+start of a call prove no distance), and the repeated frame is decoded in
+place of the lost one as a received frame (it is not flagged concealed, so the
+timed NetEq sink receives it). Redundancy that never matches, an unproven
+position and older losses keep the concealment. The receive summary counts
+`concealed` and `recovered` frames. Large discontinuities retain the existing
 playout reset. Group rosters use the negotiated codec for current and future
 receivers; existing SRTP keys, ROC handling and participant gates are preserved.
 

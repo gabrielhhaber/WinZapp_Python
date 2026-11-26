@@ -4,6 +4,32 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- WPPConnect, łączenie kodem QR lub numerem telefonu: gdy telefon zaakceptuje parowanie, WinZapp nie mówi już, że połączenie się nie udało, kiedy WhatsApp Web wciąż otwiera czaty. Sprawdzenie wykonywane 4 minuty po parowaniu nie potrafiło odczytać stanu połączenia w nowych wersjach WhatsApp Web i uznawało działające połączenie za nieudane.
+
+- WPPConnect: przeglądarka wskazana w zmiennej środowiskowej PUPPETEER_EXECUTABLE_PATH, np. natywny Chrome dla Windows na ARM, znów jest używana, a gdy pobrano kilka wersji przeglądarki, WinZapp używa tej, której wymaga WPPConnect, a nie pierwszej znalezionej.
+
+- Przypięte wiadomości: przycisk przypiętych wiadomości czatu otwiera teraz okno „Przypięte wiadomości” z listą przypiętych. Każda wiadomość ma menu kontekstowe i skróty listy wiadomości: kopiowanie, przekazywanie, reakcje, oznaczanie gwiazdką, odpinanie, usuwanie, transkrypcję i pozostałe, z wybranymi przez Ciebie klawiszami. Odpowiedź, edycja i inne akcje prowadzące do czatu zamykają okno i są wykonywane na wiadomości, na której w czacie jest już fokus; Enter lub „Przejdź do wiadomości” przenosi do niej w historii.
+
+- Zaznaczone wiadomości: „Odepnij zaznaczone” w „Akcje masowe” menu kontekstowego odpina naraz zaznaczone wiadomości, które są przypięte. Gdy zaznaczone jest „Zastąp skróty akcjami masowymi podczas zaznaczania czatów i wiadomości”, Ctrl+Shift+P przypina zaznaczone wiadomości albo je odpina, gdy wszystkie są już przypięte.
+
+- Nowa opcja w Ustawienia > Dostępność > Zawartość mówiona: „Ogłaszaj liczbę przypiętych wiadomości po otwarciu czatu”, domyślnie włączona. Po jej wyłączeniu WinZapp nie mówi już „Przypięte wiadomości w tym czacie: N” po otwarciu czatu.
+
+- Nowa opcja w Ustawienia > Ogólne > Powiadomienia: „Powiadamiaj o reakcjach na Twoje wiadomości”, domyślnie włączona. Po jej wyłączeniu reakcja na Twoją wiadomość nie jest odczytywana, nie odtwarza dźwięku i nie pojawia się w powiadomieniach Windows; nadal widać ją przy wiadomości i na liście czatów.
+
+- Tekst wiadomości (Alt+C): okno ma nowe pole wyboru „Zawijaj długie wiersze”, domyślnie zaznaczone. Po jego odznaczeniu wiersz kończy się tylko tam, gdzie sama wiadomość ma podział wiersza, niezależnie od długości wiersza i rozmiaru okna. Wybór jest zapamiętywany, a kopiowanie nadal daje tekst w takiej postaci, w jakiej został napisany.
+
+- Połączenia: połączenie rozpoczęte na telefonie, które stało się połączeniem grupowym, można wznowić w WinZapp po wyjściu z niego: „Dołącz do trwającego połączenia głosowego” pojawia się w czacie każdej osoby, która nadal w nim jest, a jego wiersz na karcie Połączenia pokazuje ich nazwy. Działa z Neonize i WPPConnect.
+
+- Neonize: po dołączeniu do trwającego już połączenia grupowego słychać teraz osoby, których telefony wysyłają dźwięk w formacie, który WinZapp wcześniej odrzucał; przy nich nie było słychać nikogo.
+
+- Połączenia grupowe Neonize: dźwięk każdej osoby ma teraz własne odtwarzanie z NetEQ, tak jak w połączeniach indywidualnych, co łagodzi wahania sieci i utratę dźwięku osobno dla każdej z nich; wcześniej cała grupa była miksowana bez niego, z większą liczbą przerw i opóźnieniem. Tłumaczenie na żywo i urządzenia nieobsługiwane przez NetEQ nadal korzystają ze zgodnego odtwarzania.
+
+- Połączenia Neonize: gdy pakiet dźwięku zaginie, a następny niesie jego kopię, jak wysyłają niektóre telefony, WinZapp odtwarza teraz tę kopię, zamiast wypełniać lukę oszacowaniem.
+
+- Zapisz jako (Ctrl+Shift+S) dla dokumentu JSON odebranego w czacie, na przykład pliku ustawień app.json, teraz zapisuje plik zamiast zgłaszać, że nie udało się go pobrać.
+
+- Skróty klawiszowe: po przełączeniu na inne konto zaraz po zmianie klawisza konto, które się pojawia, reaguje na nowy klawisz, nawet gdy poprzednie nadal zapisuje ustawienia; wcześniej mogło zostać przy starym klawiszu, dopóki czegoś nie zapisało.
+
 - Ponowne połączenie po długim czasie offline: WinZapp odbiera teraz nagromadzone wiadomości, reakcje i potwierdzenia odczytu bez zawieszania interfejsu przy każdym zapisie do bazy danych, a silnik Neonize zapisuje swoją bazę szybciej.
 - macOS: wybranie innego silnika połączenia w oknie łączenia uruchamia teraz WinZapp ponownie z tym silnikiem. Wcześniej pojawiał się komunikat, że WinZapp nie mógł uruchomić się ponownie samodzielnie, a silnik nie był zmieniany.
 - Historia nieznanych grup: WinZapp nie blokuje już interfejsu podczas odzyskiwania starych wiadomości grupy, której jeszcze nie znał. Wcześniej szukał nazwy grupy w wątku interfejsu, a każde wyszukiwanie mogło trwać do 10 sekund, w czasie których WinZapp nie odpowiadał. Teraz nazwa jest pobierana w tle i pojawia się, gdy tylko nadejdzie.
@@ -79,7 +105,7 @@ NOWOŚCI
 
 - Wersja przenośna: jeśli przy pierwszym uruchomieniu znajdzie połączone konta w zainstalowanej wersji WinZappa, proponuje ich skopiowanie zamiast ponownego łączenia urządzenia z WhatsAppem. Nie zmienia zainstalowanej wersji. Jeśli ta wersja jest uruchomiona, prosi o jej zamknięcie i wybranie „Ponów próbę”. Gdy kopiowanie się nie uda, przechodzi do łączenia nowego urządzenia.
 
-- Ustawienia > Interfejs > Skróty klawiszowe: zmienione przypisania klawiszy obowiązują we wszystkich kontach danej instalacji, a nie tylko na koncie, na którym je zmieniono. Na przykład skrót polecenia „Przełącz na konto 2” działa na każdym koncie. Przy pierwszym uruchomieniu tej wersji własne przypisania z poszczególnych kont są scalane z ustawieniami instalacji. Przy różnych przypisaniach tego samego polecenia pierwszeństwo ma ustawienie instalacji; przypisanie klawisza zajętego już przez inne polecenie jest pomijane.
+- Ustawienia > Interfejs > Skróty klawiszowe: zmienione przypisania klawiszy obowiązują na wszystkich kontach danej instalacji, a nie tylko na koncie, na którym je zmieniono. Na przykład skrót polecenia „Przełącz na konto 2” działa na każdym koncie. Przy pierwszym uruchomieniu tej wersji własne przypisania z poszczególnych kont są scalane z ustawieniami instalacji. Przy różnych przypisaniach tego samego polecenia pierwszeństwo ma ustawienie instalacji; przypisanie klawisza zajętego już przez inne polecenie jest pomijane. Można też zachować klawisze tylko dla jednego konta: pole wyboru „Używaj tych samych skrótów na wszystkich kontach” w tej samej karcie jest domyślnie zaznaczone; po jego odznaczeniu klawisze zmienione na tym koncie obowiązują tylko na nim, a pozostałe konta zachowują swoje. Okno zmiany każdego skrótu ma także pole wyboru „Używaj tego skrótu na wszystkich kontach”, które podąża za polem ogólnym, dopóki go nie zmienisz; skrót, który nie podąża za polem ogólnym, ma na liście dopisek „na wszystkich kontach” lub „tylko na tym koncie”.
 
 - Edytowane wiadomości: w ustawieniach Dźwięki zdarzeń dodano „Zapisano zmiany w Twojej wiadomości” (domyślnie włączone) oraz zdarzenia edycji wiadomości przez inną osobę, gdy WinZapp jest na pierwszym planie lub w tle (domyślnie wyłączone). W Ustawienia > Ogólne > Powiadomienia są opcje „Odczytuj wiadomości edytowane przez innych, gdy okno jest aktywne” oraz „Powiadamiaj o wiadomościach edytowanych przez inne osoby, gdy WinZapp jest w tle” (domyślnie wyłączone). Przycisk „Edytowane wiadomości” w oknie danych czatu otwiera jego własne ustawienia dźwięków i ogłoszeń. Zmiana treści wykonana przez inną osobę jest ogłaszana tylko w okresie, w którym WhatsApp nadal pozwala edytować tę wiadomość; starsze edycje odtworzone po ponownym połączeniu nie wywołują ogłoszeń.
 

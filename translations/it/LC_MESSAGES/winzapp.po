@@ -5404,8 +5404,9 @@ msgstr "Svuota le chat selezionate"
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/new_conversation.py
-#: client/ui/dialogs/order_update_dialog.py client/ui/dialogs/poll_dialog.py
-#: client/ui/dialogs/poll_voters_dialog.py
+#: client/ui/dialogs/order_update_dialog.py
+#: client/ui/dialogs/pinned_messages_dialog.py
+#: client/ui/dialogs/poll_dialog.py client/ui/dialogs/poll_voters_dialog.py
 #: client/ui/dialogs/profile_picture_dialog.py
 #: client/ui/dialogs/reactions_dialog.py client/ui/dialogs/shortcuts_dialog.py
 #: client/ui/dialogs/starred_messages.py
@@ -10474,6 +10475,12 @@ msgid "Message text"
 msgstr "Testo del messaggio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "msg_text_word_wrap"
+msgid "&Wrap long lines"
+msgstr "&A capo automatico delle righe lunghe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "mute_1d"
 msgid "1 day"
 msgstr "1 giorno"
@@ -11527,6 +11534,12 @@ msgid "Notify messages e&dited by others while in the background"
 msgstr "Notifica i messaggi modificati da altri in &background"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "notify_reactions_label"
+msgid "Notify &reactions to your messages"
+msgstr "Notifica le &reazioni ai tuoi messaggi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "nr_pending_send_raw"
 msgid "Send without noise reduction"
@@ -11856,8 +11869,6 @@ msgstr ""
 "chat alla volta: annulla il fissaggio di un'altra chat e riprova."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/bulk_messages.py
-#: client/ui/conversation_panel/message_actions.py
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_message"
 msgid "&Pin message"
@@ -11873,14 +11884,13 @@ msgstr "Non è stato possibile fissare questo messaggio. Riprova tra poco."
 #: client/ui/conversation_panel/message_menu.py
 msgctxt "pin_selected"
 msgid "Pin selected"
-msgstr "Fissa selezionato"
+msgstr "Fissa selezionati"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/conversation_panel/pinned_messages.py
-msgctxt "pinned_messages_choose"
-msgid "Select a pinned message and press Enter to go to it in the history."
-msgstr ""
-"Seleziona un messaggio fissato e premi Invio per accedervi nella cronologia."
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_go_to_message"
+msgid "&Go to message"
+msgstr "&Vai al messaggio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
@@ -11902,6 +11912,12 @@ msgid "Pinned messages could not be loaded. Please try again in a moment."
 msgstr "Impossibile caricare i messaggi fissati. Riprova tra qualche istante."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/pinned_messages_dialog.py
+msgctxt "pinned_messages_list"
+msgid "&Pinned messages"
+msgstr "&Messaggi fissati"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
 #, python-brace-format
 msgctxt "pinned_messages_notice"
@@ -11910,6 +11926,7 @@ msgstr "Messaggi fissati in questa chat: {count}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/pinned_messages.py
+#: client/ui/dialogs/pinned_messages_dialog.py
 msgctxt "pinned_messages_title"
 msgid "Pinned messages"
 msgstr "Messaggi fissati"
@@ -14685,6 +14702,16 @@ msgstr ""
 "rapidamente copia il messaggio, posizione"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_all_accounts"
+msgid "every account"
+msgstr "in tutti gli account"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_row_this_account"
+msgid "this account only"
+msgstr "solo in questo account"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_scope_global"
 msgid "System-wide"
 msgstr "A livello di sistema"
@@ -14789,6 +14816,12 @@ msgstr ""
 msgctxt "shortcut_settings_list"
 msgid "Commands and keyboard shortcuts"
 msgstr "Comandi e scorciatoie da tastiera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_tab.py
+msgctxt "shortcut_shared_all_accounts"
+msgid "&Use the same shortcuts in every account"
+msgstr "&Usa le stesse scorciatoie in tutti gli account"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -14935,6 +14968,12 @@ msgid "Not assigned"
 msgstr "Non assegnato"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcut_capture.py
+msgctxt "shortcut_use_in_all_accounts"
+msgid "&Use this shortcut in every account"
+msgstr "&Usa questa scorciatoia in tutti gli account"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_writing_help_label"
 msgid "Alt+Shift+H: writing help on the draft message"
@@ -14974,6 +15013,16 @@ msgstr "Barra di navigazione principale"
 msgctxt "shortcuts_search_section"
 msgid "Chat search"
 msgstr "Ricerca nella chat"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/shortcut_sharing.py
+msgctxt "shortcuts_shared_save_failed"
+msgid ""
+"The shortcuts for every account could not be saved. Please try again in a "
+"moment."
+msgstr ""
+"Non è stato possibile salvare le scorciatoie di tutti gli account. Riprova "
+"tra poco."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcuts_status_section"
@@ -15358,6 +15407,12 @@ msgstr "Pronuncia il caricamento &e l'aggiunta delle anteprime dei link"
 msgctxt "speech_announce_media_progress_label"
 msgid "Announce media &download progress every few seconds"
 msgstr "Pronuncia l'avanzamento &del download dei media ogni pochi secondi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "speech_announce_pinned_label"
+msgid "Announce &how many messages are pinned when a chat opens"
+msgstr "Annuncia quanti messaggi sono &fissati all'apertura di una chat"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
@@ -17590,6 +17645,12 @@ msgstr "Messaggi fissati."
 msgctxt "success_unarchive"
 msgid "Chats unarchived."
 msgstr "Chat rimosse dall'archivio."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
+msgctxt "success_unpin_bulk"
+msgid "Messages unpinned."
+msgstr "Messaggi sfissati."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/sync.py
 #, python-brace-format
@@ -21904,9 +21965,16 @@ msgid "&Unpin message"
 msgstr "&Sfissa messaggio"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/bulk_messages.py
 msgctxt "unpin_message_failed"
 msgid "This message could not be unpinned. Please try again in a moment."
 msgstr "Non è stato possibile sfissare questo messaggio. Riprova tra poco."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/message_menu.py
+msgctxt "unpin_selected"
+msgid "Unpin selected"
+msgstr "Sfissa selezionati"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "unread_message"
@@ -23558,6 +23626,11 @@ msgstr "&Sì"
 msgctxt "yesterday_at"
 msgid "Yesterday at {time}"
 msgstr "Ieri alle {time}"
+
+#~ msgctxt "pinned_messages_choose"
+#~ msgid "Select a pinned message and press Enter to go to it in the history."
+#~ msgstr ""
+#~ "Seleziona un messaggio fissato e premi Invio per accedervi nella cronologia."
 
 #, python-brace-format
 #~ msgctxt "ai_summary_cancel_confirm"

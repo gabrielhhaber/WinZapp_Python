@@ -24,7 +24,7 @@ stamp in the header comments differs, upstream generated with a newer protoc).
 
 What the patches carry today:
 
-- **neonize 0036 / meowcaller 0038**: optional protocol 2 timed PCM, carrying
+- **neonize 0037 / meowcaller 0040**: optional protocol 2 timed PCM, carrying
   the source/codec epoch and sample timeline into the device-clock NetEq
   component. Protocol 1 remains compatible. The sidecar is built from
   `native/call_neteq` with Rust 1.91.1 (`x86_64-pc-windows-msvc`), Cargo.lock,
@@ -39,22 +39,37 @@ What the patches carry today:
   builds: source builders who want it run `rustup toolchain
   install 1.91.1-x86_64-pc-windows-msvc --profile minimal`; without that
   toolchain the build skips it with a warning and calls keep the compatible
-  playback (release workflows install it). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
+  playback (release workflows install it). A build without Rust reuses the
+  sidecar the previous `dist/` held, and `install` keeps the one already in
+  the venv when `dist/` has none, so a copied CI sidecar survives a rebuild.
+  A built sidecar carries `NETEQ_SOURCE.sha256` (hash of the sources above);
+  one stamped with other sources is stale and is dropped, an unstamped one is
+  kept (its ABI is checked when loaded). Published artifacts need no Rust. CI builds/tests the component with one Cargo worker.
 
-- **neonize 0034 / meowcaller 0037**: the bridge queue opts into
+- **neonize 0038 / meowcaller 0042**: native protocol 3 (`NZA3`,
+  `CallAudioTransportOpenV3`, `Calls.audio_protocols()`): with a protocol 3
+  lease the call record is a meowcaller `MixedTimedAudioSink`, so each
+  group-call sender's decoded frame reaches WinZapp timed, on its own SSRC
+  (flag 3), instead of the participant mixer; WinZapp runs one NetEq per
+  sender. The native queue keeps 8 frames per sender, 64 in all. Protocol 2
+  clients and sinks without the capability keep the mixer. See
+  [neonize-call-audio.md](neonize-call-audio.md), "Group calls: one NetEq
+  per sender".
+
+- **neonize 0035 / meowcaller 0038**: the bridge queue opts into
   `BufferedAudioSink`, delivering direct-call PCM to WinZapp's existing
   adaptive playback reservoir without a second native prefill/lookahead.
   Conventional sinks and group mixing retain their buffering policy.
   Native tests cover timestamp overlap, short frames, clock/source changes
   and sink handoff; client timing tests exercise the unchanged reservoir.
 
-- **neonize 0033**: optional stateless `CallResamplePCM48To16`, exposed as
+- **neonize 0034**: optional stateless `CallResamplePCM48To16`, exposed as
   `Calls.resample_pcm48_to16`. It moves the bridge's 97-tap microphone FIR to
   Go without changing its 16 kHz call contract. Each invocation includes the
   microphone owner's history; older DLLs keep the Python fallback. Synthetic
   Go and compiled-package binding tests cover the conversion.
 
-- **neonize 0035**: optional native loopback PCM transport
+- **neonize 0036**: optional native loopback PCM transport
   (`CallAudioTransportOpen` / `CallAudioTransportClose`). A generation- and
   stream-bound authenticated socket connects the audio session straight to
   Go, with exclusive queue ownership and Socket.IO fallback. See
@@ -131,6 +146,23 @@ What the patches carry today:
   Answer when no `mute_v2` arrives; resynchronize the SRTP receive ROC.
   meowcaller is pinned at 27a3c6b1, its last commit on `go.mau.fi/whatsmeow`:
   later ones move to a whatsmeow fork (hypermeow).
+- **meowcaller 0019 / 0037**: the three audio payload types WhatsApp Web
+  registers, all MLow at 16 kHz: PT 120 (`mlow-1`), PT 121 (`mlow-red-1`,
+  decoded by its SplitRed main frame) and PT 122 (`mlow-1` on a payload type
+  of its own, `enable_mlow_separate_pt_tx` in `voip_settings`). Which one a
+  phone sends in a group call depends on the capabilities of who is in it
+  when it joins: one who answered a call phones were already in got PT 122
+  and, before 0037, heard nobody.
+- **meowcaller 0039 / neonize 0033**: every group key epoch logs its
+  transaction and what became of it (held, older and ignored, parked until
+  its group update), and the roster and key lines are never cut by the call
+  log's 8-line quota.
+- **meowcaller 0041**: a PT 121 packet's SplitRed block gives back the frame
+  of a packet lost just before it, decoded as a received frame. A block
+  position is trusted only once the stream proved it unambiguously (a full
+  window of three main frames, exactly one equal to the block); identical
+  leading frames prove nothing. The audio receive summary counts
+  `concealed` and `recovered` frames.
 - **neonize 0032 / meowcaller 0030**: call links. `CallLinkCreate`, `CallLinkJoin`, `CallWaitingRoom` and `CallWaitingRoomDecide` (Python `create_link`, `join_link`, `waiting_room`, `decide_waiting`; `neonize_bridge/call_links.py`). meowcaller's link join follows a WhatsApp Web capture (`datasheets/voip-call-link-join.md`): incoming with the camera off, the codec of the join ACK, a 10 s `<heartbeat>` for the whole call; rosters and waiting rooms keep each person's push name and guest flag.
 - **neonize 0012**: `CallAddParticipant` adds a number or LID to the call this
   client is in (meowcaller's `Call.AddParticipant`; `RingParticipant` for someone
