@@ -4,6 +4,7 @@ Această versiune aduce comunitățile și o fereastră de setări reorganizată
 
 NOUTĂȚI
 
+- Sunete, opțiunea "Doar sunetele originale WhatsApp" (instalator și actualizări): păstrează acum și sunetele pe care WhatsApp le redă când începi, pui pe pauză, anulezi și trimiți un mesaj vocal, când trimiți un mesaj și când sosește un mesaj într-o conversație din aplicație care nu este cea deschisă, pe lângă notificări, mesajul nou din conversația deschisă, trecerea între mesaje vocale, apeluri și sfârșitul apelului. Actualizarea le restaurează pe cele pe care o versiune anterioară a opțiunii le eliminase. Pachetele importate și sunetele tale nu sunt modificate.
 - WPPConnect: Chromium folosit de WPPConnect nu mai adaugă butonul „Caută cu Chromium” în zona de notificare din Windows. Funcția de căutare plutitoare din Chromium, care creează acest buton, este acum dezactivată în browserul intern.
 - Mesaje trimise: cu motorul Neonize, mesajele pe care le trimiteai puteau dispărea din conversație la redeschiderea WinZapp, pentru că nu se salva nicio copie a lor. Acum fiecare mesaj trimis este salvat imediat ce trimiterea este confirmată.
 - WPPConnect, conectarea cu cod QR sau cu numărul de telefon: după ce telefonul acceptă asocierea, WinZapp nu mai spune că conectarea a eșuat cât timp WhatsApp Web încă deschide conversațiile. Verificarea făcută la 4 minute după asociere nu putea citi starea conexiunii în versiunile recente ale WhatsApp Web și considera eșuată o conexiune care funcționa.

@@ -293,6 +293,12 @@ static const wchar_t *const WHATSAPP_SOUNDS[] = {
     L"call_incoming.ogg",
     L"message_background.ogg",
     L"message_current.ogg",
+    L"message_foreground.ogg",
+    L"message_sent.ogg",
+    L"voicemsg_discard.ogg",
+    L"voicemsg_pauserecording.ogg",
+    L"voicemsg_send.ogg",
+    L"voicemsg_startrecording.ogg",
     NULL
 };
 
