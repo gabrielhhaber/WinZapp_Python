@@ -1,6 +1,6 @@
 V3.0.0.0
 
-Această versiune vă lasă să alegeți cum se conectează WinZapp la WhatsApp: cu noul motor Neonize, care nu are nevoie de browser, sau cu WPPConnect, ca până acum. Aduce și comunități, canale, o listă de contacte, apeluri de grup și linkuri de apel, rezumate AI, ajutor la scriere și traducerea mesajelor, o fereastră de setări reorganizată și trei limbi noi.
+Punctele principale ale acestei versiuni sunt noul motor Neonize, mai rapid și mai ușor, care se conectează la WhatsApp fără browser (WPPConnect rămâne disponibil ca alternativă), apelurile de grup și linkurile de apel, precum și îmbunătățirile AI: rezumate, ajutor la scriere, traducerea mesajelor (online sau offline) și transcrieri și descrieri mai bune. Aduce și comunități, canale, o listă de contacte, o fereastră de setări reorganizată și trei limbi noi.
 
 NOUTĂȚI
 
@@ -54,7 +54,7 @@ NOUTĂȚI
 
 - Sunete: Evenimente sonore primește „Editarea mesajului dvs. a fost salvată” și „Mesaj editat de altcineva”, cu opțiuni vorbite proprii pentru fiecare conversație, notificări de tastare cu un sunet repetat opțional (dezactivat implicit, redus la tăcere în timpul înregistrării și în apeluri), o alegere de sunet pentru „mesaj nou” în conversația deschisă și în celelalte, iar sunetele și apelurile setate pe „implicit de sistem” urmează dispozitivul de redare implicit din Windows. Instalatorul are un grup „Sunete de instalat”, iar fereastra de actualizare are „Setări suplimentare” (Alt+A) pentru a păstra doar sunetele originale WhatsApp, care includ acum sunetele redate de WhatsApp la înregistrarea, trimiterea și primirea mesajelor. Pachetele importate și sunetele dvs. nu sunt modificate niciodată.
 
-- Mesaje fixate: butonul de mesaje fixate al conversației deschide o fereastră „Mesaje fixate” cu meniul contextual și comenzile rapide ale listei de mesaje. „Anulați fixarea selecției” anulează dintr-o dată fixarea mesajelor selectate (Ctrl+Shift+P le fixează sau le anulează fixarea cu comenzile rapide în bloc activate), iar o opțiune în Setări > Accesibilitate > Conținut vorbit oprește WinZapp să spună câte mesaje sunt fixate la deschiderea unei conversații.
+- Mesaje fixate: fereastra „Mesaje fixate” are acum meniul contextual și comenzile rapide ale listei de mesaje. „Anulați fixarea selecției” anulează dintr-o dată fixarea mesajelor selectate (Ctrl+Shift+P le fixează sau le anulează fixarea cu comenzile rapide în bloc activate), iar o opțiune în Setări > Accesibilitate > Conținut vorbit oprește WinZapp să spună câte mesaje sunt fixate la deschiderea unei conversații.
 
 - Mesaje: copierea mesajelor selectate copiază și documentele, fișierele audio, imaginile și videoclipurile lor, care pot fi lipite împreună sub numele lor original; Ctrl+C pe un fișier din fila Media copiază fișierul; copierea doar a legendei spune „Legenda a fost copiată”; „Textul mesajului” (Alt+C) are „Încadrează rândurile lungi”; iar butonul Deschide deschide fișierele sub numele lor real. „Încercați să trimiteți din nou” (Ctrl+Shift+Y) retrimite un mesaj sau o stare care a eșuat sau nu a fost confirmată; nimic nu se retrimite de la sine. Mesajele video rotunde apar ca videoclipuri, iar un mesaj cu link își păstrează previzualizarea linkului când este redirecționat, cititorul de ecran spunând când o previzualizare se încarcă, este adăugată sau nu este disponibilă.
 
@@ -66,7 +66,7 @@ NOUTĂȚI
 
 - Linkuri WhatsApp: un link wa.me sau api.whatsapp.com deschide conversația cu acel număr, chiar dacă nu este un contact, cu mesajul din link pregătit în câmpul de mesaj. Versiunea instalată se înregistrează singură pentru aceste linkuri la prima pornire; cea portabilă are opțiunea în Setări > Generale.
 
-- Actualizări: „Actualizează la ieșire” în Setări > Generale descarcă singur actualizările și le instalează când ieșiți (Ajutor > Instalează actualizarea descărcată o instalează imediat). Versiunea portabilă oferă, la prima pornire, să folosească o copie a conturilor WinZapp instalat pe computer în loc să asocieze alt dispozitiv, iar „Conectează toate conturile la pornirea WinZapp” din managerul de conturi deschide în fundal fiecare cont asociat.
+- Actualizări: o opțiune nouă în Setări > Generale descarcă singur actualizările, fără să întrebe, și le instalează când ieșiți (Ajutor > Instalează actualizarea descărcată o instalează imediat). Versiunea portabilă oferă, la prima pornire, să folosească o copie a conturilor WinZapp instalat pe computer în loc să asocieze alt dispozitiv, iar „Conectează toate conturile la pornirea WinZapp” din managerul de conturi deschide în fundal fiecare cont asociat.
 
 - Transcriere locală: cu transcrierea automată activată, „Transcrieți și pe cele care sosesc cu întârziere” transcrie mesajele primite oricât de vechi ar fi, mesajele vocale care sosesc împreună după ce computerul a dormit nu mai sunt omise, o conversație alege între fără transcriere automată, online sau locală, iar pe Windows ARM64 whisper.cpp folosește versiunea nativă, cu una opțională CUDA 13. „Transcrieți fără fereastra de progres” pune în coadă un alt mesaj în loc să îl refuze, iar un singur model este încărcat la un moment dat, deci schimbarea conturilor nu mai umple memoria.
 
@@ -100,13 +100,13 @@ NOUTĂȚI
 
 CORECTĂRI
 
-- Conectarea: după Fișier > Deconectare, fereastra „Conectați-vă la WinZapp” se deschide deasupra ferestrei principale, deci codul QR este vizibil. Cu cele mai noi versiuni WhatsApp Web, un cont deja asociat nu mai este deconectat la fiecare pornire a WinZapp, restaurarea profilului salvat al browserului așteaptă închiderea browserului anterior și pune originalul la loc dacă eșuează, iar asocierea cu un cod de asociere nu mai eșuează după ce telefonul o acceptă. Când WhatsApp refuză temporar codurile de asociere pentru un număr, WinZapp spune acest lucru și sugerează codul QR.
+- Conectarea: după Fișier > Deconectare, fereastra „Conectați-vă la WinZapp” se deschide deasupra ferestrei principale, deci codul QR este vizibil. Cu cele mai noi versiuni WhatsApp Web, un cont deja asociat nu mai este deconectat la fiecare pornire a WinZapp, iar restaurarea profilului salvat al browserului așteaptă închiderea browserului anterior și pune originalul la loc dacă eșuează. Când WhatsApp refuză temporar codurile de asociere pentru un număr, WinZapp spune acest lucru și sugerează codul QR.
 
-- Mesaje și conversații: conversațiile necitite nu mai dispar din filtrul Necitit după o actualizare sau o repornire, mesajele fixate ale unui grup ale cărui fixări sunt vechi se încarcă, blocarea unui număr nesalvat funcționează, iar ștergerea ultimului mesaj pentru toți actualizează previzualizarea din listă. Când schimbați conversația, butoanele mesajului anterior nu mai apar cu Tab, iar elementul „Răspunsuri la anunțul comunității” apare doar în grupurile de anunțuri.
+- Mesaje și conversații: conversațiile necitite nu mai dispar din filtrul Necitit după o actualizare sau o repornire, mesajele fixate ale unui grup ale cărui fixări sunt vechi se încarcă, blocarea unui număr nesalvat funcționează, iar ștergerea ultimului mesaj pentru toți actualizează previzualizarea din listă. Când schimbați conversația, butoanele mesajului anterior nu mai apar cu Tab.
 
 - Tastatură: pe o tastatură braziliană (ABNT2), „/” și „ç” tastate în lista de mesaje nu mai scriu „Á” și „º” în câmpul de mesaj, o schimbare de comandă rapidă ajunge imediat la contul la care treceți, iar Esc închide fereastra Ce este nou. Alt+A nu mai deschide meniul de atașare (Ctrl+Shift+A încă îl deschide), mai multe ferestre aveau două controale cu aceeași literă Alt, iar Salvare ca pe un fișier JSON primit îl salvează.
 
-- Lipirea în câmpul de mesaj a unui fișier text salvat ca UTF-16 nu îl mai trimite ca audio, inserarea unui emoji nu mai produce o eroare cât timp butonul de ajutor la scriere este activat, iar cu reducerea neuronală a zgomotului mesajele vocale sunt trimise în ordinea în care au fost înregistrate.
+- Lipirea în câmpul de mesaj a unui fișier text salvat ca UTF-16 nu îl mai trimite ca audio: rămâne document.
 
 - Comanda rapidă globală: cu o fereastră WinZapp care așteaptă un răspuns, comanda aduce acea fereastră în față, iar descrierile AI ale imaginilor spun când creditul furnizorului s-a terminat. Jurnalul contului nu mai înregistrează codul de acces al sesiunii WPPConnect.
 

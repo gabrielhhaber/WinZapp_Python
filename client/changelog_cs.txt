@@ -1,6 +1,6 @@
 V3.0.0.0
 
-Toto vydání vám umožňuje zvolit, jak se WinZapp připojuje k WhatsAppu: novým enginem Neonize, který nepotřebuje prohlížeč, nebo jako dřív přes WPPConnect. Přináší také komunity, kanály, seznam kontaktů, skupinové hovory a odkazy na hovory, shrnutí pomocí AI, pomoc s psaním a překlad zpráv, přepracované okno nastavení a tři nové jazyky.
+Hlavními novinkami tohoto vydání jsou nový engine Neonize, rychlejší a lehčí, který se k WhatsAppu připojuje bez prohlížeče (WPPConnect zůstává k dispozici jako alternativa), skupinové hovory a odkazy na hovory a vylepšení AI: shrnutí, pomoc s psaním, překlad zpráv (online i offline) a lepší přepisy a popisy. Přináší také komunity, kanály, seznam kontaktů, přepracované okno nastavení a tři nové jazyky.
 
 NOVINKY
 
@@ -54,7 +54,7 @@ NOVINKY
 
 - Zvuky: Zvukové události získávají „Úprava vaší zprávy uložena“ a „Zprávu upravil někdo jiný“, s vlastními mluvenými volbami pro každou konverzaci, oznámení o psaní s volitelným opakovaným zvukem (ve výchozím stavu vypnuto, ztišeno při nahrávání a v hovorech), volbu zvuku „nová zpráva“ pro otevřenou konverzaci a pro ostatní, a zvuky a hovory nastavené na „výchozí v systému“ následují výchozí přehrávací zařízení Windows. Instalační program má skupinu „Zvuky k instalaci“ a okno aktualizace má „Další nastavení“ (Alt+A), kde lze ponechat jen původní zvuky WhatsAppu, které nyní zahrnují zvuky, jež WhatsApp přehrává při nahrávání, odesílání a příjmu zpráv. Importované balíčky a vaše vlastní zvuky se nikdy nemění.
 
-- Připnuté zprávy: tlačítko připnutých zpráv chatu otevře okno „Připnuté zprávy“ s místní nabídkou a zkratkami seznamu zpráv. „Odepnout vybrané“ odepne vybrané zprávy najednou (Ctrl+Shift+P je připne nebo odepne, když jsou zapnuté hromadné zkratky) a volba v Nastavení > Přístupnost > Mluvený obsah zabrání WinZappu říkat při otevření chatu, kolik zpráv je připnuto.
+- Připnuté zprávy: okno „Připnuté zprávy“ má nyní místní nabídku a zkratky seznamu zpráv. „Odepnout vybrané“ odepne vybrané zprávy najednou (Ctrl+Shift+P je připne nebo odepne, když jsou zapnuté hromadné zkratky) a volba v Nastavení > Přístupnost > Mluvený obsah zabrání WinZappu říkat při otevření chatu, kolik zpráv je připnuto.
 
 - Zprávy: kopírování vybraných zpráv kopíruje také jejich dokumenty, zvuk, obrázky a videa, které lze vložit společně pod jejich původními názvy; Ctrl+C na souboru na kartě Média soubor zkopíruje; kopírování jen popisku řekne „Popisek zkopírován“; „Text zprávy“ (Alt+C) má „Zalamovat dlouhé řádky“; a tlačítko Otevřít otevírá soubory pod jejich skutečným názvem. „Zkusit odeslat znovu“ (Ctrl+Shift+Y) znovu odešle zprávu nebo stav, které selhaly nebo nebyly potvrzeny; nic se znovu neodesílá samo. Kulatá videozprávy se zobrazují jako videa a zpráva s odkazem si při přeposlání zachová náhled odkazu, přičemž čtečka obrazovky říká, když se náhled načítá, přidal nebo není k dispozici.
 
@@ -66,7 +66,7 @@ NOVINKY
 
 - Odkazy WhatsApp: odkaz wa.me nebo api.whatsapp.com otevře chat s daným číslem, i když to není kontakt, se zprávou z odkazu připravenou v poli zprávy. Nainstalovaná verze se pro tyto odkazy zaregistruje při prvním spuštění; přenosná verze má volbu v Nastavení > Obecné.
 
-- Aktualizace: „Aktualizovat při ukončení“ v Nastavení > Obecné stahuje aktualizace sama a instaluje je při ukončení (Nápověda > Nainstalovat staženou aktualizaci instaluje okamžitě). Přenosná verze při prvním spuštění nabídne použití kopie účtů WinZappu nainstalovaného v počítači místo propojení dalšího zařízení a „Při spuštění WinZappu připojit všechny účty“ ve správci účtů otevře všechny spárované účty na pozadí.
+- Aktualizace: nová volba v Nastavení > Obecné stahuje aktualizace sama, bez ptaní, a instaluje je při ukončení (Nápověda > Nainstalovat staženou aktualizaci instaluje okamžitě). Přenosná verze při prvním spuštění nabídne použití kopie účtů WinZappu nainstalovaného v počítači místo propojení dalšího zařízení a „Při spuštění WinZappu připojit všechny účty“ ve správci účtů otevře všechny spárované účty na pozadí.
 
 - Místní přepis: se zapnutým automatickým přepisem „Přepsat také ty, které dorazí pozdě“ přepisuje přijaté zprávy bez ohledu na jejich stáří, hlasové zprávy, které dorazí společně po uspání počítače, se už nepřeskakují, chat volí mezi žádným automatickým přepisem, online nebo místním a ve Windows ARM64 whisper.cpp používá nativní sestavení, s volitelným sestavením pro CUDA 13. „Přepisovat bez okna s průběhem“ zařadí další zprávu do fronty místo jejího odmítnutí a je načten vždy jen jeden model, takže přepínání účtů už nezaplňuje paměť.
 
@@ -100,13 +100,13 @@ VYLEPŠENÍ
 
 OPRAVY
 
-- Připojení: po Soubor > Odpojit se okno „Připojit k WinZapp“ otevře nad hlavním oknem, takže je vidět QR kód. S nejnovějšími verzemi WhatsApp Webu už není účet, který byl dříve propojen, odhlášen při každém spuštění WinZappu, obnovení uloženého profilu prohlížeče počká na zavření předchozího prohlížeče a při selhání vrátí původní a propojení párovacím kódem už po přijetí telefonem nezpůsobí selhání. Když WhatsApp dočasně odmítá párovací kódy pro nějaké číslo, WinZapp to řekne a doporučí QR kód.
+- Připojení: po Soubor > Odpojit se okno „Připojit k WinZapp“ otevře nad hlavním oknem, takže je vidět QR kód. S nejnovějšími verzemi WhatsApp Webu už není účet, který byl dříve propojen, odhlášen při každém spuštění WinZappu a obnovení uloženého profilu prohlížeče počká na zavření předchozího prohlížeče a při selhání vrátí původní. Když WhatsApp dočasně odmítá párovací kódy pro nějaké číslo, WinZapp to řekne a doporučí QR kód.
 
-- Zprávy a chaty: nepřečtené konverzace už mizí z filtru Nepřečtené po aktualizaci nebo restartu, připnuté zprávy skupiny, jejíž připnutí jsou stará, se načtou, blokování neuloženého čísla funguje a smazání poslední zprávy pro všechny aktualizuje náhled v seznamu. Když přepnete konverzace, tlačítka předchozí zprávy se už nezobrazují při Tabu a položka „Odpovědi na oznámení komunity“ se zobrazuje jen ve skupinách s oznámeními.
+- Zprávy a chaty: nepřečtené konverzace už mizí z filtru Nepřečtené po aktualizaci nebo restartu, připnuté zprávy skupiny, jejíž připnutí jsou stará, se načtou, blokování neuloženého čísla funguje a smazání poslední zprávy pro všechny aktualizuje náhled v seznamu. Když přepnete konverzace, tlačítka předchozí zprávy se už nezobrazují při Tabu.
 
 - Klávesnice: na brazilské klávesnici (ABNT2) „/“ a „ç“ napsané v seznamu zpráv už do pole zprávy nepíšou „Á“ a „º“, změna zkratky se okamžitě projeví u účtu, na který přepnete, a Esc zavře okno Co je nového. Alt+A už neotevírá nabídku přiložení (Ctrl+Shift+A stále ano), několik oken mělo dva ovládací prvky se stejným písmenem Alt a Uložit jako u přijatého souboru JSON ho uloží.
 
-- Vložení textového souboru uloženého jako UTF-16 do pole zprávy ho už neodešle jako zvuk, vložení emoji už nevyvolá chybu, když je zapnuté tlačítko pomoci s psaním, a s neuronovým potlačením šumu se hlasové zprávy odesílají v pořadí, v jakém byly nahrány.
+- Vložení textového souboru uloženého jako UTF-16 do pole zprávy ho už neodešle jako zvuk: zůstane dokumentem.
 
 - Globální klávesová zkratka: když okno WinZappu čeká na odpověď, zkratka přenese toto okno do popředí a popisy obrázků pomocí AI řeknou, když poskytovateli došel kredit. Protokol účtu už nezaznamenává přístupový kód session WPPConnect.
 

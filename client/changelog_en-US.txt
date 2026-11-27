@@ -1,6 +1,6 @@
 V3.0.0.0
 
-This release lets you choose how WinZapp connects to WhatsApp: with the new Neonize engine, which needs no browser, or with WPPConnect, as before. It also brings communities, channels, a contacts list, group calls and call links, AI summaries, writing help and message translation, a reorganized settings window and three new languages.
+The highlights of this release are the new Neonize engine, faster and lighter, which connects to WhatsApp without a browser (WPPConnect stays available as the alternative), group calls and call links, and AI improvements: summaries, writing help, message translation (online or offline), and better transcriptions and descriptions. It also brings communities, channels, a contacts list, a reorganized settings window and three new languages.
 
 WHAT'S NEW
 
@@ -54,7 +54,7 @@ WHAT'S NEW
 
 - Sounds: Sound events gains "Edit of your message saved" and "Message edited by someone else", with their own spoken options per conversation, typing notifications with an optional repeating sound (off by default, silenced while recording and in calls), a "new message" sound choice for the open conversation and for the others, and the sounds and calls set to "system default" follow Windows' default playback device. The installer has a "Sounds to install" group and the update window has "Additional settings" (Alt+A) to keep only the original WhatsApp sounds, which now includes the sounds WhatsApp plays when recording, sending and receiving messages. Imported packs and your own sounds are never touched.
 
-- Pinned messages: the chat's pinned messages button opens a "Pinned messages" window with the message list's context menu and shortcuts. "Unpin selected" unpins the selected messages at once (Ctrl+Shift+P pins or unpins them with bulk shortcuts on), and an option in Settings > Accessibility > Spoken content stops WinZapp saying how many messages are pinned when a chat opens.
+- Pinned messages: the "Pinned messages" window now has the message list's context menu and shortcuts. "Unpin selected" unpins the selected messages at once (Ctrl+Shift+P pins or unpins them with bulk shortcuts on), and an option in Settings > Accessibility > Spoken content stops WinZapp saying how many messages are pinned when a chat opens.
 
 - Messages: Copying selected messages also copies their documents, audio, images and videos, which can be pasted together under their original names; Ctrl+C on a file in the Media tab copies the file; copying only the caption says "Caption copied"; "Message text" (Alt+C) has "Wrap long lines"; and the Open button opens files under their real name. "Try sending again" (Ctrl+Shift+Y) resends a message or status that failed or was not confirmed; nothing is resent on its own. Round video messages show as videos, and a message with a link keeps its link preview when forwarded, with the screen reader saying when a preview is loading, added or not available.
 
@@ -66,7 +66,7 @@ WHAT'S NEW
 
 - WhatsApp links: a wa.me or api.whatsapp.com link opens the chat with that number, even when it is not a contact, with the message from the link ready in the message field. The installed version registers itself for these links on its first launch; the portable one has the option in Settings > General.
 
-- Updates: "Update on exit" in Settings > General downloads updates by itself and installs them when you exit (Help > Install downloaded update installs at once). The portable version offers, on its first start, to use a copy of the accounts of the WinZapp installed on the computer instead of linking another device, and "Connect all accounts when WinZapp starts" in the account manager opens every paired account in the background.
+- Updates: a new option in Settings > General downloads updates by itself, without asking, and installs them when you exit (Help > Install downloaded update installs at once). The portable version offers, on its first start, to use a copy of the accounts of the WinZapp installed on the computer instead of linking another device, and "Connect all accounts when WinZapp starts" in the account manager opens every paired account in the background.
 
 - Local transcription: with automatic transcription on, "Also transcribe the ones that arrive late" transcribes received messages however old, voice messages that arrive together after the computer slept are no longer skipped, a chat chooses between no automatic transcription, online or local, and on Windows ARM64 whisper.cpp uses the native build, with an optional CUDA 13 one. "Transcribe without the progress window" queues another message instead of refusing it, and only one model is loaded at a time, so switching accounts no longer fills the memory.
 
@@ -100,13 +100,13 @@ IMPROVEMENTS
 
 FIXES
 
-- Connecting: after File > Disconnect, the "Connect to WinZapp" window opens above the main window, so the QR code is visible. With the latest WhatsApp Web versions an account that was already linked is no longer logged out every time WinZapp starts, restoring the saved browser profile waits for the previous browser to close and puts the original back if it fails, and linking with a pairing code no longer fails after the phone accepts it. When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so and suggests the QR code.
+- Connecting: after File > Disconnect, the "Connect to WinZapp" window opens above the main window, so the QR code is visible. With the latest WhatsApp Web versions an account that was already linked is no longer logged out every time WinZapp starts and restoring the saved browser profile waits for the previous browser to close and puts the original back if it fails. When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so and suggests the QR code.
 
-- Messages and chats: unread conversations no longer disappear from the Unread filter after an update or restart, pinned messages of a group whose pins are old load, blocking a number that is not saved works, and deleting the last message for everyone updates the list preview. When you switch conversations, buttons of the previous message no longer show up with Tab, and the "Replies to the community announcement" item appears only in announcement groups.
+- Messages and chats: unread conversations no longer disappear from the Unread filter after an update or restart, pinned messages of a group whose pins are old load, blocking a number that is not saved works, and deleting the last message for everyone updates the list preview. When you switch conversations, buttons of the previous message no longer show up with Tab.
 
 - Keyboard: on a Brazilian (ABNT2) keyboard, "/" and "ç" typed in the message list no longer write "Á" and "º" in the message field, a shortcut change reaches the account you switch to at once, and Esc closes the What's New window. Alt+A no longer opens the attach menu (Ctrl+Shift+A still does), several windows had two controls with the same Alt letter, and Save As on a received JSON file saves it.
 
-- Pasting a text file saved as UTF-16 into the message field no longer sends it as audio, inserting an emoji no longer raises an error while the writing help button is enabled, and with neural noise reduction voice messages are sent in the order they were recorded.
+- Pasting a text file saved as UTF-16 into the message field no longer sends it as audio: it stays a document.
 
 - Global hotkey: with a WinZapp window waiting for an answer, the hotkey brings that window to the front, and AI image descriptions say when the provider's credit ran out. The account log no longer records the WPPConnect session's access code.
 
