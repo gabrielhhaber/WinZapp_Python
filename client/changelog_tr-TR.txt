@@ -1,3 +1,11 @@
+V3.1.0.0
+
+Bu sürüm 3.0.0.0 üzerine düzeltmeler getirir.
+
+DÜZELTMELER
+
+- WinZapp'ı açma: yavaş bir diskte WinZapp, kişi listesini kaydederken başlangıçta "Database call timed out after 20s" hatasıyla durabiliyor, bir sonraki denemede normal açılıyordu. Çok sayıda kişiyi kaydetmek artık diğer toplu kayıtlar kadar bekliyor ve başlangıçta kaydedilemeyen bir kişi WinZapp'ın açılmasını artık engellemiyor.
+
 V3.0.0.0
 
 Bu sürümün öne çıkanları, WhatsApp'a tarayıcı olmadan bağlanan, daha hızlı ve daha hafif yeni Neonize motoru (WPPConnect alternatif olarak kullanılabilir durumda kalır), grup aramaları ve arama bağlantıları ve yapay zekâ iyileştirmeleridir: özetler, yazma yardımı, mesaj çevirisi (çevrimiçi veya çevrimdışı) ile daha iyi yazıya dökmeler ve betimlemeler. Ayrıca topluluklar, kanallar, bir kişiler listesi, yeniden düzenlenmiş bir ayarlar penceresi ve üç yeni dil getirir.

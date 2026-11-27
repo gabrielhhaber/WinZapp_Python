@@ -1,3 +1,11 @@
+V3.1.0.0
+
+This release brings fixes on top of 3.0.0.0.
+
+FIXES
+
+- Opening WinZapp: on a slow disk, WinZapp could stop at startup with "Database call timed out after 20s" while it saved the address book, and open normally on the next try. Saving a large number of contacts now waits as long as the other bulk saves, and a contact that cannot be saved at startup no longer stops WinZapp from opening.
+
 V3.0.0.0
 
 The highlights of this release are the new Neonize engine, faster and lighter, which connects to WhatsApp without a browser (WPPConnect stays available as the alternative), group calls and call links, and AI improvements: summaries, writing help, message translation (online or offline), and better transcriptions and descriptions. It also brings communities, channels, a contacts list, a reorganized settings window and three new languages.
