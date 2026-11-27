@@ -4,6 +4,8 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Připojení WinZapp (QR kód nebo telefonní číslo): po Soubor > Odpojit mohl seznam konverzací zůstat před oknem "Připojit k WinZapp", i když klávesnice a čtečka obrazovky už byly v něm, takže QR kód byl zakrytý a telefon ho nemohl naskenovat. Okno se nyní otevře nad hlavním oknem.
+
 - Zvuky, volba "Pouze původní zvuky WhatsApp" (instalátor a aktualizace): nově ponechává také zvuky, které WhatsApp přehrává při zahájení, pozastavení, zrušení a odeslání hlasové zprávy, při odeslání zprávy a když přijde zpráva do konverzace v aplikaci, která není otevřená, kromě oznámení, nové zprávy v otevřené konverzaci, přechodu mezi hlasovými zprávami, hovorů a konce hovoru. Aktualizace obnoví ty, které dřívější verze volby odstranila. Importované balíčky a vaše vlastní zvuky zůstávají beze změny.
 - WPPConnect: Chromium používaný WPPConnectem už nepřidává do oznamovací oblasti Windows tlačítko „Hledat pomocí Chromium“. Plovoucí vyhledávání Chromium, které toto tlačítko vytváří, je ve vestavěném prohlížeči nyní vypnuté.
 - Odeslané zprávy: u enginu Neonize mohly vámi odeslané zprávy po novém otevření WinZapp z konverzace zmizet, protože se neukládala žádná jejich kopie. Každá odeslaná zpráva se nyní uloží, jakmile je odeslání potvrzeno.

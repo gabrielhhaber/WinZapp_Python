@@ -4,6 +4,8 @@ W tej wersji pojawiają się społeczności i zreorganizowane okno ustawień, op
 
 NOWOŚCI
 
+- Łączenie WinZapp (kod QR lub numer telefonu): po wybraniu Plik > Rozłącz lista konwersacji mogła pozostać przed oknem "Połącz z WinZapp", mimo że klawiatura i czytnik ekranu były już w tym oknie, przez co kod QR był zasłonięty i telefon nie mógł go zeskanować. Okno otwiera się teraz nad oknem głównym.
+
 - Dźwięki, opcja "Tylko oryginalne dźwięki WhatsApp" (instalator i aktualizacje): teraz zachowuje także dźwięki, które WhatsApp odtwarza przy rozpoczęciu, wstrzymaniu, anulowaniu i wysłaniu wiadomości głosowej, przy wysłaniu wiadomości oraz gdy wiadomość przychodzi do rozmowy w aplikacji, która nie jest otwarta, oprócz powiadomień, nowej wiadomości w otwartej rozmowie, przejścia między wiadomościami głosowymi, połączeń i zakończenia połączenia. Aktualizacja przywraca te, które wcześniejsza wersja opcji usunęła. Zaimportowane pakiety i Twoje własne dźwięki pozostają bez zmian.
 - WPPConnect: Chromium używany przez WPPConnect nie dodaje już przycisku „Wyszukaj w Chromium” do obszaru powiadomień systemu Windows. Pływająca wyszukiwarka Chromium, która tworzy ten przycisk, jest teraz wyłączona we wbudowanej przeglądarce.
 - Wysłane wiadomości: w silniku Neonize wiadomości, które wysłałeś, mogły znikać z rozmowy po ponownym otwarciu WinZapp, ponieważ nie zapisywano ich kopii. Teraz każda wysłana wiadomość jest zapisywana, gdy tylko wysłanie zostanie potwierdzone.
