@@ -34,18 +34,33 @@ def test_no_parent_without_or_with_a_dead_main_window():
     assert connection_dialog_parent(Frame(broken=True)) is None
 
 
-def test_bring_to_front_raises_then_focuses_and_survives_errors():
+def test_no_parent_when_main_window_is_hidden_to_the_tray():
+    hidden = Frame()
+    hidden._window_hidden = True
+    assert connection_dialog_parent(hidden) is None
+    background = Frame()
+    background.background_mode = True
+    assert connection_dialog_parent(background) is None
+
+
+def test_show_connection_dial_uses_the_helpers():
+    import os
+    path = os.path.join(os.path.dirname(__file__), "..", "client", "ui", "dialogs", "connect.py")
+    with open(path, encoding="utf-8") as f:
+        src = f.read()
+    assert "connection_dialog_parent(self.main_window)" in src
+    assert "bring_to_front" in src
+
+
+def test_bring_to_front_raises_and_survives_errors():
     calls = []
 
     class Dlg:
         def Raise(self):
             calls.append("Raise")
 
-        def SetFocus(self):
-            calls.append("SetFocus")
-
     bring_to_front(Dlg())
-    assert calls == ["Raise", "SetFocus"]
+    assert calls == ["Raise"]
 
     class Dead:
         def Raise(self):

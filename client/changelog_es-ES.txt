@@ -4,7 +4,7 @@ Esta versión trae las comunidades y una ventana de configuración reorganizada,
 
 NOVEDADES
 
-- Conectar WinZapp (código QR o número de teléfono): después de Archivo > Desconectar, la lista de conversaciones podía quedarse delante de la ventana "Conectar con WinZapp" mientras el teclado y el lector de pantalla ya estaban en ella, de modo que el código QR quedaba oculto y el móvil no podía escanearlo. La ventana ahora se abre por encima de la ventana principal.
+- Conectar WinZapp (código QR o número de teléfono): después de Archivo > Desconectar, la lista de conversaciones podía quedarse delante de la ventana "Conectar a WinZapp" mientras el teclado y el lector de pantalla ya estaban en ella, de modo que el código QR quedaba oculto y el móvil no podía escanearlo. La ventana ahora se abre por encima de la ventana principal.
 
 - Sonidos, opción "Solo los sonidos originales de WhatsApp" (instalador y actualizaciones): ahora también conserva los sonidos que WhatsApp reproduce al iniciar, pausar, cancelar y enviar un mensaje de voz, al enviar un mensaje y cuando llega un mensaje a un chat de la aplicación que no es el abierto, además de las notificaciones, el mensaje nuevo en el chat abierto, la transición entre mensajes de voz, las llamadas y el fin de la llamada. Al actualizar se restauran los que una versión anterior de la opción había eliminado. Los paquetes importados y tus propios sonidos no se modifican.
 - WPPConnect: el Chromium que usa WPPConnect ya no añade el botón "Buscar con Chromium" al área de notificación de Windows. La función de búsqueda flotante de Chromium, que crea ese botón, ahora está desactivada en el navegador interno.

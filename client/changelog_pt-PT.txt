@@ -4,7 +4,7 @@ Esta versão traz as comunidades e uma janela de definições reorganizada, alé
 
 NOVIDADES
 
-- Ligar o WinZapp (código QR ou número de telefone): depois de Ficheiro > Desligar, a lista de conversas podia ficar à frente da janela "Ligar ao WinZapp" enquanto o teclado e o leitor de ecrã já estavam nela, e o código QR ficava escondido e o telemóvel não conseguia lê-lo. A janela passa a abrir acima da janela principal.
+- Ligar o WinZapp (código QR ou número de telefone): depois de Ficheiro > Desconectar, a lista de conversas podia ficar à frente da janela "Ligar ao WinZapp" enquanto o teclado e o leitor de ecrã já estavam nela, e o código QR ficava escondido e o telemóvel não conseguia lê-lo. A janela passa a abrir acima da janela principal.
 
 - Sons, opção "Apenas os sons originais do WhatsApp" (instalador e atualizações): passa também a manter os sons que o WhatsApp toca ao iniciar, pausar, cancelar e enviar uma mensagem de voz, ao enviar uma mensagem e quando chega uma mensagem a uma conversa da aplicação que não é a aberta, além das notificações, da nova mensagem na conversa aberta, da transição entre mensagens de voz, das chamadas e do fim da chamada. Atualizar repõe os que uma versão anterior da opção tinha removido. Os pacotes importados e os seus próprios sons não são alterados.
 - WPPConnect: o Chromium usado pelo WPPConnect já não coloca o botão "Pesquisar com o Chromium" na área de notificação do Windows. A funcionalidade de pesquisa flutuante do Chromium, que cria esse botão, fica agora desligada no navegador interno.

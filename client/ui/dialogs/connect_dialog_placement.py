@@ -19,6 +19,10 @@ def connection_dialog_parent(main_window):
     """The main window when it is on screen, else None (no parent)."""
     if main_window is None:
         return None
+    # Closing to the tray hides the window with Win32 ShowWindow(SW_HIDE), and
+    # wx's IsShown() stays True then (window_lifecycle._on_close).
+    if getattr(main_window, "_window_hidden", False) or getattr(main_window, "background_mode", False):
+        return None
     try:
         if main_window.IsShown() and not main_window.IsIconized():
             return main_window
@@ -30,7 +34,7 @@ def connection_dialog_parent(main_window):
 
 def bring_to_front(dialog):
     """Raise a dialog above every other window of the app, best effort."""
-    for name in ("Raise", "SetFocus"):
+    for name in ("Raise",):
         try:
             getattr(dialog, name)()
         except Exception:
