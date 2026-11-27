@@ -705,6 +705,8 @@ class Connect:
         # screen's top-left corner — instead of where the user is looking,
         # which is part of why the QR-code was reported as hard to find/scan.
         self.connection_dial.CentreOnScreen()
+        # Runs inside the modal loop, once the dialog is up.
+        wx.CallAfter(bring_to_front, self.connection_dial)
 
         logging.info("[show_connection_dial] Entering connection_dial modal loop.")
         if hasattr(self.main_window, "play_startup_sound"):
@@ -723,7 +725,6 @@ class Connect:
         # against the same userDataDir the halt's close-session is tearing
         # down. tests/test_unattended_qr_halt.py asserts the adjacency.
         self.main_window._reset_unattended_qr_guards()
-        wx.CallAfter(bring_to_front, self.connection_dial)
         self.connection_dial.ShowModal()
         logging.info("[show_connection_dial] connection_dial modal loop returned.")
         try:
