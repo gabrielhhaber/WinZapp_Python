@@ -1,732 +1,114 @@
 V3.0.0.0
 
-Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden düzenlenmiş bir ayarlar penceresi getirir.
+Bu sürümün öne çıkanları, WhatsApp'a tarayıcı olmadan bağlanan, daha hızlı ve daha hafif yeni Neonize motoru (WPPConnect alternatif olarak kullanılabilir durumda kalır), grup aramaları ve arama bağlantıları ve yapay zekâ iyileştirmeleridir: özetler, yazma yardımı, mesaj çevirisi (çevrimiçi veya çevrimdışı) ile daha iyi yazıya dökmeler ve betimlemeler. Ayrıca topluluklar, kanallar, bir kişiler listesi, yeniden düzenlenmiş bir ayarlar penceresi ve üç yeni dil getirir.
 
 YENİLİKLER
 
-- WinZapp'i bağlama (QR kodu veya telefon numarası): Dosya > Bağlantıyı kes seçildikten sonra, klavye ve ekran okuyucu zaten "WinZapp uygulamasına bağlan" penceresindeyken sohbet listesi onun önünde kalabiliyordu; bu yüzden QR kodu gizleniyor ve telefon onu tarayamıyordu. Pencere artık ana pencerenin üstünde açılıyor.
+- İki bağlantı motoru. Neonize, yerel bir köprü aracılığıyla tarayıcı ya da Node.js olmadan WhatsApp'a bağlanır ve artık genel kullanım için önerilen motordur; WPPConnect alternatif olarak kullanılabilir durumda kalır. İlk açılışta WinZapp hangisinin kullanılacağını sorar, eşleştirme penceresinde "Bağlantı motoru" listesi bulunur ve Ayarlar > Bağlantı bölümünden sonradan değiştirebilirsiniz; değiştirirken onay istenir ve WinZapp seçilen motorla yeniden başlar. Her motor kendi bağlantısını korur, bu yüzden geçip geri döndüğünüzde hiçbiri kaybolmaz. Zaten WPPConnect kullanıyorsanız siz değiştirene kadar onda kalırsınız ve tek seferlik bir bildirim değişikliği önerir. WinZapp artık Node.js ile birlikte gelmez: WPPConnect'i seçerseniz, bağlanmadan önce sağlama toplamı doğrulanmış bir Node.js indirir ve WPPConnect'i kurar. Neonize ayrıca ARM üzerinde Windows'ta, Mac'te ise Apple Silicon ve Intel işlemcilerde çalışır. Aşağıdaki özellikler, aksi belirtilmedikçe iki motorla da çalışır.
 
-- Sesler, "Yalnızca özgün WhatsApp sesleri" seçeneği (yükleyici ve güncellemeler): artık bildirimlere, açık sohbetteki yeni mesaja, sesli mesajlar arasındaki geçişe, aramalara ve arama sonuna ek olarak WhatsApp'ın sesli mesaj başlatırken, duraklatırken, iptal ederken ve gönderirken, mesaj gönderirken ve uygulamada açık olmayan bir sohbete mesaj geldiğinde çaldığı sesleri de koruyor. Güncelleme, seçeneğin önceki bir sürümünün kaldırdığı sesleri geri yükler. İçe aktarılan paketler ve kendi sesleriniz değişmez.
-- WPPConnect: WPPConnect'in kullandığı Chromium artık Windows bildirim alanına "Chromium ile ara" düğmesi eklemiyor. Bu düğmeyi oluşturan Chromium'un kayan arama özelliği, dahili tarayıcıda artık kapalı.
-- Gönderilen mesajlar: Neonize motorunda, gönderdiğiniz mesajlar WinZapp yeniden açıldığında konuşmadan kaybolabiliyordu, çünkü bir kopyaları saklanmıyordu. Gönderilen her mesaj artık gönderimi onaylanır onaylanmaz saklanıyor.
-- WPPConnect, QR kodu veya telefon numarasıyla bağlanma: telefon eşleştirmeyi kabul ettikten sonra WhatsApp Web sohbetleri hâlâ açarken WinZapp artık bağlantının başarısız olduğunu söylemiyor. Eşleştirmeden 4 dakika sonra yapılan kontrol, WhatsApp Web'in yeni sürümlerinde bağlantı durumunu okuyamıyor ve çalışan bir bağlantıyı başarısız sayıyordu.
+- Neonize, eşleştirme ve geçmiş: bağlanırken ne kadar geçmiş getirileceğini seçersiniz (yalnızca son mesajlar, 30 gün, 6 ay, 1 yıl, hepsi veya kendi belirlediğiniz bir dönem) ve WinZapp, WhatsApp'ın ilk gruba dahil etmediği sohbetleri ve eski mesajları telefondan istemeyi sürdürür; Home tuşu, eski mesaj kalmayana kadar eski mesajları istemeye devam eder. Telefon geçmişini gönderirken WinZapp bunu söyler, WhatsApp'ı telefonda açık tutmanızı ister ve gönderim durduğunda, yeniden başladığında ve bittiğinde sizi uyarır. WPPConnect ile, ilk eşitlemeden sonra WinZapp ilk gruptan sonraki sohbetleri de telefondan ister.
 
-- WPPConnect: PUPPETEER_EXECUTABLE_PATH ortam değişkeninde belirtilen bir tarayıcı, örneğin ARM üzerinde Windows için yerel bir Chrome, yeniden kullanılıyor; birden fazla tarayıcı sürümü indirilmişse WinZapp bulduğu ilk sürümü değil, WPPConnect'in istediğini kullanıyor.
+- Topluluklar: "Yeni sohbet" penceresinde, içinde bulunduğunuz toplulukları açıklamaları, yöneticileri ve katıldığınız gruplarla listeleyen bir "Topluluklar" düğmesi vardır. Enter veya "Grubu aç" bir gruba gider; bir düğme en son etkinliği olan grubu açar; bir filtre tüm grupları, içinde olduklarınızı veya olmadıklarınızı gösterir; ayrıca bir gruba katılabilir, katılma isteği gönderebilir ve isteği iptal edebilirsiniz. Yöneticiler grup ekleyip çıkarabilir, yönetici atayıp yetkisini alabilir, topluluğu devre dışı bırakabilir ve yeni bir topluluk oluşturabilir; WinZapp bir işlemin yapıldığını ancak WhatsApp bunu gösterdikten sonra söyler. Topluluklar ayrıca gezinti listesinde bir satırdır (Alt+8). Duyuru gruplarında mesaj menüsündeki "Topluluk duyurusunun yanıtları..." yanıtları okur ve gönderir. Sohbet listesinde bir topluluk üzerinde Enter, Topluluklar panelini o topluluğun gruplarında açar (Ayarlar > Arayüz > Sohbetler içindeki bir seçenek, varsayılan olarak açık).
 
-- Sabitlenen mesajlar: sohbetin sabitlenen mesajlar düğmesi artık sabitlenen mesajları listeleyen "Sabitlenen mesajlar" penceresini açıyor. Her mesajda mesaj listesinin bağlam menüsü ve kısayolları bulunur: kopyalama, iletme, tepki verme, yıldızlama, sabitlemeyi kaldırma, silme, yazıya dökme ve diğerleri, seçtiğiniz tuşlarla. Yanıtlama, düzenleme ve sizi sohbete götüren diğer işlemler pencereyi kapatır ve sohbette odaklanmış mesaj üzerinde yapılır; Enter veya "Mesaja git" sizi geçmişte o mesaja götürür.
+- Kanallar: yeni bir Kanallar penceresi (Alt+9, gezinti listesinde de var) takip ettiğiniz kanalları gösterir veya WhatsApp'ın dizininde kategoriye ve görünüme (önerilen, öne çıkan, popüler, yeni) göre arama yapar. Bir kanalı açıp güncellemelerini okuyabilir, takip edebilir veya takibi bırakabilir, sessize alabilir, bağlantısını kopyalayabilir, bir bağlantıdan bir kanalı takip edebilir ve yeni bir kanal oluşturabilirsiniz. Kendi kanallarınızda metin, fotoğraf, video ve anket paylaşabilir, güncellemeleri düzenleyip sabitleyebilir, kimlerin tepki verebileceğini seçebilir, WhatsApp Web'in gösterdiği içgörüleri okuyabilir (100 takipçiden itibaren), kanalı düzenleyebilir, silebilir, yöneticileri ve davetleri yönetebilirsiniz. Bir kanalı takip etme veya yönetme davetleri sohbette görünür. Kanalların sohbet listesinde gösterilmesi, Ayarlar > Arayüz > Sohbetler içinde ayrı bir seçenektir ve varsayılan olarak kapalıdır.
 
-- Seçili mesajlar: bağlam menüsündeki "Toplu işlemler" altında "Seçilenlerin sabitlemesini kaldır", seçili mesajlardan sabitlenmiş olanların sabitlemesini tek seferde kaldırır. "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+Shift+P seçili mesajları sabitler, hepsi zaten sabitlenmişse sabitlemelerini kaldırır.
+- Kişiler: gezinti listesine "Kişiler" eklendi; kayıtlı kişiler, bir kişi iki adreste tutulsa bile kişi başına bir satır olarak gösterilir. "Kişilerde ara" ad veya numaraya göre süzer; düğmeler ve bağlam menüsü sohbeti açar, sesli veya görüntülü arama başlatır, ayrıntıları gösterir, kişiyi siler, engeller veya engelini kaldırır ya da yeni bir kişi ekler. "Bir kişide Enter" Enter tuşunun ne yapacağını seçer.
 
-- Ayarlar > Erişilebilirlik > Konuşulan içerik bölümünde yeni seçenek: "Bir sohbet açılınca kaç mesajın sabitlendiğini duyur", varsayılan olarak işaretli. İşaret kaldırılırsa WinZapp bir sohbet açıldığında artık "Bu sohbetteki sabitlenen mesajlar: N" demez.
+- Yıldızlı mesajlar: yeni bir pencere (Alt+0 veya gezinti listesindeki "Yıldızlı mesajlar" satırı) tüm sohbetlerin her yıldızlı mesajını bir arama alanıyla listeler; Enter sohbeti o mesajda açar, Delete yıldızı kaldırır. Sohbet bilgisi ve Grup bilgisi pencerelerine, o sohbet için aynı işlemleri sunan bir "Yıldızlı mesajlar" sekmesi eklendi. Yıldızlı mesajlar artık "Düzenlendi" ve "İletildi" gibi "Yıldızlandı" sözcüğüyle biter; Ayarlar > Arayüz > Mesajlar içindeki yeni bir seçenek bunu satırın başında söyler.
 
-- Ayarlar > Genel > Bildirimler bölümünde yeni seçenek: "Mesajlarınıza gelen tepkileri bildir", varsayılan olarak işaretli. İşaret kaldırılırsa mesajlarınızdan birine gelen tepki okunmaz, ses çalmaz ve Windows bildirimlerinde görünmez; mesajın üzerinde ve sohbet listesinde görünmeye devam eder.
+- Grup aramaları: grup sohbetlerinde artık sesli ve görüntülü arama düğmeleri vardır; gelen bir grup araması çalar, grubun adıyla duyurulur ve cevaplanabilir. Birkaç kişiye ulaşan bir arama, telefondaki gibi kişileriyle listelenir ve siz olmadan devam eden bir arama artık cevaplanmış olarak gösterilmez. Telefonda başlatılan aramalara yeniden katılabilirsiniz: bir arama mevcutken "Devam eden sesli aramaya katıl" (veya görüntülü, kamera kapalı) arama düğmelerinin yerini alır, "Aramaya dön" arama penceresini geri getirir ve Aramalar sekmesi gruplar dışındakiler de dahil devam eden aramaları listeler. 32'den fazla kişilik bir grup WhatsApp'ta aranamaz ve WinZapp bunu söyler.
 
-- Mesaj metni (Alt+C): pencerede varsayılan olarak işaretli yeni "Uzun satırları kaydır" kutusu var. İşaret kaldırılırsa satır, satırın uzunluğu veya pencerenin boyutu ne olursa olsun yalnızca mesajın kendi satır sonunda biter. Seçim sonraki açılışlar için hatırlanır ve kopyalama metni yine yazıldığı gibi verir.
+- Birden çok kişiyle aramalar: "Arama katılımcıları" kimin bağlı olduğunu adıyla gösterir ve Ctrl+Shift+P kısayoluna sahiptir; WinZapp kimin katıldığını ve kimin ayrıldığını söyler (Ayarlar > Aramalar içinde iki seçenek, varsayılan olarak açık) ve liste kendiliğinden güncellenir. "Katılımcı ekle" devam eden bir aramaya, bir grubun üyelerinden veya kişilerinizden ve sohbetlerinizden, yazılan bir numara için bir alanla kişi ekler; ekran okuyucuyla çalışır, sohbet listelerindekiyle aynı işaretleme tuşlarını kullanır ve sonucu sesli bildirir.
 
-- Aramalar: telefonda başlattığınız ve grup aramasına dönüşen bir aramaya, ondan ayrıldıktan sonra WinZapp üzerinden yeniden katılabilirsiniz: aramada kalan her kişinin sohbetinde "Devam eden sesli aramaya katıl" görünür ve Aramalar sekmesindeki satırı onların adlarını gösterir. Neonize ve WPPConnect ile çalışır.
+- Arama bağlantıları: Aramalar'da (Alt+6) "Arama bağlantısı oluştur", kopyalayabileceğiniz, bir sohbete gönderebileceğiniz veya katılabileceğiniz bir sesli ya da görüntülü arama bağlantısı oluşturur. Bir mesajdaki call.whatsapp.com bağlantısı, Enter veya "Aramaya katıl" ile aramasına katılır; bir tarayıcıda açılan bağlantı da WinZapp, WhatsApp bağlantılarını açmak için ayarlanmış program olduğunda WinZapp'te katılır. İlk katılan kişi aramanın yöneticisidir: WhatsApp hesabı olmayan kişiler bir bekleme odasında bekler, WinZapp her adı söyler ve bir düğme onları içeri alır veya reddeder.
 
-- Neonize: zaten sürmekte olan bir grup aramasına katıldığınızda, telefonu sesi WinZapp'in önceden attığı bir biçimde gönderen kişileri artık duyarsınız; onlarla kimseyi duymuyordunuz.
+- Arama denetimleri: Ctrl+M, arama penceresinin herhangi bir denetiminden mikrofonu kapatır veya açar; giden arama penceresi aramanın çaldığını veya bağlandığını duyurur. Windows 11'de bir sesli arama sırasında "Masaüstü sesini paylaş", sistem sesini veya tek bir uygulamanın sesini, NVDA ile veya NVDA olmadan, seçtiğiniz ses düzeyinde gönderir ve mikrofonu kapattığınızda da sürer. Ctrl+Alt+Shift+Enter çalan bir aramayı herhangi bir pencereden cevaplar, Ctrl+Alt+Shift+Backspace ise reddeder veya devam eden aramayı kapatır. Stereo mikrofonlar ve kulaklıklar paylaşımlı kipte, mono yedekle desteklenir.
 
-- Neonize grup aramaları: her kişinin sesi artık bire bir aramalarda olduğu gibi kendi NetEQ oynatmasına sahip; bu, her birinin ağ dalgalanmalarını ve ses kaybını ayrı ayrı azaltır. Önceden tüm grup NetEQ olmadan karıştırılıyordu ve daha fazla kesinti ve gecikme oluyordu. Canlı çeviri ve NetEQ tarafından desteklenmeyen aygıtlar uyumlu oynatmayı kullanmaya devam eder.
+- Aramalar, ekstralar: bireysel aramalar Gemini Live Translate ile canlı olarak, tek veya iki yönde çevrilebilir. Neonize ile karşı tarafın sesi, bire bir ve grup aramalarında ağ dalgalanmalarını ve ses kaybını yumuşatan NetEQ ile oynatılır, WinZapp WhatsApp Web'in çaldığı çalma ve bağlanma seslerini ve "Arama sona erdi" sesini (yeni bir ses olayı) çalar ve yaptığınız aramalar telefonunuzun arama geçmişinde görünür.
 
-- Neonize aramaları: bir ses paketi kaybolduğunda ve sonraki paket onun bir kopyasını taşıdığında (bazı telefonlar bunu gönderir), WinZapp artık boşluğu bir tahminle doldurmak yerine bu kopyayı çalar.
+- WhatsApp'taki gibi yapay zekâ özeti: açık sohbete "Okunmayanları özetle" (Ctrl+Shift+U; düğme 10 veya daha fazla okunmamış mesaj olduğunda görünür) eklendi; sohbet listesi menüsü sohbeti açmadan ve okundu olarak işaretlemeden özetler, mesaj menüsü ise bir mesajdan sona kadar (Alt+Shift+I) veya seçili mesajları (Ctrl+Alt+Shift+I) özetler. Ayarlar > Çevrimiçi Yapay Zekâ içinde kurduğunuz sağlayıcıları kullanır, devam soruları ve bir Kopyala düğmesi olan bir pencerede açılır ve yapay zekâ tarafından hazırlandığını söyler. Sesli mesajlar, kayıtlı yazıya dökümle veya seçtiğiniz yerel ya da çevrimiçi bir yazıya dökümle metin olarak girer; bunun için ayrı bir onay istenir ve kilitli sohbetlerde her seferinde sorulur.
 
-- Bir sohbette alınan JSON belgesinde, örneğin ayarların app.json dosyasında, Farklı Kaydet (Ctrl+Shift+S) artık indirilemediğini söylemek yerine dosyayı kaydeder.
+- Yazma yardımı: Emoji'den sonraki bir düğme, yazı alanının bağlam menüsü ve Alt+Shift+H, taslağınızı yapay zekâ sağlayıcılarınızla (Meta AI hariç) düzelten, yeniden ifade eden, tonunu değiştiren veya çeviren bir pencere açar. Taslak gönderilmeden önce onay istenir, sonuç metnin yerine geçmeden önce önizlenir ve hiçbir şey kendiliğinden gönderilmez.
 
-- Kısayollar: bir tuşu değiştirdikten hemen sonra başka bir hesaba geçtiğinizde, önceki hesap ayarlarını hâlâ kaydediyor olsa bile açılan hesap yeni tuşa yanıt verir; önceden bir şey kaydedene kadar eski tuşta kalabiliyordu.
+- Mesaj çevirisi: bir metin mesajında Shift+Enter veya bağlam menüsü onu çevirir. Ayarlar > Çevrimiçi Yapay Zekâ içinde sağlayıcıyı (yapay zekâ sağlayıcılarınız, Grok, kendi OpenAI veya Anthropic uyumlu adresiniz, LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator ve Google Translate çeviri hizmetleri, Ollama, LM Studio veya bu bilgisayardaki çevrimdışı bir model), hedef dili ve çevirinin metnin yerine geçip geçmeyeceğini, metni takip edip etmeyeceğini veya bir pencerede açılıp açılmayacağını seçersiniz. Alınan mesajların otomatik çevirisi tüm sohbetlerde veya yalnızca seçtiklerinizde, en fazla bir yaş ve günlük bir sınırla çalışır ve kilitli sohbetlerde asla çalışmaz. "Buradan sona kadar çevir" (Alt+Shift+Y) ve toplu işlem aynı anda en fazla 50 mesajı çevirir.
 
-- Uzun süre çevrimdışı kaldıktan sonra yeniden bağlanma: WinZapp artık biriken mesajları, tepkileri ve okundu bilgilerini her veritabanı yazımında arayüzü dondurmadan alıyor ve Neonize motoru veritabanını daha hızlı yazıyor.
-- macOS: eşleştirme penceresinde başka bir bağlantı motoru seçmek artık WinZapp'ı o motorla yeniden başlatıyor. Önceden WinZapp'ın kendi kendine yeniden başlatılamadığı söyleniyor ve motor değiştirilmiyordu.
-- Bilinmeyen grupların geçmişi: WinZapp, henüz tanımadığı bir grubun eski iletilerini kurtarırken artık arayüzü kilitlemiyor. Önceden grubun adını arayüz iş parçacığında arıyordu ve her arama 10 saniyeye kadar sürebiliyor, bu sürede WinZapp yanıt vermiyordu. Ad artık arka planda aranıyor ve gelir gelmez görünüyor.
-- Ayarlar'da seçilen oynatma ya da kayıt cihazı, örneğin kulaklık, WinZapp başlarken bağlı değilse WinZapp artık bunu bir kez sesli olarak bildirir ve sistemin varsayılan cihazını kullanır; her açılışta bir ileti kutusu göstermez. Kutu yanıtlanana kadar açılışı bekletiyordu, bu yüzden bilgisayar başında kimse yokken yapılan bir açılış, WinZapp API'nin zamanında başlatılamadığını söyleyen bir hatayla bitiyor ve program kapanıyordu. Seçilen cihaz korunur ve bağlandığı anda yeniden kullanılır.
+- Mistral, çevrimiçi yazıya dökme, görsel betimlemeleri ve PDF metin çıkarma için kullanılabilir. Varsayılan Google Gemini modeli artık Gemini 3.5 Flash-Lite; bu model daha az yüksek talep hatasıyla karşılaşır, kendi seçtiğiniz model korunur.
 
-- macOS: daha yeni WhatsApp Web sürümleri denetimi artık python.org Python'u yüklü olmayan Mac'lerde çalışıyor. Daha önce günlüğün "offline" olarak kaydettiği bir sertifika hatasıyla başarısız oluyordu; bu yüzden sürüm listesi hiç güncellenmiyor ve WhatsApp, WinZapp'in kullandığı sürümü sunmayı bıraktığında WPPConnect artık bağlanamıyordu.
+- Sesli mesajlar: tek bir kayıt düğmesi vardır. Ayarlar > Ses, Otomatik, Mono veya Stereo seçimini ve bit hızını (32 ile 256 kbps arası, varsayılan olarak mono için 64, stereo için 128) belirler. Stereo kayıt iPhone'da da çalan gerçek bir sesli mesajdır ve Otomatik kipte girişlerden biri sessiz olan bir kayıt, iki tarafta da duyulmanız için mono gönderilir.
 
-- Neonize motoru: eşleştirme penceresinde ve Ayarlar'da Neonize etiketi artık "deneysel" yerine "varsayılan" diyor.
+- Gürültü azaltıcı: "Mikrofon gürültü azaltmayı etkinleştir" ile Ayarlar > Ses bir sinir ağı modeli indirebilir ve yeni bir "Gürültü azaltıcı ayarları" penceresi sinir ağı veya sıradan azaltıcıyı, çalıştığı işlemciyi (bilgisayarın işlemcisi, CUDA 12 veya 13'lü bir NVIDIA kartı ya da Mac'te Core ML) ve kayıt sırasında mı yoksa gönderirken mi işleneceğini seçer. Başarısız olursa, temel azaltmayla göndermek veya mesajı beklemede tutmak arasında seçim yaparsınız.
 
-- Neonize aramaları: özel çıkış NetEQ tarafından desteklenmeyen bir örnekleme hızı kullandığında, paket kaybı gizleme korunarak uyumlu sese dönülmesi düzeltildi.
+- Mikrofonu bilgisayarın sesiyle birlikte kaydetmek artık sesli mesaj olarak gönderilir (Ctrl+Shift+H) ve iki kanal da ses taşıyorsa stereo olur. Mac'te bu macOS 14.4 ve sonrasında çalışır ve WinZapp, macOS mikrofon iznini beklerken veya reddettiğinde bunu söyler. Sesli mesajlar ve sesler ayrıca Farklı kaydet ile MP3 olarak kaydedilebilir.
 
-- Bire bir Neonize aramaları: NetEQ ile oynatma, ağ dalgalanmalarını ve ses kaybını azaltır; gerektiğinde otomatik olarak uyumlu oynatmaya dönülür.
+- Yeniden düzenlenmiş bir Ayarlar penceresi: bir arama alanı ve bir kategori listesi (ok tuşları kategoriyi değiştirir, Tab seçeneklerine girer); birkaç kategori birleştirildi, diğerleri her biri bir pencere açan düğmelere dönüştürüldü. WhatsApp ayarları (Dosya menüsü) Ayarlar'ı kendi kategorisinde açar. Yeni bir Gelişmiş kategorisi günlük düzeyini, yerel API için sabit bir bağlantı noktasını ve "WPPConnect Server'ın her güncellemesini göster" seçeneğini belirler ve "Bu hesabın günlüklerini dışa aktar..." düğmesini içerir. Her denetimin her dilde kendi Alt harfi vardır ve Ayarlar her sayfayı ilk gittiğinizde oluşturarak hemen açılır.
 
-- Neonize aramaları: ses, yerel motora doğrudan bir yerel bağlantı üzerinden aktarılır; bağlantı kullanılamadığında otomatik olarak Socket.IO kullanılır.
+- Klavye kısayolları: liste kategoriye göre bir ağaçtır ve komutları bastığınız tuşlara göre bulan bir alanı vardır; değiştirdiğiniz tuşlar artık tüm hesaplara uygulanır (bir kutu bunları yalnızca bir hesapta tutar). Yeni komutlar: Ctrl+Alt+Shift+F1 ile F10 arası, Ctrl+Shift+F1 ile F10'un her yerden açtığı hızlı sohbetleri atar; on komut, odaktaki mesaja Ayarlar > Arayüz > Tepkiler içindeki 1'den 0'a kadar sıradaki tepkiyle tepki verir (tuşsuz, seçmeniz için); Alt+Yukarı ve Alt+Aşağı ise yapay zekâ sağlayıcıları listesindeki ve yeni bir anketin seçeneklerindeki öğeleri taşır.
 
-- Neonize bire bir aramaları: ağ gecikmesindeki değişimlere karşı otomatik oynatma tamponlaması korunarak gelen sesteki yinelenen bekleme kaldırıldı.
+- Taslaklar: yazılıp gönderilmeyen metin, bahsetmeler dahil, yazıldığı sohbetle birlikte kalır ve sohbeti açtığınızda geri gelir; Ayarlar > Arayüz > Sohbetler bunu bir sonraki sohbet için tutmanızı veya bunun yerine silmenizi sağlar.
 
-- Neonize aramaları: Python üzerindeki işlem yükünü azaltmak için mikrofon sesi dönüştürme işlemi optimize edildi. Yüklü motor bu optimizasyonu desteklemiyorsa önceki işleme yöntemine otomatik olarak dönülür.
+- Sohbet listesi ve Esc: bir sohbeti arşivlemek, silmek gibi onay ister; "Tekrar gösterme" kutusu vardır ve Ayarlar'da yeniden açmak için bir seçenek bulunur. Sohbet listelerinde Esc aramayı ve filtreleri temizler, mesaj aramalı açık bir sohbette ise ilk Esc aramayı temizler; ikisi için de kapatma seçeneği vardır. Yeni sohbet seçenekleri: mesaj listesinde kaldığınız yerden devam etmek, yer imlerini ilk kullanımdan sonra kaldırmak, sohbet adından önce yeni mesaj sayısını söylemek ve açık sohbetteki yeni mesajların okunmamış ayırıcısına katılmasını durduran bir seçenek.
 
-- Çekçe: WinZapp artık Çekçe (Čeština) olarak da kullanılabiliyor: arayüz, kullanım kılavuzu, yükleyici ve kaldırıcı (Windows görüntüleme diline uyar) ve bu sürüm notları. Çekçe ayrıca mesajların çevrileceği bir dil olarak sunulur ve yazım denetimi onu destekler. Çeviri için jaxcze'ye teşekkürler.
+- Bildirimler: birçok mesaj aynı anda geldiğinde WinZapp yalnızca ilk üçünü okur ve çalar (sınır Ayarlar > Genel > Bildirimler içindedir); bir seçenek grup bildirimlerinin sırasını belirler ("Önce katılımcı adı" veya "Önce grup adı"); iki seçenek arşivlenmiş ve sessize alınmış sohbetleri bildirim alanı simgesindeki ve pencere başlığındaki okunmamış sayısının dışında bırakır; "WinZapp odakta değilken de duyur" varsayılan olarak kapalıdır, böylece WinZapp başka bir programda çalışırken sizi artık bölmez; "Mesajlarınıza gelen tepkileri bildir" kapatılabilir.
 
-- QR kodu ile bağlan: QR kodu yeniden görünüyor. En yeni WhatsApp Web sürümlerinde bazı bilgisayarlar yalnızca QR kodu ekranını içeren ayrı bir giriş sayfası alıyor ve WinZapp bu sayfada kodu göstermeden vazgeçene kadar bağlanmaya çalışıyordu. Artık QR kodu bu sayfada birkaç saniye içinde görünüyor.
+- Uzakta kipi: WinZapp'te bir tuşa basılmadan veya tıklanmadan bir süre geçtikten sonra (varsayılan olarak 2 dakika, Ayarlar > Genel > Bildirimler içinde) çevrimdışı görünürsünüz ve açık sohbete gelen mesajlar siz dönene kadar okunmamış kalır. Bir arama, bir kayıt veya çalan ses, orada olmak sayılır.
 
-- WinZapp açılırken oturumun kapanması: en yeni WhatsApp Web sürümlerinde WinZapp, zaten bağlı olan bir hesap için bile WhatsApp Web'in ayrı giriş sayfasını açıyordu; bu yüzden WinZapp her açıldığında hesap oturumu kapalı ve QR kodu gösterir halde geri geliyordu, QR kodu veya telefon numarasıyla yeni bağlanan bir cihazın bağlantısı da birkaç saniye sonra yeniden kesiliyordu. WinZapp artık bağlı bir hesap için bu sayfayı açmıyor: WhatsApp Web sohbetlerinizi her zamanki gibi açıyor, giriş sayfası yalnızca bağlanmak için kullanılıyor.
+- Sesler: Ses olayları'na "Mesajınızdaki düzenleme kaydedildi" ve "Başkası tarafından düzenlenen mesaj" eklendi; bunların sohbet başına kendi sesli seçenekleri vardır. Ayrıca isteğe bağlı yinelenen sesli yazıyor bildirimleri (varsayılan olarak kapalı, kayıt sırasında ve aramalarda susturulur), açık sohbet ve diğerleri için bir "yeni mesaj" sesi seçimi eklendi ve "sistem varsayılanı" olarak ayarlanan sesler ve aramalar Windows'un varsayılan oynatma aygıtını izler. Yükleyicide bir "Yüklenecek sesler" grubu, güncelleme penceresinde ise yalnızca özgün WhatsApp seslerini tutmak için "Ek ayarlar" (Alt+A) vardır; bu sesler artık WhatsApp'ın kayıt, gönderme ve mesaj alma sırasında çaldığı sesleri de içerir. İçe aktarılan paketlere ve kendi seslerinize asla dokunulmaz.
 
-- Tarayıcı profilinin kaydedilen kopyasını geri yükleme: WhatsApp Web oturumu kapalı açıldığında ve WinZapp son kaydedilen kopyayı geri yüklediğinde, önceki tarayıcı kapanmayı bitirmemişse geri yükleme başarısız olabiliyordu ve WinZapp yalnızca QR kodu sunan boş bir profilde kalıyordu. WinZapp artık geri yüklemeden önce o tarayıcının kapanmasını bekliyor ve tarayıcı hâlâ açıkken geri yükleme yapmıyor; geri yükleme yine de başarısız olursa önceki profil yerine konuyor, böylece kaydedilen kopya bir sonraki denemede yine geri yüklenebiliyor.
+- Sabitlenen mesajlar: "Sabitlenen mesajlar" penceresi artık mesaj listesinin bağlam menüsüne ve kısayollarına sahiptir. "Seçilenlerin sabitlemesini kaldır", seçili mesajların sabitlemesini tek seferde kaldırır (toplu kısayollar açıkken Ctrl+Shift+P bunları sabitler veya sabitlemesini kaldırır) ve Ayarlar > Erişilebilirlik > Konuşulan içerik içindeki bir seçenek, bir sohbet açılırken WinZapp'in kaç mesajın sabitlendiğini söylemesini durdurur.
 
-- Topluluklar: sohbet listesindeki bir toplulukta Enter artık topluluğun kendi sohbeti yerine Topluluklar panelini o topluluk seçili ve odak gruplarında olacak şekilde açıyor. Seçenek Ayarlar > Arayüz > Sohbetler içinde, varsayılan olarak açık.
+- Mesajlar: seçili mesajları kopyalamak belgelerini, seslerini, resimlerini ve videolarını da kopyalar; bunlar özgün adlarıyla birlikte yapıştırılabilir; Ortam sekmesinde bir dosyada Ctrl+C dosyayı kopyalar; yalnızca açıklamayı kopyalamak "Açıklama kopyalandı" der; "Mesaj metni" (Alt+C) penceresinde "Uzun satırları kaydır" vardır; Aç düğmesi dosyaları gerçek adlarıyla açar. "Yeniden göndermeyi dene" (Ctrl+Shift+Y) başarısız olan veya onaylanmayan bir mesajı ya da durumu yeniden gönderir; hiçbir şey kendiliğinden yeniden gönderilmez. Yuvarlak video mesajları video olarak gösterilir ve bağlantılı bir mesaj iletildiğinde bağlantı önizlemesini korur; ekran okuyucu bir önizlemenin yüklendiğini, eklendiğini veya kullanılamadığını söyler.
 
-- Telefon numarasıyla bağlama: telefondaki WhatsApp eşleme kodunu kabul ettikten sonra bağlantı artık başarısız olmuyor. WinZapp, oturum açmayı tamamlayan yeniden yükleme sırasında WhatsApp Web'i kapatıyor ya da orada yeni bir kod istiyordu; telefon cihazı bağlı gösterirken WinZapp eşleme penceresinde kalıyordu. Kod penceresi artık metni, kodu ve İptal düğmesini üst üste çizmek yerine sırayla gösteriyor. Kod kabul edildikten sonra WhatsApp Web sohbetlerinizi hâlâ açmazsa, WinZapp artık eşleme penceresinde sonsuza kadar beklemek yerine bir kez daha dener ve ardından size bildirir; telefonun kabul ettiği bir bağlantı da WinZapp'i yeniden başlattığınızda artık silinmez. QR kodla bağlama da artık bu yeniden yüklemeyi atlatıyor: WinZapp, telefon taramayı kabul ettikten birkaç saniye sonra yeni bir QR kodu gösterip vazgeçmiyor.
+- İşletme mesajları: bir mesajın düğmeleri yanıtlanır (yanıt, hızlı yanıt, şablon düğmeleri ve liste satırları yanıtı gönderir, bağlantılar açılır, kopyalama düğmeleri kodu kopyalar, arama düğmeleri numarayı söyler), siparişler ürünleriyle açılabilir ve bir alıcı uygulama dışında ödenen bir siparişi onaylayabilir. Şablonlar metnini ve düğmelerini korur, ClickBus ise seyahatlerini eksiksiz gösterir.
 
-- WhatsApp bir numara için eşleme kodlarını geçici olarak reddettiğinde WinZapp bunu bir buçuk dakika "bağlanıyor" durumunda beklemek yerine hemen söylüyor ve eşleme kodu kullanmayan "QR kodu ile bağlan" seçeneğini öneriyor.
+- Anketler: anket oluştururken "Oy verenlerin adlarını gizle", bir süre sınırı (yok, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün) ve seçenekler için Yukarı taşı ve Aşağı taşı kullanılabilir; Oyları göster, adları gizleyen bir anket için "Gizli ad" der.
 
-- Bir iletinin yalnızca açıklaması kopyalandığında (Ctrl+Shift+C) ekran okuyucu artık "İleti kopyalandı" yerine "Açıklama kopyalandı" diyor; böylece dosyanın (fotoğraf, video veya belge) kopyalandığı izlenimi verilmiyor.
+- Durum: bir durumu Delete tuşuyla veya düğmesiyle herkesten silebilirsiniz; paylaşım tek tek yapılır ve büyük bir video yüklenirken başarısız olarak bildirilmez; gitmeyen durumlar Durum sekmesinde kalır; konum, anket, kişi ve diğer durumlar kendi doğru etiketini gösterir.
 
-- Bir yanıtın alıntılanan mesajındaki kişi adı, kişinin orijinal mesajları zaten güncel olsa bile eski adı göstermek yerine artık en son profil adını izler. Neonize ve WPPConnect için geçerlidir.
+- WhatsApp bağlantıları: bir wa.me veya api.whatsapp.com bağlantısı, kişi olmasa bile o numarayla sohbeti açar ve bağlantıdaki mesaj mesaj alanında hazır bekler. Yüklü sürüm ilk açılışında bu bağlantılar için kendini kaydeder; taşınabilir sürümde bu seçenek Ayarlar > Genel içindedir.
 
-- Seçili iletileri kopyalama (Ctrl+Alt+Shift+C ya da "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" işaretliyken Ctrl+C) artık belgeleri, sesleri, resimleri ve videoları da kopyalıyor: dosyalar bir seferde panoya gider ve özgün adlarıyla, örneğin Dosya Gezgini'nde, hep birlikte yapıştırılabilir. Metin ve dosyaları karıştıran bir seçimde metin, bir metin alanına yapıştırılmak üzere tek blok olarak birlikte gelir. WinZapp "Mesajlar kopyalandı" der ve bir dosya indirilemediyse kaç tanesinin dışarıda kaldığını söyler.
+- Güncellemeler: Ayarlar > Genel içindeki yeni bir seçenek güncellemeleri sormadan kendiliğinden indirir ve çıkarken yükler (Yardım > İndirilen güncellemeyi yükle hemen yükler). Taşınabilir sürüm, ilk başlangıcında başka bir cihaz bağlamak yerine bilgisayara yüklü WinZapp'in hesaplarının bir kopyasını kullanmayı önerir ve hesap yöneticisindeki "WinZapp başladığında tüm hesaplara bağlan" eşleştirilmiş her hesabı arka planda açar.
 
-- Tepkiler: "Daha fazla tepki ekle" ile seçilen özel bir tepki, ilk kullanıldığında hızlı tepkiler listesine girer ve hiç kullanmadığınız son varsayılan tepkinin yerini alır. Ayrıca Ayarlar > Kısayollar (Mesajlar) içinde on yeni komut var: "Seçili mesaja bu konumdaki tepkiyle tepki ver", 1'den 9'a ve onuncu için 0: her biri odaktaki mesaja Ayarlar > Arayüz > Tepkiler içindeki o konumun tepkisiyle tepki verir; bu tepkiyi siz seçersiniz ve kullanımla değişmez; önceden gönderilen tepkiye basmak onu kaldırır. Ctrl+Alt+1 ile 9 zaten hesap değiştirdiği için tuşsuz gelirler; her birinin tuşunu siz seçersiniz.
+- Yerel yazıya dökme: otomatik yazıya dökme açıkken "Geç gelenleri de yazıya dök" alınan mesajları ne kadar eski olursa olsun yazıya döker, bilgisayar uykudayken birlikte gelen sesli mesajlar artık atlanmaz, bir sohbet otomatik yazıya dökmeme, çevrimiçi veya yerel arasında seçim yapar ve Windows ARM64'te whisper.cpp yerel sürümü, isteğe bağlı bir CUDA 13 sürümüyle kullanır. "İlerleme penceresi olmadan yazıya dök" başka bir mesajı reddetmek yerine sıraya alır ve aynı anda yalnızca bir model yüklenir, böylece hesap değiştirmek artık belleği doldurmaz.
 
-- Güncelleme: güncelleme penceresine Evet, Hayır ve Yenilikler neler? düğmelerinden sonra "Ek ayarlar" (Alt+A) düğmesi eklendi. Kurulum için "Tüm WinZapp sesleri" ile "Yalnızca orijinal WhatsApp sesleri" arasında seçim yaptığınız, geçerli seçimi belirten ve Tamam ile İptal düğmeleri bulunan bir pencere açar. Seçim, güncelleme kurulurken uygulanır; arka planda veya çıkışta kurulduğunda da: yalnızca orijinal WhatsApp seslerini seçmek WinZapp'in ek seslerini kaldırır, hepsini yeniden seçmek ise onları güncellemeden geri yükler. İçe aktardığınız ses paketleri, kendi ses dosyalarınız ve ses tercihleriniz korunur.
+- Depolama: Ayarlar > Depolama'ya boyutları ve kapsamı gösteren, yerel kopyaların kaldırılmasını önizleyen ve geri yüklemenizi sağlayan bir Depolama yöneticisi eklendi; temizlenen ortamlar tek tek yeniden istenebilir. Neonize ile tarayıcı profili yoktur, bu yüzden profil yedeği gösterilmez.
 
-- Sesli mesajlar ve ses dosyaları, Farklı Kaydet penceresindeki dosya türü listesinden MP3 olarak kaydedilebilir.
+- Arapça, Çekçe ve İtalyanca: WinZapp artık Arapça (eksiksiz bir kullanım kılavuzu ve yükleyiciyle), Çekçe (arayüz, kullanım kılavuzu, yükleyici ve sürüm notları, çeviri için jaxcze'ye teşekkürler) ve İtalyanca (program; kullanım kılavuzu ve bu sürüm notları hâlâ İngilizce) olarak kullanılabilir. Bunlar ayrıca mesajların çevrileceği diller olarak da seçilebilir. İspanyolca artık her yerde "chat" der ve Arapça yazıya dökme için "تفريغ" kullanır.
 
-- Bire bir aramalarda Gemini ile tek veya iki yönlü canlı çeviri, özgün sesi kısma seçeneği ve otomatik yeniden bağlantı.
-- Ayarlar > Erişilebilirlik'te yeni seçenek: "WinZapp odakta değilken de duyur", varsayılan olarak işaretsiz. İşaretsizken WinZapp, ekran okuyucu üzerinden yalnızca pencerelerinden biri odaktayken konuşur; böylece pencere açık olsa bile başka bir programda çalışırken sizi bölmez. Bu, yeni sürüm bildirimi dahil tüm sesli duyurular için geçerlidir. İşaretliyken duyurular her durumda sürer.
+- WhatsApp ayarları > Gizlilik bölümünde "Sohbetleri arşivde tut" seçeneği vardır ve bu seçeneğin kapalı olduğu bir cihazda arşivlenen sohbet, telefondaki gibi yeni bir mesajla listeye geri döner.
 
-- Bir kişi profil adını değiştirdiğinde, açık sohbetteki eski mesajları programı kapatıp açmaya gerek kalmadan hemen yeni adla güncellenir. Neonize ve WPPConnect için geçerlidir.
+İYİLEŞTİRMELER
 
-- Arama bağlantıları: Aramalar'da (Alt+6) "Arama bağlantısı oluştur", sesli veya görüntülü arama seçip bağlantıyı oluşturduğunuz, kopyaladığınız, bir sohbete gönderdiğiniz veya aramasına katıldığınız bir pencere açar. Bir iletide gelen call.whatsapp.com bağlantısı, onaydan sonra Enter ile ya da bağlam menüsündeki "Aramaya katıl" ile aramaya katılır; tarayıcıda açılan bir bağlantı da WinZapp WhatsApp bağlantılarını açan program olduğunda WinZapp'ta katılır (Ayarlar > Genel). Bir bağlantıyla ilk katılan kişi aramanın yöneticisidir: WhatsApp hesabı olmayanlar bekleme odasında bekler, WinZapp gelen her kişinin adını söyler ve arama penceresindeki "Bekleme odası" düğmesi onları içeri alır veya reddeder. Neonize ve WPPConnect ile çalışır.
+- Ayarlar daha hızlı açılır ve WinZapp daha hızlı başlar: veritabanına yalnızca değişen kişiler yazılır, büyük hata ayıklama günlükleri susturulur ve yarım indirilmiş Chrome klasörleri temizlenir. Uzun süre çevrimdışı kaldıktan sonra WinZapp, biriken mesajları her veritabanı yazımında arayüzü dondurmadan alır ve WhatsApp hâlâ eski mesajları teslim ederken pencere başlığı "Sohbetler güncelleniyor" demeyi sürdürür ve liste sabit kalır.
 
-- Kişiler: gezinme listesine Kanallar'dan sonra "Kişiler" eklendi; Alt+rakam kısayolu yoktur. Kayıtlı kişileri, her kişi için ad ve numarayla tek satır olarak gösterir; iki adresle (numarası ve bağlı cihaz kimliği ya da 9. rakamlı ve rakamsız Brezilya numarası) tutulan kişi tek satırdır. "Kişilerde ara" ada veya numaraya göre süzer. Düğmeler ve bağlam menüsü (Uygulama tuşu veya Shift+F10) sohbeti açar, sesli veya görüntülü arama başlatır, "Kişi bilgileri"ni gösterir, kişiyi siler ya da engeller ve engelini kaldırır; "Yeni kişi" bir kişi ekler. "Bir kişide Enter" Enter'ın ne yapacağını seçer: sohbeti açmak, aramak, görüntülü aramak veya bilgileri göstermek.
+- Sohbetler diğer cihazlarla uyumlu kalır: arşivleme, sessize alma, sabitleme, kilitleme, silme, temizleme, kaybolan mesajlar, gizlilik, "Sohbetleri arşivde tut", listeler, engelleme, kişiler, profil fotoğrafları, grup ayarları ve yöneticileri, yıldızlı ve sabitlenen mesajlar, sizin için silinen mesajlar ve anket oyları, WhatsApp bildirdiğinde tam eşitleme olmadan WinZapp'te güncellenir.
 
-- Sohbet: "Sohbet bilgisi" ve "Grup bilgisi" pencereleri, "Medya"dan sonra yeni bir "Yıldızlı mesajlar" sekmesi kazandı; sekmede o sohbetin yıldızlı mesajları ve bir arama alanı bulunur; "Sohbette aç" (veya Enter) mesaja sohbette odaklanır, "Yıldızı kaldır" (veya Delete) yıldızını kaldırır.
+- Art arda gelen çok sayıda kişi durumu güncellemesi (yazıyor, çevrimiçi) artık çok sayıda sohbeti olan hesaplarda WinZapp'i dondurmaz veya bilgisayarı yavaşlatmaz; yazıyor ve kaydediyor göstergeleri sohbet başına tutulur ve WhatsApp kişiyi çevrimdışı bildirdiğinde de kullanılabilir kalır. Gruplarda WinZapp, aynı anda yazan veya kaydeden herkesi listeler.
 
-- Aramalar: devam eden bir aramada olan sohbet (grup ya da araması birkaç kişiye ulaşmış özel sohbet), arama düğmeleri yerine artık "Devam eden sesli aramaya katıl" veya "Devam eden görüntülü aramaya katıl (kamera kapalı)" gösterir; bu cihaz o sohbetle aramadayken düğme "Aramaya dön" der ve arama penceresini geri getirir.
+- Aramalarda yankı giderme, Google Meet ve WhatsApp'ın kullandığı aynı motor olan WebRTC'nin gidericisiyle yeniden kuruldu: bir dizüstü bilgisayar hoparlöründen veya bir mikserin geri döngüsüyle konuşmak, yankı yarım saniyeden uzun bir süre sonra geri gelse bile, karşı tarafın kendi sesini duymasına neden olmaz. Varsayılan olarak açıktır, WinZapp'i daha önce kullanmış olanlar için de, ve aramalardaki mikrofon gürültü azaltma da bunu kullanır. Mikrofonun bilgisayarın sesiyle birlikte kayıtları da yavaş bilgisayarlarda artık atlamaz veya "ses aygıtı sorunu" ile durmaz.
 
-- Aramalar: gruba dönüşen birebir arama, telefondaki gibi kişilerin adlarıyla ("A, B ve C" ya da "A ve N kişi daha") sohbette, sohbet listesi önizlemesinde ve Aramalar sekmesinde görünür. Sizsiz süren ve cihazınızın yalnızca çaldığı grup araması artık yanıtlanmış olarak gösterilmez.
+- Bir kişinin artık tek bir adı vardır: biri profil adını değiştirdiğinde tüm mesajları, eskileri, gruptakiler ve bir yanıtın alıntılanan mesajı yeni adı hemen gösterir ve kayıtlı bir kişinin adı profil adıyla değiştirilmez. Silinmiş bir sohbetten gelen yeni mesaj onu listeye geri getirir ve yeni bir sohbette yazılan bir numara, Brezilya cep telefonlarının 9. hanesiyle veya o olmadan, WhatsApp'ın tanıdığı adres altındaki sohbeti çift kayıt oluşmadan açar.
 
-- Aramalar, "Katılımcı ekle": her kişi bir kez görünür; yani 9. rakamlı ve rakamsız ya da numarasıyla ve bağlı cihaz kimliğiyle kayıtlı bir kişi tek satırdır; ikinci bir liste kayıtlı kişi olsun olmasın tüm birebir sohbetleri sunar; bir alan elle yazılan telefon numarasını kabul eder.
+- Sohbet listesi listenin tam genişliğini kullanır ve bir filtre veya arama hiçbir şey bulmadığında bunu söyleyen tek bir satır gösterir. Bilgisayarın saati WhatsApp'ınkinin gerisinde olduğunda yeni bir yanıt veya gönderilen mesaj artık orijinalinin üstünde görünmez.
 
-- Aramalar: kişi eklediğinizde WinZapp, davet yoldayken "Aranıyor: <adlar>..." der ve "Aramaya davet edilenler" demeyi yalnızca WhatsApp sunucusu daveti onayladıktan sonra yapar; böylece hiç çalmamış kişiler duyurulmaz. Neonize: birebir bir aramaya ya da zaten grup olan bir aramaya birini eklemek artık aramadaki kişiyi susturmadan onun telefonunu çaldırır; listenin bir yanıtta numarayla, sonrakinde bağlı kimlikle andığı kişi artık ayrılıyor ve katılıyor diye duyurulmaz.
+- WPPConnect Server 2.10.99 sürümüne, WPPConnect 2.4.7 ve WA-JS 4.8.5 ile güncellendi. Mesaj geçmişini okumak artık bellekte kopyalar biriktirmez, WinZapp tarayıcıyı yalnızca kendisi açtıysa otomatik olarak kapatır, WhatsApp Web'in yüklenmesini beklemek sayfa gizliyken de çalışır ve indirme adresi olmadan alınan ortam, mesaj kimliğiyle indirilir. Disk alanı azaldığında (4 GB altı), WinZapp oturum kaybolmadan önce WhatsApp'ı güvenle kapatır ve 5 GB boşaldığında kendiliğinden yeniden bağlanır. WhatsApp Web uzun bir geçmişi eşitlerken WinZapp hesabı bağlantısı kopmuş göstermek yerine "WhatsApp ile eşitleniyor..." der.
 
-- Aramalar: masaüstü sesi paylaşımının izlediği NVDA işlemi arama sürerken kapanırsa paylaşım, "Masaüstü sesini paylaş"a yeniden basmış gibi kendiliğinden bir kez yeniden başlar; başarısız olan yeniden başlatma eskisi gibi duyurulur.
+- Uzun sohbetler ve eşitleme: binlerce mesajlı bir sohbeti yenilemek artık pencereyi dondurmaz, "Sohbet açılırken gösterilen mesajlar" en fazla 1.000 kabul eder ve WinZapp büyük mesaj gruplarından sonra WhatsApp Web'den belleği serbest bırakmasını ister. Bilinmeyen grupların geçmişi arayüz dondurulmadan kurtarılır ve "Ortam indiriliyor: X / Y" yalnızca hâlâ indirilecek ortamı sayar.
 
-- Neonize: WinZapp'tan yaptığınız birebir arama artık telefonunuzun arama geçmişinde de görünür.
+- Güncellemeler: yükleme ve derleme daha düşük öncelikle çalışır, böylece ekran okuyucu konuşmayı sürdürür, birkaç hesap yüklemeden önce birbirinin kapanmasını bekler, yüklenen bir güncelleme WinZapp kapandıktan sonra sahipliğini korur, başarılı bir güncelleme önceki bir hata uyarısını temizler ve başarısız olan kurtarma yönergelerini açar.
 
-- İleti çevirisi: çevrimiçi yapay zekâ sağlayıcılarınıza ek olarak, çeviri ayarlarındaki "Sağlayıcı" şunları sunar: "Bu bilgisayardaki çevrimdışı model" (SMaLL-100, M2M-100, mBART-50, NLLB-200 ve MADLAD-400'ün çeşitli boyutlarında on iki model; "Modeli indir" ile indirilir, işlemcide veya ekran kartında çalışır; metin bilgisayardan çıkmaz, bu yüzden onay sorusu ve günlük sınır yoktur), LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (kaynak bölgesiyle) ve Google Translate çeviri hizmetleri, ayrıca yerel sağlayıcılar olarak Ollama ve LM Studio. Çevrimdışı modelde kaynak dil algılanır ya da seçilir.
+- Ses oynatma: WinZapp ses çıkışını açarken ses kartı kullanılamıyorsa, bir oynatma başarısız olduğunda WinZapp onu geri yükler ve yine de çalamazsa bunu söyler; bildirim sesleri ses aygıtı değiştirildikten sonra çalışmayı sürdürür; Ayarlar'da seçilen ve başlangıçta bağlı olmayan bir ses aygıtı, başlangıcı bekleten bir kutu yerine bir kez bildirilir ve bu arada sistem varsayılanı kullanılır.
 
-- Yükleyici: yeni "Kurulacak sesler" grubu, "WinZapp'ın tüm sesleri" (varsayılan) ile "Yalnızca WhatsApp'ın orijinal sesleri" arasında seçim yapar. İkincisinde diğer sesler kurulumda tutulmaz ve güncellemeler onları dışarıda bırakmayı sürdürür.
+DÜZELTMELER
 
-- Taşınabilir sürüm: ilk başlatmada, bilgisayarda kurulu WinZapp'ın bağlı hesapları varsa WinZapp, bir cihaz daha bağlamak yerine bunların bir kopyasını kullanmak isteyip istemediğinizi sorar. Kurulum yalnızca okunur; çalışıyorsa WinZapp kapatmanızı ve Yeniden Dene'yi seçmenizi ister, kopyalama başarısız olursa hiçbir şey değişmez ve yeni bir cihaz bağlanır.
+- Bağlanma: Dosya > Bağlantıyı kes sonrasında "WinZapp uygulamasına bağlan" penceresi ana pencerenin üstünde açılır, böylece QR kodu görünür. En yeni WhatsApp Web sürümlerinde, zaten bağlı olan bir hesabın oturumu artık WinZapp her başladığında kapatılmaz ve kayıtlı tarayıcı profilini geri yüklemek önceki tarayıcının kapanmasını bekler ve başarısız olursa orijinali yerine koyar. WhatsApp bir numara için eşleştirme kodlarını geçici olarak reddettiğinde WinZapp bunu söyler ve QR kodunu önerir.
 
-- Ayarlar > Kısayollar: değiştirdiğiniz tuşlar artık yalnızca değiştirdiğiniz hesapta değil, kurulumun tüm hesaplarında geçerlidir; 2. hesaba geç için ayarlanan tuş her hesaptan yanıt verir. Bu sürümle ilk başlatmada her hesabın değiştirilmiş tuşları kurulumunkilere katılır: ikisi de aynı komutu değiştirdiyse kurulumun tuşu kalır, başka bir komutun zaten kullandığı tuş dışarıda bırakılır. Tuşları yalnızca bir hesap için de tutabilirsiniz: aynı sekmedeki "Tüm hesaplarda aynı kısayolları kullan" kutusu işaretli gelir; işareti kaldırılınca bu hesapta değiştirdiğiniz tuşlar yalnızca onda geçerli olur, diğer hesaplar kendi tuşlarını korur. Her kısayolun değiştirme penceresinde de "Bu kısayolu tüm hesaplarda kullan" kutusu vardır; siz değiştirene kadar genel kutuyu izler. Genel kutuyu izlemeyen bir kısayol listede "tüm hesaplarda" ya da "yalnızca bu hesapta" ile görünür.
+- Mesajlar ve sohbetler: okunmamış sohbetler artık bir güncelleme veya yeniden başlatmadan sonra Okunmamış filtresinden kaybolmaz, sabitlemeleri eski olan bir grubun sabitlenen mesajları yüklenir, kayıtlı olmayan bir numarayı engellemek çalışır ve son mesajı herkesten silmek liste önizlemesini günceller. Sohbet değiştirdiğinizde önceki mesajın düğmeleri artık Tab ile gelmez.
 
-- Düzenlenen mesajlar: Ses olayları'na "Mesajınızdaki düzenleme kaydedildi" (açık) ile program ön planda ve arka plandayken "Başkası tarafından düzenlenen mesaj" (kapalı) eklendi; Ayarlar > Genel > Bildirimler'e "Pencere etkinken düzenlemeleri oku" ve "Arka planda düzenlemeleri bildir" (kapalı) eklendi; her sohbetin veri penceresinde de o sohbet için farklı sesler ve duyurular seçmeye yarayan bir "Düzenlenen mesajlar" penceresi var. Başkasının düzenlemesi yalnızca WhatsApp o iletinin düzenlenmesini hâlâ kabul ettiği sürece duyurulur; bu yüzden yeniden bağlanınca tekrarlanan düzenlemeler sessiz kalır.
+- Klavye: Brezilya (ABNT2) klavyesinde, mesaj listesinde yazılan "/" ve "ç" artık mesaj alanına "Á" ve "º" yazmaz, bir kısayol değişikliği geçtiğiniz hesaba hemen ulaşır ve Esc Yenilikler penceresini kapatır. Alt+A artık ekle menüsünü açmaz (Ctrl+Shift+A hâlâ açar), birkaç pencerede aynı Alt harfine sahip iki denetim vardı ve alınan bir JSON dosyasında Farklı kaydet dosyayı kaydeder.
 
-- "Sistem varsayılanı" olarak ayarlanmış sesler ve aramalar artık Windows'un varsayılan oynatma aygıtını izler: Windows'un varsayılan yaptığı bir kulaklığı taktığınızda WinZapp'ın sesleri ve arama sesi, diğer programlar gibi ona geçer.
+- UTF-16 olarak kaydedilmiş bir metin dosyasını mesaj alanına yapıştırmak artık onu ses olarak göndermez: belge olarak kalır.
 
-- Ses kaydederken (sesli mesaj veya mikrofon ile bilgisayar sesi) düzenli arka plan eşzamanlaması, geçmiş taraması ve medya indirmeleri, aramalarda olduğu gibi duraklatılır; böylece yoğun bir bilgisayar kaydı parçalamaz.
-
-- Silinen bir sohbet, yeni bir iletiyle veya Yeni sohbet'ten yeniden açılarak tekrar kullanıldığında, kişinin başka bir biçimi (bağlı kimlik ya da 9. rakamlı veya rakamsız numara) altında silinmiş olsa bile listeye geri döner.
-
-- WPPConnect: bir yanıtın alıntıladığı ileti, WinZapp yeniden başladıktan sonra artık sohbetin sonuna atlamaz; gerçek saatini korur.
-
-- WPPConnect, Yeni sohbet: WhatsApp'ın kullanmadığı 9. rakamla yazılan bir Brezilya numarası artık ikinci, boş bir sohbet yerine gerçek sohbeti açar.
-
-- Neonize: telefon ileti geçmişini gönderirken WinZapp bunu söyler ve WhatsApp'ı telefonun ekranında açık tutmanızı ister; telefon durduğunda (yüzdeyle), yeniden gönderdiğinde ve bitirdiğinde uyarır; telefon durmuşken WinZapp her 90 saniyede bir kalanını telefondan ister.
-
-- Neonize: iPhone için WhatsApp'ın ilk geçmiş paketinin dışında bıraktığı sohbetler (artık yalnızca 400 gönderiyor) artık istenip içe aktarılıyor. Telefon dışarıda bıraktığı sohbetlerin listesini göndermediğinde, WinZapp eşleştirme geçmişi bittikten sonra telefondan eksik sohbetleri ister ve eşzamanlamayı tamamlanmış saymadan önce yanıtı birkaç dakika bekler. WPPConnect'te, ilk eşzamanlamadan sonra liste bu sınıra yakınsa WinZapp telefondan bu ilk paketin ötesindeki sohbetleri bir kez ister.
-
-- Neonize: bir listeyi silmek onu sohbetlerinden de kaldırır; böylece sohbetler artık var olmayan bir listeyi göstermeye devam etmez.
-
-- Gürültü azaltıcı ayarları: model alanının artık tüm dillerde bir Alt kısayol harfi var.
-
-- Mikrofon ve bilgisayar sesi kaydı artık sesli mesaj (Ctrl+Shift+H) olarak gönderiliyor, ses eki olarak değil; her iki kanalda ses varsa stereo (AAC) olarak kalır, diğer stereo kayıtlarda olduğu gibi. Önceden sohbette sıradan bir ses dosyası olarak gönderiliyordu.
-
-- Neonize: WinZapp açıkken alınan mesajlar artık gönderene ulaşmış olarak görünüyor; pencere odakta değilken veya arkada olsa bile. Önceden WinZapp odakta değilken gönderen yalnızca "gönderildi" görüyordu; okundu bilgisi kapalıyken sohbeti açmak da bir şeyi değiştirmiyordu. Çevrimiçi durumu pencereye bağlı kalmaya devam ediyor.
-
-- Neonize: gönderdiğiniz bir mesaj, WhatsApp tarafından teslim edildiği onaylandıktan sonra "Gönderildi"ye dönebiliyordu — mesaj listesinde ve durum satırında. Uygulama artık gerçek teslim, okunma veya çalınma onayını kendi "gönderildi" onayıyla ezmiyor ve bir mesajın durumu onaylandıktan sonra gerilemiyor.
-
-- NVDA çalışırken, mikrofonu bilgisayar sesiyle birlikte kaydetmek, WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor. Bu, NVDA sesi ayrı alınmadan önce de böyleydi; artık ayrı kaydedilen NVDA sesinin ve bilgisayarın diğer seslerinin okuyucularını da kapsıyor.
-
-- Sesli mesajlar, gönderilmeyi beklemek yerine kayıt sırasında arka planda sinirsel gürültü azaltmayı kullanabilir. Ayarlar > Ses bölümündeki gürültü azaltıcı ayarları penceresinden temel veya sinirsel azaltma, kayıt sırasında veya gönderirken işleme (varsayılan) ve sinirsel azaltma başarısız olduğunda ne yapılacağı seçilebilir: temel azaltmayla gönderme veya elle yeniden denemek için mesajı beklemede tutma. Kayıt sırasında işleme, CPU veya CoreML kullanır; CUDA seçildiğinde bu seçenek devre dışı bırakılır ve işlem gönderirken yapılır. Kayıt sırasında CUDA işleme yoktur. Kayıt sırasındaki CoreML yolu gerçek kullanımda doğrulanmamıştır.
-
-- Bir kişinin artık tek bir adı var: biri profil adını değiştirdiğinde, eski mesajlar ve grup mesajları dahil tüm mesajları eski ve yeni ad arasında gidip gelmek yerine yeni adı gösterir. Neonize ve WPPConnect için geçerlidir.
-
-- Başlangıç: konuşma desteği artık kendi geçici COM önbelleğini kullanır; böylece paylaşılan Windows önbelleği dizinini kaybettiğinde döngüsel içe aktarma hataları önlenir.
-
-- Bir işletme mesajının düğmeleri artık sohbet mesaj zaten odaktayken açıldığında da görünür, örneğin tek mesajlı bir sohbette; yalnızca odak mesaja taşındıktan sonra değil. Neonize ve WPPConnect ile çalışır.
-
-- Çevrimiçi yapay zekâ sağlayıcıları listesinde ve yeni bir anketin seçeneklerinde Alt+Yukarı Ok ve Alt+Aşağı Ok seçili öğeyi taşır; Yukarı taşı ve Aşağı taşı düğmeleri bu tuşları duyurur. Tuşlar F1 listesinde görünür ve Ayarlar > Kısayollar içinde değiştirilebilir.
-
-- Anket oluştururken Oy verenlerin adlarını gizle kutusu ve Zaman sınırı seçimi (sınırsız, 1 saat, 8 saat, 24 saat, 3 gün veya 7 gün) artık hem Neonize hem WPPConnect ile çalışıyor. Oyları gör penceresinde adları gizleyen bir anket, oy vereni göstermek yerine "Gizli ad" gösterir; kendi oyunuz yine "Siz" olarak görünür.
-- Anket oluştururken Yukarı taşı ve Aşağı taşı düğmeleri seçenekleri göndermeden önce yeniden sıralar; anket WhatsApp'a bıraktığınız sırayla gider, hem Neonize hem WPPConnect ile.
-
-- Yıldızlanan iletiler artık ★ simgesiyle başlamak yerine, "Düzenlendi" ve "İletildi" gibi "Yıldızlandı" sözcüğüyle bitiyor. Ayarlar > Kullanıcı arayüzü > Mesajlar bölümündeki yeni bir seçenek, sözcüğü satırın başında, göndericiden önce duyurur.
-
-- Varsayılan ses paketindeki yazma, yazma balonu, yazma nabzı ve yapay zekâ işleme sesleri artık paketin geri kalanı gibi Ogg dosyalarıdır. Sesleri ve özel seslerinizde hiçbir şey değişmez.
-
-- Açık bir sohbetin içinde mesaj araması (Ctrl+Shift+F) etkinken ilk Esc aramayı temizler ve çubuğu kapatır, ekran okuyucu "Mesaj araması temizlendi" der; sonraki Esc sohbeti kapatır. Ayarlar, Sohbetler bölümünden kapatılabilir.
-
-- Sohbet listelerinde (normal, arşivlenmiş ve kilitli) Esc aramayı ve filtreleri temizler ve ekran okuyucu "Filtreler temizlendi" der; sohbetler seçiliyse ilk Esc yine yalnızca seçimi kaldırır. Ayarlar, Sohbetler bölümünden kapatılabilir. Bu, sohbet panelindeki filtrelerden, aramadan ve diğer denetimlerden de çalışır; açık bir sohbetin içinde Esc yine önce sohbeti kapatır veya mesaj seçimini kaldırır.
-
-- Başka bir cihazda bir sohbeti listeye eklemek veya listeden çıkarmak, seçili listeyi değiştirmeden listeleri ve açık filtreyi günceller.
-
-- Başka bir cihazda profil fotoğrafınızı değiştirmek, henüz kaydetmediğiniz ad, Hakkında veya fotoğrafı değiştirmeden açık Profil panelini günceller.
-
-- Başka bir cihazda Sohbetleri arşivde tut veya Durum gizliliği ayarını değiştirmek, henüz uygulanmamış seçimleri koruyarak açık paneli günceller.
-
-- iPhone'da WhatsApp'ta görünmeyen kayıtlı kişiler düzeltildi: bağlı kişi kimliği artık WhatsApp'ın kendi kişi ekranındaki gibi tam olarak gönderiliyor.
-
-- Telefona kişi kaydederken WinZapp artık kişinin rehberde olduğunu söylemek yerine telefondan eklemesinin istendiğini bildirir; WhatsApp'ın doğrulamadığı bir kayıt artık tamamlandı olarak bildirilmez.
-
-- Başka bir cihazda yapılan gizlilik değişiklikleri, değiştirip henüz uygulamadığınız alanları koruyarak açık paneli günceller.
-
-- Başka bir cihazda bir kişiyi engellemek veya engelini kaldırmak, WhatsApp bildirdiği anda WinZapp’i günceller.
-
-- Bir kişi veya grup fotoğrafını değiştirdiğinde ya da kaldırdığında WinZapp eski fotoğrafı göstermeyi bırakır.
-
-- Başka bir cihazda rehbere kaydedilen, adı değiştirilen veya rehberden kaldırılan kişiler ve genel profil adı değişiklikleri, yerel adları ve geçmişi koruyarak bildirim geldiğinde WinZapp’i günceller.
-
-- Grup açıklamaları, ayarları ve katılımcıları; yönetici atama ve görevden alma dahil canlı bildirimlerle güncellenir, açık sohbette gönderme izinleri yenilenir.
-
-- Başka bir cihazda silinen sohbet, bildirim geldiğinde WinZapp’ten kaldırılır; bildirimden daha yeni mesajları olan sohbet korunur. Sohbet açıksa kapatılır ve WinZapp nedenini söyler.
-
-- Başka bir cihazda mesaj sabitlendiğinde veya sabitlemesi kaldırıldığında bildirim, mesajın işaretini ve açık sohbetin sabitlenmiş mesaj özetini günceller.
-
-- Başka bir cihazda bir sohbette veya grupta süreli mesaj zamanlayıcısını değiştirmek, tam eşitlemeyi beklemeden WinZapp’i günceller.
-
-- Telefonda bir sohbeti kilitlemek veya kilidini açmak, bildirim geldiğinde WinZapp’i günceller; sohbet açıksa kapatılır ve WinZapp nedenini söyler.
-
-- Başka bir cihazda yapılan sessize alma, arşivleme ve sabitleme değişiklikleri, bildirim geldiğinde WPPConnect ve Neonize ile sohbet listesini günceller.
-
-- Başka bir cihazda kendiniz için sildiğiniz mesajlar, silme bildirimi geldiğinde WPPConnect ve Neonize ile sohbetten kaldırılır.
-
-- Telefonda veya başka bir cihazda bir mesaja yıldız eklemek ya da kaldırmak, bildirim geldiğinde açık sohbetteki işareti WPPConnect ve Neonize ile günceller.
-
-- Neonize: düzenlemeler asıl mesajın kimliğini korur ve gruplardaki yazar dahil düzenleme bildiriminin tam anahtarını kaydeder.
-
-- Neonize: tepki olayları, tepkinin ve asıl mesajın tam anahtarları, gönderen ve saniye cinsinden zaman ile WPPConnect biçimini kullanır.
-
-- Açık sohbette, hem Neonize hem de WPPConnect ile yeni bir oy olayı geldiğinde anket sonuçları yenilenir. Neonize: oylar, silinen mesajlar ve etiket ilişkilendirmeleri için WPPConnect uyumlu olaylar; alınan durumların kimlikleri yazarı korur.
-
-- Bir sohbeti arşivlemek artık, bağlam menüsünden ya da Ctrl+Shift+Q ile, silmede olduğu gibi onay ister. Pencere "Bu sohbeti arşivlemek istediğinizden emin misiniz?" diye sorar; "Sohbeti arşivle" (Alt+S) ve "İptal" (Alt+L) düğmeleri ile yalnızca onayla birlikte geçerli olan "Tekrar gösterme" kutusu vardır. Ayarlar'da "Sohbetleri arşivlemeden önce onay iste" seçeneği soruyu yeniden açar.
-
-- Konuşmada zaten bulunan mesajların çevirisi: mesajın bağlam menüsüne "Buradan sona kadar çevir" (Alt+Shift+Y) eklendi ve toplu eylem "Seçili mesajları çevir" kısayolunu, Ctrl+Alt+Shift+Y'yi gösteriyor. İkisi de Ayarlar'ın Kısayollar sekmesinden değiştirilebilir ve menü öğeleri kullanılan kısayolu gösterir. Birden fazla mesajın çevirisi sürerken aynı menü öğesi ve kısayol "Mesajların çevirisini iptal et" olur. Alınan metin mesajları için geçerlidir, bir seferde en fazla 50 mesaj, "Mesajı çevir" ile aynı sağlayıcı, model ve görüntüleme kullanılır.
-
-- Yazma yardımı: WinZapp'a, cep telefonları için WhatsApp'taki yazma yardımına benzer bir özellik ve ek olarak taslağı çevirme seçeneği eklenir. Emoji sonrasındaki yeni düğme ve yazı alanının bağlam menüsü aynı pencereyi açar. Meta AI yerine WinZapp'ta yapılandırılmış yapay zeka sağlayıcılarıyla düzeltme, yeniden yazma, profesyonel veya teşvik edici ton sunar; çeviri Google ile yapılır. Taslak gönderilmeden önce onay istenir ve değiştirmeden önce sonuç gösterilir; mesaj hiçbir zaman otomatik gönderilmez. Bir işlem seçin, ardından "Seçilen işlemi çalıştır" düğmesine basın. Bu pencereyi açmak veya kapatmak taslağı göndermez.
-
-- Yazma yardımı: taslak yazılıyken sohbetin herhangi bir yerinden pencereyi açan yeni Alt+Shift+H kısayolu. Ayarlar'ın Kısayollar sekmesinden değiştirilebilir; alanın bağlam menüsü ve düğme artık kullanımdaki kısayolu gösterir.
-
-- WPPConnect Server 2.10.99 sürümüne, WPPConnect 2.4.7 ve WA-JS 4.8.5 ile birlikte güncellendi; WhatsApp Web içeride değiştikten sonra mesaj gönderme yeniden çalışıyor. Mesaj geçmişini okumak artık bellekte kopya biriktirmiyor, WinZapp'ın kullandığı tarayıcı yalnızca WinZapp'ın kendisi açtıysa otomatik olarak kapatılıyor ve WhatsApp Web'in yüklenmesini bekleme artık sayfa gizliyken de çalışıyor. İndirme adresi olmadan alınan medya artık mesaj kimliğiyle indiriliyor.
-
-- WhatsApp'taki gibi yapay zekâ ile mesaj özeti: açık sohbet "Okunmayanları özetle" düğmesini ve Ctrl+Shift+U kısayolunu kazanır; sohbet listesinin bağlam menüsü, sohbeti açmadan ve okundu olarak işaretlemeden mesajları veritabanından okuyan "Okunmamış mesajları yapay zekâ ile özetle" öğesini kazanır; bir mesajın bağlam menüsü ise okunmamışları, "buradan sona kadar" olanları ve seçili mesajları özetlemeyi sunar. Düğme yalnızca 10 veya daha fazla okunmamış mesaj olduğunda görünür; kısayol her sayıda çalışır. Özet, Ayarlar > Çevrimiçi yapay zeka bölümünde ayarlı yapay zekâ sağlayıcılarını kullanır (Meta AI'yi değil), takip soruları ve Kopyala düğmesi olan bir pencerede açılır ve yapay zekâ tarafından hazırlandığını, hata içerebileceğini söyler. Sesli mesajlar metin olarak girer: WinZapp kayıtlı yazıya dökümü kullanır ya da yerel yazıya dökümle en yeni 20 mesajı anında yazıya döker; ilerlemeyi gösteren ve İptal düğmesi olan bir pencerede; yazıya döküm ayarlı değilse yalnızca işaret olarak kalır ve sonuç bunu bildirir. Onay ayrıdır, herhangi bir yazıya dökümden önce, bir kez sorulur ve sıradan sohbetlerde hatırlanır; kilitli sohbetlerde her seferinde sorulur, asla hatırlanmaz ve kasa kilitlenince pencere kapanır. Özet en çok 200 mesajı ve 15.000 karakteri kapsar, daha eski kaç mesajın dışarıda kaldığını söyler.
-
-- Yapay zekâ özeti: mesajın bağlam menüsüne iki yeni kısayol geldi; buradan sona kadar özetlemek için Alt+Shift+I, seçili mesajları özetlemek için Ctrl+Alt+Shift+I. Ayarlar'daki Kısayollar sekmesinden değiştirilebilirler ve menü öğeleri artık kullanılan kısayolu gösteriyor; okunmamışlar için olan öğede Ctrl+Shift+U da görünüyor.
-
-- Yapay zekâ özeti: kayıtlı yazıya dökümü olmayan sesli mesajlar içeren mesajları özetlerken bir pencere bunların nasıl yazıya döküleceğini sorar: yerel olarak (varsayılan), özet modelinden ayrı bir sağlayıcı ve yazıya döküm modeliyle çevrimiçi ya da hiç. Sesli mesajlar gönderilmeden önce bir soru kaçının hangi sağlayıcıya gideceğini ve bunun kotayı kullanabileceğini veya ücret doğurabileceğini söyler; o sağlayıcının onayını hatırlamak için bir kutu vardır. Kayıtlı yazıya dökümler yeniden kullanılır, sonuç da kaç sesli mesajın başarısız olduğunu veya sınır yüzünden dışarıda kaldığını bildirir. Pencereleri açmak, değiştirmek veya kapatmak hiçbir şey göndermez. UlisesMilani'nin isteği (#791).
-
-- WPPConnect: disk alanı azaldığında (4 GB'tan az boş), WinZapp oturumu kaybetmeden önce WhatsApp'ı güvenli şekilde kapatır, çevrimdışı olur ve nedenini söyler. En az 5 GB boş alan olduğunda kendiliğinden yeniden bağlanır. Önceden yaklaşık 3 GB boş alanla oturum silinmiş gibi çıkış yapmış olarak geri gelebiliyordu.
-
-- Otomatik yazıya dökme: bilgisayar uykudayken alınan bir sesli mesaj, uyanınca başkalarıyla birlikte geldiğinde artık yazıya dökülmeden kalmıyor.
-
-- Neonize: bir gruba davet bağlantısıyla katılan kişi WhatsApp Web'deki gibi "grubun davet bağlantısını kullanarak katıldı" olarak görünür; bir gruba bağlantıyla kendiniz katıldığınızda da bu bildirim sohbette kalır.
-
-- Telefonda bir sohbeti temizlemek artık WinZapp'teki aynı sohbeti de temizliyor; iki bağlantı motorunda da. Telefon yıldızlı mesajları koruduysa onlar kalır ve temizlemeden sonra gelen bir mesaj silinmez.
-
-- Kanallar: Kanallar penceresinden, örneğin Gündemdekiler veya Önerilenler listelerinden açılan bir kanal, bir sonraki eşitlemeye kadar "Bu kanalda henüz güncelleme yok." göstermek yerine güncellemelerini hemen yükler. Takip etmediğiniz bir kanalın ayrıntıları da okunur.
-
-- Gruplar: "Grup bilgisi" düğmesi katılımcı sayısını güncel tutar. Yeni katıldığınız ve katılımcı listesi geç gelen bir grupta sayı liste gelir gelmez görünür; sohbet açıkken biri katılınca veya ayrılınca da değişir.
-
-- Bilgisayar uykudan uyandıktan sonra WinZapp birkaç dakika sonra yeniden "Sohbetler güncelleniyor" göstermiyor. Bağlantı geri gelirken okunamayan sohbetler aynı eşitlemede okunur.
-
-- Neonize: "Son görülme" veya "Okundu bilgisi" gibi bir WhatsApp gizlilik seçeneğini değiştirmek, WhatsApp değişikliği uyguladığında artık "Bazı ayarlar uygulanamadı." göstermiyor.
-
-- Hesap günlüğü, bir medya indirilirken WPPConnect oturumunun erişim kodunu artık kaydetmiyor.
-
-- Bağlantı motoru: Neonize artık listede ilk sırada ve WinZapp ilk açılışta motoru sorduğunda zaten seçili olan seçenek; hâlâ deneysel olarak işaretli, ancak genel kullanım için önerilen motor odur. WPPConnect, adından sonra "alternatif" uyarısıyla ikinci seçenek olur: ilk açılışta, eşleştirme penceresinde ve Ayarlar > Bağlantı bölümünde. WPPConnect'i zaten kullananlar, değiştirene kadar onda kalır.
-- WinZapp uzun süre açılmadığında: eşitleme bittikten sonra WhatsApp eski mesajları göndermeyi sürdürürken pencere başlığı her şeyi eşitlenmiş göstermek yerine "Sohbetler güncelleniyor" demeye devam eder ve sohbet listesi sabit kalır; böylece sohbetler yer değiştirmeden listede gezinebilirsiniz. Mesajların gelmesi durduğunda liste bir kerede güncellenir. Hem Neonize hem WPPConnect için geçerlidir. Neonize'da WinZapp, teslim edilmeyi bekleyen eski mesajlar olduğuna dair WhatsApp'ın kendi bildirimini de kullanır; böylece durum ilk mesajdan itibaren görünür ve ancak teslimat bitince kaybolur.
-
-- Bildirimler: çok sayıda yeni mesaj aynı anda geldiğinde (örneğin kararsız bir bağlantı geri geldiğinde) WinZapp sesi onlarca kez yinelemek yerine yalnızca ilk üç bildirimi çalar ve okur, ardından mesaj yağmuru bitene kadar sessiz kalır. Mesajlar yine listede yer alır ve okunmamış sayılır. Sınır, Ayarlar > Genel > Bildirimler bölümündeki "Çok sayıda mesaj aynı anda geldiğinde saniyedeki en fazla bildirim sayısı" alanından seçilir (varsayılan: 3).
-
-- Neonize: Meta AI şartlarını kabul etmek artık bir WhatsApp hatasıyla başarısız olmuyor. WinZapp kabulü artık WhatsApp Web'in bu bildirim için kullandığı biçimde gönderiyor ve yalnızca bildirimin kabul edilmiş olarak kayıtlı olduğunu yeniden okuduktan sonra onaylıyor.
-
-- Aramalar: paylaşımlı modda stereo mikrofon ve kulaklık desteği iyileştirildi; gerekirse mono kullanılır. Ses karşı tarafa mono gönderilmeye devam eder.
-
-- Arama penceresinde, mikrofonu kapatmak veya açmak ve durumunu duymak için herhangi bir denetimde Ctrl+M tuşlarına basın. Giden arama penceresi arama durumunu gösterir ve telefon çaldığında veya bağlantı kurulurken durumu duyurur.
-
-- Windows 11'de sesli aramada sistem sesini veya tek bir uygulamanın sesini, NVDA sesiyle ya da onsuz, seçtiğiniz ses düzeyinde göndermek için Masaüstü sesini paylaş düğmesini kullanın. Başlangıçta hiçbir şey seçili değildir. Mikrofonu kapatmak paylaşımı durdurmaz ve aramanın ses aygıtlarını değiştirmek paylaşımı sürdürür. Paylaşımı mikrofondan bağımsız olarak bitirmek için Masaüstü sesi paylaşımını durdur düğmesini kullanın.
-
-- Neonize: aramalarda karşı tarafın sesi biraz daha uzun süre arabellekte tutuluyor (yaklaşık 60 ms); böylece ses toplu halde geldiğinde kesintiler azalıyor.
-
-- Mesaj çevirisi: mesaj listesindeki bir metin mesajında Shift+Enter tuşlarına basın (kısayol değiştirilebilir) veya mesajın bağlam menüsünü kullanın. Ayarlar > Çevrimiçi Yapay Zekâ: Yazıya Dökme ve Betimleme > Mesaj çevirisi bölümünden sağlayıcıyı (yapay zekâ sağlayıcılarınız, Grok veya OpenAI ya da Anthropic uyumlu kendi adresiniz), modeli, hedef dili ve çevirinin metnin yerine mi geçeceğini, ondan sonra mı geleceğini yoksa ayrı bir pencerede mi açılacağını seçin. Alınan mesajlar için isteğe bağlı otomatik çeviri: tüm sohbetlerde ya da yalnızca açtıklarınızda, en fazla mesaj yaşı ve günlük sınırla; sağlayıcı anahtarı, kotayı veya krediyi reddederse bir saat duraklar. Kilitli sohbetler hiçbir zaman otomatik çevrilmez ve bunlardaki bir mesajı çevirmek her seferinde onay ister. Çevrim içi yapay zekânın içerik türleri artık aynı sayfadaki "İşlenecek içerik türleri..." penceresindedir. Bir sohbette otomatik çeviriyi açmak artık, yaşı ne olursa olsun, aldığı son 10 mesajı da çevirir; toplu eylemlerdeki "Seçili mesajları çevir" ise onay istedikten sonra seçili metin mesajlarını (50'ye kadar) çevirir. UlisesMilani'nin isteği (#793).
-
-- Neonize: WinZapp'in ne mesajı ne de sohbeti bulunduğu bir mesajın silindiği bildirimi artık sohbet listesinde "Adsız grup" oluşturmuyor. Mevcut sohbetlerinizdeki silinmiş mesajlar değişmez.
-
-- Neonize: telefonun yeniden gönderme isteğinden sonra tekrar yüklediği eski medya artık gerçekten indiriliyor. Daha önce yeniden yüklenen dosya, orijinal dosyanın doğrulamasıyla eşleşmediği için reddediliyor ve medya yine açılmıyordu.
-
-- Çıkışta güncelle: Ayarlar > Genel bölümündeki yeni bir seçenek güncellemeleri sormadan otomatik indirir ve WinZapp'tan çıktığınızda yükler. Pencereyi tepsiye kapatmak çıkış sayılmaz ve WinZapp kurulumdan sonra yeniden açılmaz: kapalı kalır ve yeni sürümü bir sonraki açışınızda kullanır.
-
-- Neonize: eski sohbet geçmişi artık arka plan eşzamanlaması sırasında gerçekten içe aktarılıyor; önceki düzeltme her taramanın sonunda yine geçersiz kalıyordu. Telefona sorulduktan sonra bile kurtarılamayan eski medya dosyaları artık tekrarlanan bir bağlantı hatası yerine süresi dolmuş olarak görünüyor.
-
-- Neonize: bağlantısının süresi dolmuş medya artık telefondan yeniden isteniyor. Bağlantı süresi dolduğu için indirme başarısız olduğunda WinZapp telefondan medyayı yeniden yüklemesini ister ve yeni bağlantıdan indirir; telefonda dosya artık yoksa medya süresi dolmuş olarak işaretli kalır.
-
-- Bilgisayarın saati WhatsApp'ın saatinden geride olduğunda yeni yanıtlar ve gönderilen mesajlar artık özgün mesajın üstünde görünmüyor. Gönderilen mesajın geçici saati, görüntülenen son mesajdan ve yanıtlanan mesajdan hiçbir zaman önce olmaz.
-
-- Neonize: telefonun saatlerce gönderdiği geçmiş artık bloklar arasındaki 45 saniyelik bir duraklamayla tamamlanmış sayılmıyor. Bildirilen ilerleme %100'ün altındayken WinZapp 10 dakikaya kadar sessizlik bekliyor; böylece sohbetler çok erken kesin sayılmıyor.
-
-- İndirilemeyen medya: hata mesajı artık Neonize motorunda bulunmayan WPPConnect'ten söz etmiyor. Bunun yerine bağlantının süresinin dolmuş olabileceğini veya WhatsApp bağlantısının kullanılamıyor olabileceğini söylüyor.
-
-- İşletme şablonları: mevcut metin ve desteklenen düğmeler korunur, düğme sıraları değişmez; eksik içerik ve desteklenmeyen işlemler açıklanır. Boş eski kayıtlar yeniden oluşturulamaz.
-
-- WPPConnect Server 2.10.79 artık yeni bir WinZapp sürümünü beklemeden güncelleme olarak sunuluyor. Yalnızca güvenlik bağımlılıklarını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
-
-- Neonize: "Tüm geçmiş" ile eşleştirdikten sonra eski sohbet geçmişi artık gerçekten içe aktarılıyor. Önceden hiç açmadığınız yüzlerce eski ve boş sohbet içe aktarmayı tıkıyor, indirilmiş mesajların çoğu görünmüyordu. Bağlantısı süresi dolmuş eski medya dosyaları artık hata verip birkaç kez yeniden denenmek yerine süresi dolmuş olarak tanınıyor.
-
-- Bahsetmeler: @tümü içeren bir grup mesajında Tab, sohbet açıldıktan hemen sonra artık her katılımcı için ayrı bir bağlantıdan geçmiyor. Önceden bu, grubun katılımcıları yüklenip mesaj odağı kaybedene kadar oluyordu.
-
-- Yerel yazıya dökme: sesli mesajlar yazıya dökülürken hesap değiştirmek artık bilgisayarın belleğini doldurmuyor. Aynı anda tek model yüklenir: aynı ya da başka bir hesabın ikinci yazıya dökmesi ilkini bekler ve beklediğini söyler, bir hesabın boştaki modeli başka bir hesap ihtiyaç duyduğunda bırakılır.
-
-- Sohbeti temizle (Neonize): WinZapp'te bir sohbeti temizlemek artık telefonda da temizler. Önceden bildirim telefona ulaşmıyor, mesajlar sonraki eşitlemede geri geliyordu.
-
-- Otomatik yazıya dökme: bilgisayar hazırda bekletmeden ya da internetsiz kaldıktan sonra bir anda gelen sesli mesajlar artık yazıya dökülüyor. Bilgisayarın uyuduğu ya da bağlantısız kaldığı süre artık mesajın yaşına sayılmıyor ve kuyruk 100 mesaja kadar tutuyor.
-
-- Yerel yazıya dökme: otomatik yazıya dökme açıkken görünen yeni "…geç gelenleri de yazıya dök" seçeneği, alınan mesajları ne kadar eski olursa olsun yazıya döker.
-
-- Süreli mesajlar (Neonize): Ctrl+Shift+H ile kaydedilen sesler, fotoğraflar, videolar ve belgeler artık sohbetin süreli mesaj ayarına uyuyor.
-
-- Aramalar (Neonize): bir kişiye yaptığınız arama artık kendinizi aramışsınız gibi kendi sohbetinizde görünmüyor.
-
-- Grup mesajları (Neonize): bu bilgisayarın açamadığı bir mesaj artık WhatsApp Web'deki gibi telefonunuzdan da isteniyor. Önceden gönderenin cihazı yeniden göndermezse kayboluyordu.
-
-- Eşleştirme (Neonize): bağlanırken ne kadar geçmiş getirileceğini seçersiniz: yalnızca yeni mesajlar, 30 gün, 6 ay, 1 yıl, tüm geçmiş ya da gün, ay veya yıl olarak özel bir süre. Yaklaşık bir yıldan eski mesajlar yalnızca bu yolla gelir.
-
-- Eski mesajlar (Neonize): Home tuşu, WhatsApp Web'in durduğu yerde bile, telefonda başka mesaj kalmayana kadar daha eski mesajları istemeyi sürdürür.
-
-- Kanallar: bir kanalı takip etme ya da yöneticisi olma davetleri artık sohbette, kanalın adı ve davet edenin sözleriyle görünüyor. Enter kanalı açar.
-
-- Gürültü azaltıcı: Ayarlar, Ses içinde yeni "Gürültü azaltıcı ayarları" penceresi; sinirsel model ve çalıştığı işlemci: bilgisayarınki, CUDA 12 (yerel yazıya dökmenin bileşenlerini kullanır) ya da CUDA 13 ile bir NVIDIA kartı, veya Mac'te Core ML. Yalnızca eksik bileşenler, arka planda indirme seçeneğine uyularak indirilir ve oradan kaldırılabilir. Yeni bir kutu, sinirsel azaltıcı ile daha hızlı olan normal azaltıcı arasında seçim yapar.
-
-- Yerel yazıya dökme (whisper.cpp): Windows ARM64 bilgisayarlarda WinZapp yerel ARM64 sürümünü kullanır ve seçenek olarak CUDA 13'lü NVIDIA kartları için sürümü sunar.
-
-- Kanallar: WhatsApp hesabınıza sunduğunda "Kanalı düzenle..." içinde WhatsApp Web'deki gibi "Yönetici profilini güncellemelerde göster" var (WPPConnect).
-
-- Kanallar: Kanallar penceresindeki "İstatistikleri görüntüle..." yönettiğiniz bir kanalın istatistiklerini WhatsApp Web'in gösterdiği gibi okur (30 gün içindeki erişim, takipçiler, net takipçi, yeni takipçiler ve takibi bırakanlar, takipçiler ve diğerleri ile ülkeye göre), WPPConnect ve Neonize ile. WhatsApp bunları 100 takipçiden itibaren sunar.
-
-- Medya indirme: "Medya indiriliyor: X / Y" artık yalnızca henüz indirilmemiş medyayı sayıyor. Önceden önceki oturumlarda indirilenleri de sayıyordu ve neredeyse hiçbir şey inmemiş gibi görünüyordu (örneğin "723 / 728 işlendi (66 indirildi)", oysa diğer 659 zaten bilgisayardaydı).
-
-- Kanallar: "Kanal oluştur..." ve "Kanalı düzenle..." içinde Tepkiler seçeneği, takipçilerin güncellemelere nasıl tepki verebileceğini belirler (herhangi bir emoji, yalnızca varsayılan emojiler veya tepki yok), WhatsApp Web'deki gibi, WPPConnect ve Neonize ile.
-
-- Yıldızlı mesajlar: yeni bir pencere tüm sohbetlerdeki tüm yıldızlı mesajları gösteriyor (Alt+0 veya gezinme listesindeki "Yıldızlı mesajlar" satırı), bir arama alanıyla; Enter sohbeti mesajda açar, Delete yıldızı kaldırır. #708 numaralı önerinin karşılığı.
-
-- Ayarlar > Kullanıcı Arayüzü > Sohbetler: yeni "Mesaj listesinde otomatik odaklanan konum" seçeneği. "Kaldığınız yerden devam edin (son odaklanılan mesaj)" seçildiğinde, bir sohbete döndüğünüzde (bir sohbetten diğerine geçerken de) mesaj listesi, yeni okunmamış mesaj gelmiş olsun ya da olmasın, çıktığınızda bulunduğunuz mesajda olur. Okunmamış ayırıcısı ve mesaj olmayan diğer satırlar konum sayılmaz. Varsayılan yine "Okunmamış ayırıcısı veya son mesaj" seçeneğidir. Seçenek yalnızca listedeki mesajı belirler: odağın listeye mi yoksa mesaj alanına mı gideceğine hâlâ mevcut seçenek karar verir.
-
-- Yer işaretleri: Ayarlar > Kullanıcı Arayüzü > Sohbetler altında iki yeni onay kutusu, "Kalıcı yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır" ve "Geçici yer işaretlerini ilk kullanımdan sonra otomatik olarak kaldır". İşaretliyken bir yer işaretine gitmek (kalıcılar için Ctrl+0-9, geçiciler için Alt+Shift+0-9) onu hemen kaldırır; böylece aynı tuş bir dahaki sefere, Ctrl+Shift+rakam ile kaldırmaya gerek kalmadan yeni bir yer işareti oluşturur.
-
-- Sesler: Ayarlar, Sesler bölümündeki iki yeni seçenek, WinZapp ön plandayken yeni bir mesajın hangi sesi çalacağını seçmenizi sağlar; biri açık sohbet, diğeri diğer sohbetler içindir. Her biri eskisi gibi ön plana özel sesi koruyabilir veya arka plandaki mesajlar için seçtiğiniz bildirim sesini kullanabilir.
-
-- WhatsApp bağlantıları: WinZapp artık sohbet bağlantılarını açıyor. Bir wa.me veya api.whatsapp.com bağlantısı (örneğin bir havayolu şirketinden, bir mağazadan ya da bir web sitesinden), rehberinizde olmasa bile o numarayla sohbeti açar, bağlantıdaki mesajı mesaj alanına yazar ve odağı orada bırakır; mesajı gözden geçirip gönderebilirsiniz. Yalnızca numara içeren bağlantılar da çalışır. Yüklü sürüm artık ilk açılışında WhatsApp bağlantıları için kendini kaydeder, bu yüzden WinZapp Windows'un Varsayılan uygulamalar bölümünde görünür; taşınabilir sürümde seçenek Ayarlar, Genel bölümünde kalır.
-
-- Hesap yöneticisi: yeni "WinZapp başladığında tüm hesaplara bağlan" onay kutusu. Açıkken WinZapp başlatıldığında eşleştirilmiş diğer tüm hesaplar da arka planda açılır.
-
-- Yedekleme: profil yedeği (Ayarlar > Depolama ve depolama yöneticisinde), tarayıcı profili olmayan Neonize motoruyla çalışırken artık gösterilmez.
-
-- Mesajlar: hatalı alternatif kimlik eşlemeleri, başka biriyle gönderip aldığınız mesajları artık kendinizle sohbetinize yönlendirmiyor. Geçersiz eşlemeler kullanılmıyor; kimliği henüz çözülemeyen mesajlar özgün sohbetinde tutuluyor.
-
-- Okunmamış filtresi: programı güncelledikten veya yeniden başlattıktan sonra okunmamış mesajı olan bazı sohbetler, F5 ile yeniden eşitleyene kadar filtreden kayboluyordu (örneğin 12 sohbet 9'a düşüyordu). Sayım artık sohbetin en eski mesajlarına değil, en yeni mesajlarına bakıyor. Son kayıtları grup bildirimleri (davetler, eklenen üyeler, açıklama değişikliği) olan grup sohbetleri de artık kaybolmuyor: bu bildirimler artık gerçek okunmamış mesajların yerini almıyor.
-
-- Alt+harf kısayolları: birkaç pencerede iki denetim aynı harfi kullanıyordu ve Alt+harf yalnızca aralarında geçiş yapıyordu. Artık bir penceredeki her denetimin kendi harfi var, tüm dillerde.
-
-- Sohbet listesi: seçilen filtre (Okunmamış, Gruplar, Bireysel), bir WhatsApp listesi veya arama hiç sohbet bulamadığında liste artık bunu söyleyen bir satır gösterir (örneğin "Okunmamış sohbet yok."); mesaj listesi boş bir sohbette bunu zaten yapıyordu. Önceden ekran okuyucunun okuyacak hiçbir şeyi olmuyordu.
-
-- Grup aramaları: WinZapp artık aramaya kimin katıldığını ve kimin ayrıldığını söylüyor (Ayarlar > Aramalar, "Biri aramaya katıldığında duyur" ve "Biri aramadan ayrıldığında duyur", varsayılan olarak açık) ve "Arama katılımcıları" penceresi bu anlarda Yenile düğmesi olmadan kendiliğinden güncelleniyor; F5 listeyi yeniden okur.
-
-- Genel kısayol: WinZapp'ın yanıt bekleyen bir penceresi açıkken, örneğin program sistem tepsisindeyken açık kalan güncelleme uyarısı, genel kısayol artık o pencereyi öne getiriyor. Önceden ana pencere açılıyor ve hiçbir şeye yanıt vermiyordu.
-
-- Yapay zekâ ile görsel açıklama: sağlayıcı hesabında kredi bittiğinde (OpenRouter 402 yanıtı verir) WinZapp artık bunu söylüyor ve model kimliğini kontrol etmeyi istemek yerine kredi eklemeyi veya ücretsiz bir model seçmeyi öneriyor; birden çok sağlayıcı varsa sonrakine geçiyor.
-
-- Bilgisayar sesiyle kayıt: yavaş bilgisayarlarda mikrofonu bilgisayar sesiyle birlikte kaydetmek (Ctrl+Shift+H) kesiliyor ve takılıyordu, NVDA'nın konuşması ayrı kaydedildiğinde daha da kötüsü; çünkü seslerin karıştırılması yetişemiyor ve kaydın parçaları kayboluyordu. Karıştırma artık kat kat daha hızlı ve kayıt eksiksiz çıkıyor.
-
-- Kanallar: WPPConnect'te yönettiğiniz bir kanalda paylaşım (metin, fotoğraf, video veya anket) WhatsApp'a ulaşmadan başarısız oluyordu ve açılan bir kanal yalnızca WhatsApp Web'de zaten olanı gösteriyordu; çoğu zaman hiç güncelleme yoktu (örneğin The New York Times) ve kendi yeni paylaşımlarınız da yoktu. Artık paylaşımlar gidiyor ve kanal, WhatsApp sunucusundan okunan en yeni güncellemelerin tam bir sayfasıyla açılıyor. Bir kanaldan Esc ile dönünce Kanallar penceresi bıraktığınız gibi: aynı liste, arama, kategori ve seçili kanal.
-
-- Güncellemeler: meşgul bir bilgisayarda güncelleme "WinZapp güncellemenin güvenle kurulabileceğini doğrulayamadı. Kurulum başlatılmadı." iletisiyle durabiliyordu, çünkü kurulumu koruyan PowerShell 15 saniyeden uzun sürede başlıyordu; artık bir dakikaya kadar süresi var. Neonize ile güncelleme yarıda da kalabiliyordu, köprü arka planda kapanmaya devam edip dosyasını açık tuttuğu için: kurulum programı artık dosyaları kopyalamadan önce onun kapanmasını bekliyor, gerekirse kapatıyor.
-
-- Neonize ile kanallar: bir kanalı açmak veya eşitlemek WhatsApp'tan bir kerede bin güncelleme istiyordu; sunucu yanıt vermiyor, kanal boş kalıyor ve eşitleme her 30 saniyede bir yeniden deniyordu. Artık güncellemeler WhatsApp Web'in yaptığı gibi 100'er 100'er isteniyor.
-
-- Mesaj listesi: Brezilya (ABNT2) klavyesinde mesaj listesinde "/" tuşuna basmak mesaj alanına "Á" yazıyordu ve "ç" "º" olarak çıkıyordu. Artık listede yazdıklarınız alana klavyenin gerçekten yazdığı gibi gidiyor, noktalama işaretleri ise listede kalıyor. Aynı nedenle, NVDA'nın Windows tuşlu hareketlerinin alana bıraktığı "ÿ", NVDA'nın kendisinin gönderdiği bir tuştan geliyordu; artık yalnızca o tuş yok sayılıyor ve gerçek bir "ÿ" yazılabiliyor.
-
-- Aramalar: «Katılımcı ekle» penceresi artık ekran okuyucuyla çalışıyor. Kişiler, konuşma ve mesaj listelerindeki aynı tuşlar, ses ve duyurularla işaretlenir (Ctrl+Boşluk, bir şey işaretliyken Boşluk, Shift+oklar, Ctrl+Shift+Boşluk, Esc) ve sonuç sesli okunur: kimin davet edildiği, kimin eklenemediği veya isteğin neden başarısız olduğu.
-
-- Aramalar: geciken medya ile ses aygıtı ve kamera işleri, ait oldukları arama ve akışla sınırlanır. Neonize medyayı sunucunun olay döngüsü dışında sınırlı kuyruklarda işler; geçici bir iletim hatası ses okuyucusunu durdurmaz. Belirsiz WASAPI adlarında ilk eşleşen aygıt artık rastgele seçilmez. Neonize arama günlüklerine, sessizliğin nedenini araştırmaya yardımcı olan ve ses içeriğini saklamayan sinyal düzeyi özetleri de eklendi. Aramanın ses çıkışı yeniden açıldığında kapanamayan eski akış yeni akışın sesini tüketemez; yankı referansındaki hata da çalınmaya hazırlanan sesi susturmaz.
-
-- Sohbet ve grupların Medya sekmesi: Bir belge, fotoğraf, video veya sesin üzerinde Ctrl+C artık "Bu mesaj kopyalanamadı" demek yerine, mesaj listesindeki gibi dosyayı panoya kopyalıyor. Bağlam menüsü öğesi de artık "Dosyayı kopyala".
-
-- Aç düğmesi artık belgeleri, fotoğrafları, videoları ve diğer dosyaları harici görüntüleyicide "tmpab12cd34" gibi bir ad yerine gerçek adıyla açıyor; Farklı kaydet zaten böyle yapıyordu.
-
-- Ayarlar > Genel > Bildirimler bölümüne "Toast bildirimlerinde grup iletilerinin sırası:" eklendi: "Önce katılımcı adı" (varsayılan, eskisi gibi: "Gustavo (WinZapp | Geliştiriciler ve Test Edenler)") ve "Önce grup adı" (resmî WhatsApp Desktop'taki gibi: "WinZapp | Geliştiriciler ve Test Edenler, Gustavo"). Seçim yalnızca toast bildirimlerinin metnini değiştirir; pencere etkinken ekran okuyucunun duyurduğu şey aynı kalır.
-
-- WinZapp bir iki saniye takıldığında (yavaş veya meşgul bilgisayar) bilgisayar sesinin kaydı artık "ses aygıtı sorunu" ile durmuyor: o andaki ses atlanıyor, kayıt devam ediyor ve geri kalanı senkron kalıyor.
-
-- Neonize: Gizlilik'te okundu bilgisi kapalıyken, bire bir sohbetlerde gönderdiğiniz mesajların "okundu" durumunu artık görmezsiniz; başkalarına da okundu bilgisi göndermezsiniz (WPPConnect'teki gibi). Ayar artık iki yönde de geçerlidir.
-
-- ClickBus: doğrulanmış işletme adları sohbet listesinde görünür, yolculuk metinleri ve etkileşimli düğmeler tam gösterilir ve karusel içinde seçilen seçenek kart dizini ile gönderilir.
-
-- Ayarlar > Depolama bölümüne Depolama yöneticisi eklendi: mantıksal boyutları ve kapsamı inceleyin, medya eşlemesini ve korumaları seçin, yerel kopya kaldırmayı veya geri alınabilir bekletmeyi önizleyin, bekletilen dosyaları geri alın; isteğe bağlı kuralları, bildirimleri ve kullanım hedeflerini yönetin. Otomatik kaldırma yalnız doğrulanmış, yeniden üretilebilir derleme önbelleğine açıktır; zamanlama varsayılan olarak kapalıdır. Temizlenmiş medya, otomatik indirme engelleri kaldırılmadan tek tek istenebilir.
-
-- Neonize aramaları: yerel çağrı kaydı oluşturulmadan gelen cevaplama ve bitiş durumları korunur; grup araması hataları WhatsApp hız sınırı ile desteklenen üye sınırlarını ayrı bildirir.
-
-- Neonize aramaları: günlük artık röle (relay) uç noktalarını ve rölenin yanıtlarını kaydediyor; gelen bir aramada karşı tarafın sesinin neden gelmeyebileceğini bulmak için (sorun #689). Davranış değişmedi.
-
-- Neonize grup aramaları: başlattığınız bir grup aramasına bir grup üyesi katıldığında arama etkin olur ve ses başlar; artık mikrofon yok sayılarak "aranıyor" durumunda kalmaz. Aramanın bitişi artık üyelerden biriyle özel bir sohbette değil, grupta ve arama geçmişinizde kaydedilir (sorun #689).
-
-- Neonize grup aramaları: bir grup aramasına davet grup adı olmadan geldiğinde program sunucuya hangi grup olduğunu sorar; böylece devam eden arama, katılabilmeniz için grubun sohbetinde görünür (sorun #689).
-
-- Neonize grup aramaları: günlük artık sunucunun gönderdiği katılımcı listelerinin içeriğini kaydediyor (yalnızca sayılar, isim yok); böylece bir aramaya katılan bazı kişilerin neden kimseyi duyamadığı anlaşılabilir (sorun #689). Davranış değişikliği yok.
-
-- Neonize grup aramaları: aramaya bağlı bir cihaz, katılırken aldığı kimliği sunucunun sonraki güncellemesinde kaybetmek yerine artık koruyor. Neonize ile yanıtlayan kişi artık yalnızca aramayı başlatanı değil, diğer katılımcıları da duyuyor (sorun #689).
-
-- Neonize aramaları: yaptığınız aramalar ile yanıtlayıp kendinizin kapattığı aramalar artık konuşma geçmişinde ve Aramalar bölümünde görünüyor. Daha önce hiç kaydedilmiyorlardı (sorun #689).
-
-- Neonize aramaları: günlük artık her 5 saniyede röleden gelen paketleri türlerine göre sayıyor (isim yok); bazı gelen aramalarda arayanın sesinin neden kesildiğini anlamak için (sorun #689). Davranış değişmedi.
-
-- Neonize grup aramaları: bir grup aramasını kapatıp arama panelinden tekrar girdiğinizde (ya da süren bir aramaya katıldığınızda) artık kimseyi duymama sorunu giderildi. WinZapp, siz dönmeden önce aramada olan kişileri yok sayıyordu; şimdi onları yeniden duyuyor. Arama günlüğü ayrıca tekrarlanan mesajları arama başına sayıyor; böylece birkaç aramadan sonra tanı satırları bir aramadan kaybolmuyor (sorun #689).
-
-- Neonize: yeni bir konuşmada (Ctrl+N) yazılan yeni bir telefon numarasına giden ilk mesaj, WhatsApp numarayı diğer biçimiyle (Brezilya cep numaralarında 9. rakamlı ya da rakamsız) kayıtlı tuttuğunda artık "onaylanmadı" olarak bitmiyor: mesaj artık WhatsApp'ın bildiği adrese gönderiliyor. Ayrıca yeni bir konuşmada yazılan numara artık sohbeti WhatsApp'ın bildiği adresle açar; böylece yinelenen bir sohbet kalmaz.
-
-- Sesli mesajlar: kayıt bit hızı yeniden 64 kbps oldu; bir dakikadan uzun kayıtlar da hızlı gönderilir (256 kbps'ye geçiş gönderimi yavaşlatmıştı). Ayarlar > Ses bölümüne 32 ile 256 kbps arasında seçim yapılan "Sesli mesaj bit hızı (kbps)" eklendi.
-- Sesli mesajlar: stereo (AAC) kayıtlar artık varsayılan olarak 128 kbps ile gönderiliyor, çünkü 64 kbps sesi kötü yapıyordu; mono kayıtlar 64 kbps olarak kalıyor. Ayarlar > Ses bölümüne "Stereo sesli mesaj bit hızı (kbps)" eklendi. Hâlâ eski varsayılan 64 kbps üzerinde olanlar stereo için 128 kbps'ye geçer; seçtiğiniz başka bir hız korunur.
-
-- Ayarlar > Kullanıcı Arayüzü > Sohbetler: ekran okuyucunun yeni mesaj sayısını sohbet adından sonra değil önce söylemesi için yeni "Sohbet listesindeki yeni mesaj sayısı" seçeneği. Sohbet listesi, arşivlenmiş ve kilitli sohbetler için geçerlidir. (Michal Suchý'nin önerisi)
-
-- Yeni Kanallar penceresi (Alt+9, gezinti listesinde de var): takip ettiğiniz kanalları gösterir ya da WhatsApp kanal dizininde arama yapar (metin yazılmazsa önerilen kanallar görünür). Seçilen kanalı açıp güncellemelerini okuyabilir, takip edebilir ya da takibi bırakabilir, bildirimlerini sessize alabilir ya da açabilir, bağlantısını kopyalayabilir ve kendi kanallarınızda düzenleyebilir ya da silebilirsiniz. Bir kanalı bağlantısından takip edebilir ve kanal oluşturabilirsiniz. Kanalları sohbet listesinde göstermek ayrı bir ayar olarak kalır. WPPConnect ve Neonize ile çalışır.
-- WhatsApp Web'deki gibi kanallar: "Kanal bul" bölümünde Kategori (işletme, eğlence, yaşam tarzı, haberler, kuruluşlar, kişiler, spor) ve Görünüm (önerilenler, gündemdekiler, popüler, yeni) dizini daraltır. Yönettiğiniz kanallarda mesaj alanı metin güncellemeleri, fotoğraf, video ve anket paylaşmak için açılır, kendi güncellemeleriniz WhatsApp'ın izin verdiği süre içinde mesaj menüsünden (Alt+E) düzenlenebilir, bir güncelleme mesaj menüsünden (Ctrl+Shift+P) sabitlenebilir veya sabitlemesi kaldırılabilir ve sabitlenenler "Sabitlenen mesajlar" içinde görünür; "Yöneticiler ve takipçiler..." düğmesi kanalın kaç yöneticisi olduğunu söyler ve kanal sahibi için bir kişiyi yönetici olmaya davet eder veya daveti iptal eder. WPPConnect ve Neonize ile çalışır. Bu pencere sahibi, yöneticileri, bekleyen davetleri ve takipçileri listeler: sahip bir takipçiyi yönetici yapabilir, bir daveti iptal edebilir, bir yöneticiyi kaldırabilir veya bir yöneticiyi sahip yapabilir; bir yönetici de yöneticilikten ayrılabilir.
-
-- Aramalar: artık aramanın katılımcı listesindeki "Katılımcı ekle" düğmesiyle devam eden aramaya kişi ekleyebilirsiniz. Grup aramasında grubun henüz aramada olmayan üyeleri, özel aramada ise kişileriniz görünür ve arama, WhatsApp'ta olduğu gibi birkaç kişilik bir aramaya dönüşür. Daha önce aranıp henüz katılmamış kişi yeniden aranır. WPPConnect ve Neonize ile çalışır.
-
-- Deneysel Neonize motoru 0.6.0 sürümünden 0.12.4 sürümüne güncellendi. Telefonda silinen bir sohbet artık WinZapp'ten de kaybolur ve telefonda bir sohbeti okundu ya da okunmadı olarak işaretlemek okunmamış sayacını yeniden günceller. Bir kişinin Hakkında bilgisi artık kişi değiştirir değiştirmez güncellenir.
-- Neonize: topluluk duyuru gruplarında verilen ve şifreli gelen tepkiler artık görünüyor, sizinkiler de bu gruplarda şifreli gönderiliyor. Duyurulara yapılan yorumlar artık motorun kendisi tarafından açılıp gönderiliyor; önceki yöntem yedek olarak kalıyor.
-
-- WPPConnect Server 2.10.78 sürümüne güncellendi; özel medya önbelleğini HTTP üzerinden sunmayı bırakır.
-
-- WPPConnect Server 2.10.75 sürümüne güncellendi; kimlik doğrulaması olmadan istek kabul eden bir Chatwoot webhook'unu düzeltir ve glob ile minimatch kütüphanelerindeki bir güvenlik açığını yamalar.
-
-- WhatsApp ayarları > Gizlilik: WhatsApp'ın kendi seçeneği olan yeni "Sohbetleri arşivde tut", yeni mesaj geldiğinde arşivlenmiş sohbetin listeye dönüp dönmeyeceğini belirler. WPPConnect ve Neonize ile çalışır.
-
-- Neonize: WhatsApp'ın "Sohbetleri arşivde tut" seçeneği kapalıyken yeni mesaj alan arşivlenmiş bir sohbet artık telefonda olduğu gibi sohbet listesine geri döner; önceden Arşivlenmiş bölümünde kalıyordu.
-
-- Sesli mesajlar: Otomatik modda, sol veya sağ girişi tamamen sessiz olan kayıt artık sesin olduğu girişten mono olarak gönderilir; böylece sesiniz tek taraftan değil iki taraftan duyulur. Mono ve Stereo tam olarak adlarının söylediğini yapar.
-
-- Ayarlar (Ctrl+,) artık hemen açılır: pencere açılırken yalnızca Genel sayfası oluşturulur, diğer her sayfa veya pencere ona ilk gittiğinizde oluşturulur. Arama baştan çalışır: diğer sayfalar yüklenirken sonuçlar gelmeye devam eder, yazmayı sürdürebilirsiniz ve sonuç listesi büyüdüğünde ekran okuyucu kesilmez.
-
-- Neonize: bir sohbeti okumak artık onu telefonda ve WhatsApp Web'de WhatsApp'ın kendi uygulamalarının yaptığı gibi okundu olarak işaretler. Önceden, Neonize'da okunan çok sayıda sohbetten sonra WhatsApp Web, zaten okuduğunuz mesajları birkaç dakika boyunca okunmamış gösterebiliyordu.
-
-- Neonize: özel sohbetlerdeki mesajlar, sohbet açık değilken artık kendiliğinden okundu olarak işaretlenmez.
-
-- Neonize: sohbet listesindeki kanallar (gösterme seçeneği açıkken) artık bir kod yerine adlarıyla görünür.
-
-- Neonize: büyük gruplara gönderim daha hızlı: grubun şifreleme anahtarı artık her mesajda her üyenin aygıtına değil, yalnızca onu henüz almamış aygıtlara gider.
-
-- Neonize: Meta AI'ya mesajlar çalışıyor. Hesap Meta AI koşullarını henüz kabul etmediyse WinZapp kabul etmenizi ister ve Meta AI'nın yanıtları bilinmeyen bir mesaj yerine metin olarak gösterilir.
-
-- Neonize: durum paylaşmak (metin, resim, video veya ses) artık "server returned error 400" hatasıyla başarısız olmuyor. Bu, süreli mesaj içeren sohbetlerde ve herhangi bir hesapta telefon, WhatsApp'ın yeni kimliğiyle kaydedilmiş bir kişiyi eşitledikten sonra oluyordu.
-
-- Neonize: WinZapp artık bir sohbetin eski mesajlarını, WhatsApp Web'in önceki mesajları görmek için tıklandığında yaptığı gibi telefondan istiyor. Önceden bir sohbette yalnızca cihaz bağlandığında gelenler vardı ve yeniden eşitleme başka bir şey getirmiyordu.
-
-- WinZapp'ın zaten bildiği bir mesaj artık "Bu mesaj bekleniyor" durumuna dönmüyor. Neonize'den WPPConnect'e geçerken, yeni gönderdiğiniz bir mesaj F5'ten veya WinZapp'ı yeniden açtıktan sonra bile böyle görünebiliyordu.
-
-- Bahsetmeler: bahsetme öneri listesinde emoji yazmak artık gönderimi bozmuyor. Önceden mesaj bir sunucu hatasıyla gönderilemeyebiliyordu.
-
-- Gruplar: yalnızca yöneticilerin mesaj gönderebildiği bir grupta mesaj alanı artık Neonize'da da üyeler için salt okunurdur; önceden bu grupların çoğunda düzenlenebilir kalıyordu.
-
-- Klavye kısayolları: F1 listesinde eylem adları düzeltildi, aynı bölümde yinelenen satırlar kaldırıldı ve yazarken çıkan bahsetme önerileri mesaj içindeki bahsetmelerden ayrıldı. İspanyolca ve Portekiz Portekizcesinde Alt+P mesaj alanına odaklanır; Alt+E mesaj düzenlemek için kullanılır.
-
-- Sesli mesajlar: Ayarlar > Ses bölümüne Otomatik, Mono ve Stereo kayıt seçimi eklendi. Mono, iki mikrofon girişini birleştirir; yalnız sol veya sağ girişe bağlı mikrofonun sesi iki taraftan da duyulur. Tek kayıt düğmesi korunur; seçim sonraki kayıttan itibaren uygulanır.
-
-- Düzeltildi: WPPConnect sunucusu, bir güncelleme veya yeni kurulumdan sonra artık "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") hatasıyla başlatılamaz hale gelmiyor.
-
-- Neonize: bir görüşme sırasında internet kesilirse yine de görüşmeyi kapatabilirsiniz; önceden düğme "Disconnected" hatasıyla başarısız oluyordu.
-
-- WPPConnect Server 2.10.74 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca belgeleri ve bir güvenlik bağımlılığını günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
-
-- Neonize: ilettiğin bir dosya veya mesaj artık hedef sohbette hemen görünüyor; sohbeti elle yenilemen gerekmiyor.
-
-- Mac: güncelleme denetimi, python.org Python'u olmayan Mac'lerde artık güvenli bağlantı hatasıyla başarısız olmuyor. Zaten kurulu sürümlerin bu düzeltmeyi alması için bir kez elle kurulum gerekir.
-
-- Gruplar: biri yazarken WinZapp artık, kişiden daha önce bir mesaj gördüysen, kişi rehberinde olmasa bile yalnızca telefon numarasını değil adını söylüyor.
-
-- Mac: macOS 14.4 ve sonrasında artık mikrofonu bilgisayar sesiyle birlikte kaydedebilirsiniz (Command+Shift+H). İlk seferde macOS sistem sesini kaydetmek için izin ister.
-
-- Gruplar: WinZapp artık sizi bağlantılı kimliğinizle (@lid) listeleyen gruplarda tanıyor; böylece yöneticiler Üye ekle seçeneğini devre dışı görmüyor.
-
-- Neonize aramaları: yaptığınız ve kimsenin açmadığı bir arama, WhatsApp diğer telefonu çaldırmayı bıraktıktan sonra dakikalarca arama penceresinde çalmaya devam etmek yerine, artık bir dakika sonra "cevapsız" sonucuyla kendiliğinden sona eriyor.
-- Mac: WinZapp artık macOS mikrofon iznini beklerken veya izin reddedildiğinde bunu söylüyor; kayıt düğmesi hiçbir şey yapmıyormuş gibi görünmüyor.
-
-- Sesli mesajlar: artık tek bir kayıt düğmesi var. WinZapp, giriş aygıtı iki kanal sunduğunda stereo, diğer durumlarda mono kaydeder; bu nedenle ikinci düğme, Ctrl+Shift+G ve stereo seçeneği kaldırıldı. Stereo kayıt artık iPhone'da çalan gerçek bir sesli mesajdır ve kalite 256 kbps'ye yükseldi. Eklenen stereo Opus dosyası artık iPhone'da da çalması için dönüştürülüyor.
-
-- Eklenen kişiler: alınan bir kişi artık boş ve telefon numarasız gelmiyor. Kişi kartı artık hem WPPConnect hem de Neonize tarafından korunuyor; böylece numarayı görebilir, kopyalayabilir ve kişiyle sohbet edebilirsiniz.
-
-- Neonize: takip ettiğiniz kanalların gönderileri (120363 ile başlayan kimlikler) artık sohbet ve mesaj olarak görünmüyor.
-
-- Eşleştirme: başarılı bir bağlantıdan sonra telefon uygulamayı bağlı olarak gösterirken uygulamanın eşleştirme ekranında kalması düzeltildi.
-
-- Neonize aramaları: Opus seçilen aramalar için varsayılan kapalı deneysel 48 kHz PCM ses yolu eklendi; biçim ve arama nesli denetleniyor. Normal modda mevcut MLow geri dönüşü korunuyor.
-
-- Okundu veya okunmadı olarak işaretleme, sessize alma, arşivleme ve sabitleme artık sesli onay veriyor. Sohbet listesi alınırken tekrarlanan hata, her deneme için ayrı kutu yerine tek kutu gösterir. Mac'te WinZapp bilgisayarın uyandığını fark edip yeniden bağlanır; Home ve End listelerin başına ve sonuna götürür. Oturum sürdürülemediğinde aynı numarayı yeniden eşleştirmek artık geçmişi silmez.
-
-- README artık Windows ve Mac için doğrudan indirme bağlantılarıyla başlıyor; doğru dosyayı Releases sayfasında aramanız gerekmiyor.
-
-- Arapça: sesli mesajların ve seslerin yazıya dökülmesi artık menülerde, ayarlarda ve iletilerde «تسجيل» (kayıt) yerine «تفريغ» (yazıya dökme) sözcüğünü kullanıyor; böylece sesinizi kaydediyormuş gibi görünmüyor.
-
-- Bir güncellemeyi kabul ettiğinizde WinZapp, indirmeden önce en son sürümün hangisi olduğunu yeniden denetler; böylece alfa sürümleri art arda yayımlandığında en yeniden daha eski bir alfa kurulmaz.
-
-- Neonize aramaları: yanıtlanan gelen aramanın sessiz kalmasına yol açabilen bir yarış düzeltildi, alınan çoklu ses kareleri korundu ve mikrofon dönüşümündeki aliasing azaltıldı. Ses artık müzakere edilen codec’i kullanıyor; paket sıralama ve kayıp işleme sınırlı tutuluyor.
-
-- WPPConnect Server 2.10.71 sürümüne güncellendi; tarayıcı katmanının kullandığı bir kütüphanedeki (deepmerge) güvenlik açığı için düzeltme ekliyor ve sunucu başlarken bunu yüklüyor.
-
-- Hızlı sohbetler: Ctrl+Alt+Shift+F1–F10 bir sohbet atar, Ctrl+Shift+aynı işlev tuşu ise pencerenin herhangi bir yerinden açar (F10, 0 numaralı konumdur). Atamalar her hesap için ayrıdır, kısayollar Ayarlar'dan değiştirilebilir ve yer işareti kısayolları korunur.
-
-- Arapça artık Ayarlar > Genel > Dil bölümünde ve Windows yükleyicisi ile kaldırma programında kullanılabilir.
-
-- WPPConnect Server 2.10.70 sürümüne güncellendi; yönetim rotaları (oturumları listelemek ve yedeklemek artık gizli anahtarı adreste değil bir başlıkta istiyor), oturumdan çıkarken sildiği oturum klasörleri ve kişi listelerinin ayrıştırılma biçimi sıkılaştırıldı. Özel API ile kapanırken yapılan oturum temizliği bu değişikliğe uyarlandı.
-
-- Çalan ve yanıtlanmayan bir grup araması artık kendi grubuna kaydediliyor ve arama bildirimi grubu gösteriyor: aramayı başlatan kişiden gelen özel bir arama gibi görünmüyor.
-
-- Yeni bağlantı motoru, deneysel: Neonize, WhatsApp'a tarayıcı olmadan, yerel bir köprü üzerinden bağlanır. Ayarlar, Bağlantı bölümünden (veya ilk açılıştaki soruda) seçin ve WinZapp'ı yeniden başlatın; WPPConnect varsayılan olarak kalır. Derlenmiş sürümler köprüyü zaten içerir ve WPPConnect'i yanında kurulu tutar; bir depo kopyasından köprüyü neonize_bridge/prepare.py ile hazırlayın (o klasördeki README'ye bakın). Güncellemeden sonraki ilk açılışta WPPConnect kullanan kişiye geçişi öneren tek seferlik bir bildirim gösterilir; her motor kendi bağlantısını korur, bu yüzden geçip geri dönmek hiçbirini kaybettirmez. Neonize ile özel sohbet listeleri, bir topluluğun gruplarına katılma (veya katılma isteği gönderme) ve bu isteği iptal etme, bir topluluğu devre dışı bırakma, kanallarınızı düzenleme ve silme, durumunuzu kimlerin göreceğini seçme ve bir kişiyi kaldırma da çalışır. Neonize ile kataloglar, sepetler ve siparişler de çalışır (bir işletmenin kataloğunu görme, sepet doldurup gönderme ve Business hesabında siparişleri yanıtlama ile kendi kataloğunu yönetme); mesajlardaki düğmeler, listeler ve Pix anahtarları da öyle. Konumları ve kişi kartlarını iletmek de Neonize ile çalışır. Görüntülü aramalar, sesli bir aramayı görüntülü aramaya çevirme ve grup aramaları da Neonize ile çalışır. Neonize ile bir topluluk, üyesi olmadığınız grupları da listeler. Neonize ile devam eden grup aramaları da bulunabilir, bunlara katılınabilir ve aramada kimlerin olduğu görülebilir. Sohbetlerdeki arama düğmeleri, devam eden grup aramasına katılma düğmesi dahil, Neonize'ın bildirdiği desteğe göre gösterilir ve yanıt geldiğinde kendiliğinden güncellenir; başka pencereden odak alınmaz, gizli sohbete odak taşınmaz. Kişiler eşitlenirken alınan profil adları, özel sohbeti olmayan grup katılımcıları için de kullanılır; rehbere kaydedilen adlar öncelikli kalır.
-
-- Bağlı kişileri adlarıyla görmek için arama penceresindeki veya Aramalar bölümünde seçili devam eden aramadaki Arama katılımcıları düğmesini kullanın.
-
-- Mistral çevrimiçi ses dökümü, görüntü açıklamaları ve PDF metni çıkarma için kullanılabilir. Ses için sağlayıcı penceresinde seçilen sesli mesaj modeli (varsayılan olarak Voxtral Mini Transcribe 3, isteğe bağlı olarak Voxtral Small Transcribe 3; ikisi de önizlemede), fotoğraflar, çıkartmalar ve video kareleri için seçilen görüntü modeli (varsayılan Ministral 3 3B), PDF için Mistral OCR kullanılır. Listede uyumlu görüntü modelleri gösterilir. WinZapp, Mistral'e medya göndermeden önce ücretsiz planın istekleri eğitim için kullanabileceği konusunda uyarır.
-
-- Grup sohbetlerinde kullanılabilir bir arama varken "Devam eden sesli aramaya katıl" veya "Devam eden görüntülü aramaya katıl (kamera kapalı)" düğmesi arama başlatma düğmelerinin yerini alır. Aramalar, grup dışındaki çok kişili aramalar dahil devam eden aramaları Tümü ve Devam eden filtrelerinde gösterir. Görüntülü aramaya katılırken kamera kapalı başlar.
-
-- Art arda gelen çok sayıda kişi durumu güncellemesi (yazıyor, çevrimiçi) artık WinZapp'i saniyelerce dondurmuyor ve çok sohbetli hesaplarda bilgisayarın tamamını yavaşlatmıyor.
-- Kişi durumu: yeni kişi adları öğrenilirken arayüz artık veritabanı kaydını beklemiyor. Bekleyen ad güncellemeleri son tam kopyada birleştiriliyor; kapanış ve yerel veri temizleme sırasında kayıt sırası korunuyor.
-
-- Kişi durumu: çok sayıda çevrimiçi veya yazıyor güncellemesi geldiğinde arayüzde yinelenen işler azaltıldı. Değişmeyen pencere başlığı ve arşivli sohbet etiketi yeniden yazılmıyor; yazıyor bildirimlerinin zamanlaması korunuyor.
-
-- Sohbet listeleri (sohbetler, arşivlenenler ve kilitli sohbetler) artık listenin tüm genişliğini kullanıyor; böylece pencere genişken sohbet adları ve mesaj önizlemeleri çok daha az kesiliyor.
-
-- WinZapp veya WPPConnect güncellenirken bilgisayarın tamamı artık işlemin ortasında donmuyor. Kurulum ve derleme adımları artık daha düşük öncelikle çalışıyor, bu yüzden ekran okuyucu kesintisiz konuşmaya devam ediyor.
-
-- WPPConnect Server 2.10.63 sürümüne, WPPConnect 2.3.6 ve WA-JS 4.7.2 ile birlikte güncellendi. WinZapp'ın kullandığı tarayıcı, bir oturum kapandığında veya başlatılamadığında artık daha eksiksiz serbest bırakılıyor, geri yüklenen oturum daha erken oturum açmış sayılıyor ve telefonun bağlantısının kesilmesi yalnızca gerçek bir eşleşme kaldırmadan sonra bildiriliyor.
-
-- Özel sohbetlerde WhatsApp kişiyi çevrim dışı bildirse de yazıyor ve ses kaydediyor bilgileri korunur. Bu etkinlikler çevrim içi görünürlükten ayrı gösterilir; yenilenmediklerinde süreleri dolar. Etkinlik, gerçekleştiği sohbete aittir; grup ve özel sohbetler ayrı izlenir. Atlanan son görülme yenilemeleri yeniden yapılır; görünürlük kısıtlamaları, daha önce gösterilen çevrim içi ve son görülme bilgilerini de temizler. Açık sohbette durum verisi uzun süre hazırlanamazsa yeniden alınması sınırlı sayıda denenir; gizlenmiş bilgiler bu denemeleri başlatmaz. Durum verisi henüz hazır değilse ilk okuma aboneliğin bitmesini bekler; son görülme ve görünürlük değişimleri yazma etkinliğinden bağımsız güncellenir. Takılan tek bir durum isteği sonraki yenilemeleri kilitlemez; yedek okumalar sınırlı tutulur. Eksik son görülme bilgisi pencereye dönüldüğünde, açık sohbetin kişi bilgileri okunurken ve yazma ya da kaydetme etkinliği son güncelleme gelmeden bittiğinde yenilenir. Kişi bilgileri son görülme isteğini beklemeden açılır; geç profil durumu yanıtları önceki bağlantının bilgisini geri getiremez. Grup yazma ve kaydetme göstergeleri eski bağlantıya bağlı kalmaz. Durum yenilenirken öğrenilen görünürlük kısıtlamaları da sohbetlerdeki ve kişi bilgilerindeki eski durumu temizler.
-
-- Sabitlenmiş mesajlar: sabitlemeleri WhatsApp Web'in bellekte tuttuğundan eski olan bir grubun sabitlenmiş mesajlarını açmak artık "Sabitlenmiş mesajlar yüklenemedi" hatasıyla başarısız olmuyor ve düğmedeki sayı doğru değeri gösteriyor.
-
-- WPPConnect Server 2.10.62 sürümüne güncellendi. Yeni bir hesap eşleştirilirken, WhatsApp oturum başladıktan kısa süre sonra telefonun bağlantısının kesildiğini bildirse bile QR kodu artık kaybolmuyor.
-
-- Aramalar: WPPConnect yeniden kurulurken daha yeni ve uyumlu WhatsApp Web kataloğu korunur ve güncelliği kontrol edilir. Yeniden kurulan katalog önceki altı saatlik beklemeye takılmaz. Yeniden denenemeyen doğrulanmış VoIP uyumsuzluğunda başlatma tekrarlanmaz.
-
-- Grup aramaları: WhatsApp 32'den fazla katılımcısı olan gruplarda arama yapılmasına izin vermez; bu yüzden arama düğmelerinin yerine notu grubun 32'den fazla katılımcısı olduğunu söyleyen bir "Arama yapılamıyor" düğmesi gelir ve arama kısayolları aramayı başlatmak yerine aynı şeyi söyler.
-
-- Grup aramaları: sesli ve görüntülü arama düğmeleri artık grup sohbetinde görünür ve gruba arama başlatır; gelen bir grup araması çalar, grubun adıyla duyurulur ve tek kişilik aramadaki aynı Yanıtla düğmesi ve genel yanıtlama kısayoluyla yanıtlanabilir. Sesli arama sırasında kamerayı açmak tek kişilik aramadaki gibi çalışır ve her katılımcıdan gelen arama olayları grupta kalır, böylece arama penceresi ilk çalmadan sona kadar grubun adını korur.
-
-- Görüntülü aramalar: WinZapp artık kamerayı, DirectShow aygıtlarını "DirectShow video devices" başlığı olmadan listeleyen ve WinZapp ile birlikte gelen FFmpeg ile bulur. Bu FFmpeg sürümü hiçbir kamera döndürmüyordu, bu yüzden görüntülü arama yalnızca alım modunda başlıyordu ve günlükte "No camera found" yazıyordu.
-
-- İşletme mesajlarındaki düğmeler artık kullanılabiliyor: bir yanıt düğmesi yanıtı WhatsApp Web ile aynı şekilde gönderir (düz mesajların yanıt düğmeleri, etkileşimli mesajların hızlı yanıtları, şablon düğmeleri ve listelerin satırları), bağlantı düğmesi bağlantıyı açar, kopyalama düğmesi kodu kopyalar, arama düğmesi numarayı söyler. Mesaj seçildiğinde düğmeler mesaj listesinin altında görünür.
-
-- WPPConnect Server 2.10.61 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca bağımlılıkları günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
-
-- WPPConnect Server 2.10.63 artık yeni bir WinZapp sürümü beklenmeden güncelleme olarak sunuluyor. Yalnızca bağımlılıkları günceller ve WinZapp'ın sunucuda yaptığı değişiklikleri etkilemez.
-
-- macOS güncellemelerinde doğrulamanın bağlantı, sertifika, sunucu veya GitHub istek sınırı nedeniyle mi başarısız olduğu ve doğrulama dosyasının mı, resmî sürüm etiketinin mi kontrol edilemediği açıklanır. Geçici bağlantı ve sunucu hatalarında bir kez yeniden denenir; istek sınırında bekleme süresi gösterilir ve bu süre boyunca tekrar istek gönderilmez.
-
-- Güncellemeler: WinZapp kapandıktan sonra da kurulum sahipliği korunur ve kurulmayı bekleyen indirilmiş paket saklanır. Yalnızca tamamlanan kopyalama başarılı sayılır; başarılı güncelleme önceki hata uyarısını kaldırır. Otomatik yeniden açılış kurucunun bitmesini bekler ve bekleme sınırına ulaşıldığında gerçekleşmez. Eksik veya tamamlandığı doğrulanamayan kopyalamadan sonra WinZapp kapalı kalır ve onarım yönergelerini Not Defteri'nde açar.
-
-- Sesli aramalarda mikrofon veya hoparlör farklı bir örnekleme hızı gerektirdiğinde, ses paketleri arasındaki zamanlama korunur ve bant sınırlı dönüşüm kullanılır. Aramanın örnekleme hızında çalışan ses doğrudan aktarılmaya devam eder.
-
-- Ayarlar penceresinde artık bir arama alanı ve bir kategori listesi var: oklar kategoriyi değiştirir, Tab seçeneklerine girer ve aramada aşağı ok sonuçlara götürür; orada Enter veya Boşluk, bir düğmenin penceresindeki seçenek olsa bile bulunan seçeneği açar. Birkaç kategori birleştirildi: Ses (cihazlar, Ctrl+V ile yapıştırılan sesler, sesli mesajlar ve kayıt sırasında susturma), Olay sesleri (ses olayları ve uyarı tonları) ve Depolama (kaydetme klasörüyle). Konuşulan içerik, Ses oynatma, Profil yedekleme, Kısayollar, Tepkiler, Bildirimler, Mesajlar, Sohbetler, Kilitli sohbetler ve Onaylar, her konunun penceresini açan düğmelere dönüştü. "Kullanıcı Arayüzü" artık "Arayüz" adını taşıyor ve Bağlantı listenin sonuna taşındı.
-
-- WhatsApp ayarları (Dosya menüsü) artık Ayarlar'ı doğrudan WhatsApp ayarları kategorisinde açar; Gizlilik ve Profil düğmeleri vardır ve ayrı pencere kaldırıldı. WinZapp, WhatsApp'a yalnızca her düğmeyi açtığınızda sorar ve Ctrl+Shift+, bu kategoriyi açmaya devam eder.
-
-- Topluluklar: "Yeni sohbet" penceresinde, bulunduğunuz toplulukların listesini açan yeni "Topluluklar" düğmesi var. Bir topluluk seçildiğinde açıklaması, yöneticileri ve katıldığınız grupları gösterilir; duyuru grubu ve genel grup belirtilir. Enter veya "Grubu aç" seçili gruba gider. Topluluğun yöneticisiyseniz pencere ayrıca "Grup ekle", "Grubu topluluktan çıkar", "Topluluk yöneticisi yap", "Topluluk yöneticiliğinden çıkar" ve "Topluluğu devre dışı bırak" seçeneklerini sunar; "Yeni topluluk" ise ad, açıklama ve seçtiğiniz gruplarla bir topluluk oluşturur. Her işlemden sonra WinZapp toplulukları yeniden okur ve yalnızca WhatsApp değişikliği gösterdiğinde tamamlandığını söyler; aksi halde isteğin gönderildiğini ancak henüz doğrulanmadığını veya reddedildiğini bildirir.
-
-- Topluluk duyurusu yanıtları: yanıtları okumak ve göndermek için mesaj menüsünü açıp "Topluluk duyurusunun yanıtları" seçeneğini seçin. Pencere açıkken yanıtlar kendiliğinden güncellenir, yanıt alanı artık salt okunur kalmaz ve gönderim doğrulanmazsa metniniz korunur. Sohbet listesinde, en yeni olay buysa grubun önizlemesi "Falanca bir duyuruyu yanıtladı" der. Duyurular bilinen yanıt sayısını belirtir. Yazarlar kayıtlı veya profil adlarıyla gösterilir; kendi yanıtlarınızda kendinize hitap etme ayarınız kullanılır.
-
-- Topluluklar artık gezinme listesinde Aramalar'dan sonra gelen bir öğedir ve öğenin adında Alt+8 kısayolu yer alır; yalnızca Alt+8 ile değil, listede ilerleyerek de ulaşılabilir.
-
-- Kayıtlı olmayan bir numarayı engellemek artık "Bu kişi engellenemedi" hatasıyla sonuçlanmıyor: WinZapp, engellemeden önce WhatsApp'ın istediği sohbeti artık açıyor.
-
-- Fazladan 9 ile yazılmış bir Brezilya numarasıyla başlatılan yeni sohbet, ilk mesajı gönderdikten sonra sohbet listesinde artık iki kez görünmüyor: WinZapp sohbeti WhatsApp'ın kendisinin kullandığı numara altında tutar.
-
-- Video mesajlar (sesli mesaj yerine gönderilen yuvarlak videolar) artık "Uyumsuz mesaj" yerine video olarak gösteriliyor, listede "video mesaj" adıyla görünüyor ve her videoyla aynı süre, oynatma ve Farklı kaydet seçeneklerine sahip.
-
-- Sesli ve görüntülü aramalardaki yankı önleme, Google Meet'in ve WhatsApp'ın kendisinin kullandığı motorla (WebRTC yankı gidericisi) yeniden yapıldı: dizüstü bilgisayarın hoparlöründen ya da mikserin geri dönüşü (loopback) açıkken konuşmak artık karşıdaki kişinin kendi sesini duymasına yol açmıyor. Seçenek artık açık geliyor, WinZapp'ı zaten kullananlar için de; kapatmak için "Arama ses ayarları" içinde "Yankı önlemeyi etkinleştir" kutusunun işaretini kaldırın. Aramadaki mikrofon gürültü azaltma da artık bu motoru kullanıyor.
-
-- Arama günlüğü (log.log) artık her 5 saniyede bir, hoparlör sesinin ne kadarının yankı önlemeden önce mikrofona ulaştığını ve gönderilen seste ne kadarının kaldığını, bu yankının gecikmesiyle birlikte gösteriyor. Biri hâlâ kendi sesini duyuyorsa günlük, yankının önleyiciden geçip geçmediğini ya da başka bir yoldan gelip gelmediğini söyler.
-
-- Aramaları herhangi bir pencereden yanıtlama: tek kişilik bir arama çalarken Ctrl+Alt+Shift+Enter onu yanıtlar, arama penceresini her programın önüne getirir ve odağı ona verir; Ctrl+Alt+Shift+Geri sil ise onu ve çalan bir grup aramasını reddeder. Hiçbir arama çalmıyorken Ctrl+Alt+Shift+Geri sil sürmekte olan aramayı kapatır. Birden fazla hesap açıksa önce herhangi birinde çalan arama reddedilir. Görüntülü arama, yanıtlama düğmesinde olduğu gibi kamera açık yanıtlanır. İki tuş Ayarlar'daki Kısayollar bölümünden değiştirilebilir ve yalnızca işe yarayabildikleri sürece WinZapp'a aittir; geri kalan zamanda diğer programlarda kalır.
-
-- Ayarlar: yeni Gelişmiş kategorisi; log.log günlük düzeyi (hata ayıklama, bilgi, uyarılar veya yalnızca hatalar, hemen uygulanır), iki WinZapp kopyası çalıştırmak ya da 6300 bağlantı noktasını başka bir program kullandığında yerel API için sabit bir bağlantı noktası (WinZapp bir sonraki açılışında geçerli olur) ve varsayılan olarak kapalı "Tüm WPPConnect Server güncellemelerini göster" seçeneği, bu seçenek geliştiricilerin henüz denetlemediği sürümleri de bir uyarıyla sunar. Bağlantı kategorisinde Bağlantı noktası alanı artık yalnızca özel API ile etkindir.
-
-- Ayarlar: Ayarlar'daki ve oradan açılan pencerelerdeki her denetimin, aynı pencerede tekrarlanmayan bir Alt kısayol harfi var; tüm dillerde. Harflerin yetmesi için Yerel döküm pencerelere ayrıldı (gelişmiş seçenekler, kayıtlı dökümler, durumlar, klasörler, CUDA kitaplıkları ve whisper.cpp) ve çevrim içi yapay zekânın otomatik seçenekleri "Otomatik döküm ve betimleme..." penceresine taşındı.
-
-- Klavye kısayolları: liste artık kategorilere göre bir ağaç (sağ ok kategoriyi açar ve kategori yalnızca bir kez söylenir) ve bir arama alanı var; aramada aşağı ok sonuçlara gider. Bir kısayolu değiştirmeyi engelleyen hata düzeltildi.
-
-- WhatsApp Web'deki gibi sohbet başına taslak: yazılıp gönderilmeyen metin, bahsetmeleriyle birlikte yazıldığı sohbette kalır ve sohbet yeniden açılınca geri gelir; önceden bir sonraki sohbete geçiyordu. Arayüz > Sohbetler bölümünde şunlar seçilebilir: sonraki sohbet için mesaj alanında tut (eskisi gibi), o sohbetin taslağı olarak sakla (varsayılan) veya sil.
-
-- Sohbet değiştirince, bulunduğunuz mesajın "Tepkiler" ve "Devamını oku" düğmeleri yeni sohbette Tab ile artık görünmez.
-
-- Bir sohbetin son mesajını herkesten silmek, sohbet listesindeki önizlemesini hemen "mesaj silindi" olarak günceller.
-
-- Alt+A artık ek menüsünü açmıyor; kısayolu hâlâ Ctrl+Shift+A.
-
-- Mesaj listesi: varsayılan olarak kapalı üç yeni seçenek, oynatma sırasında çevrim içi yapay zekâ düğmesini (Dök veya Betimle; mesaj menüsü sunmaya devam eder), süre çubuğunu ve hız düğmesini Tab sırasından çıkarır. Hız ve ileri sarma kısayolları çalışmaya devam eder.
-
-- Yerel döküm: "ilerleme penceresi olmadan dök" açıkken, bir döküm sürerken başka bir mesajın satır içi dökümünü istemek yenisini reddetmek yerine kuyruğa ekler; bekleyen mesajda kısayola yeniden basmak onu kuyruktan çıkarır.
-
-- Yerel döküm: otomatik mod, indirilmiş modeli olan birine artık "Kullanıma hazır döküm modeli yok" demiyor: kurulu modelin sığmadığı küçük bir ekran kartında, başka bir indirme istemek yerine model işlemcide kullanılır; otomatik motor da bilgisayarda zaten bulunan modelleri izler.
-
-- Döküm yapan Enter ve Boşluk artık dosya olarak gönderilen ses ve videolarda da çalışıyor; sohbet bilgilerinin Medya sekmesi de videolarda bu seçeneğe uyar.
-
-- Sohbet bilgileri: otomatik döküm artık iki kutu, yerel (Whisper) ve çevrim içi; her biri sohbetin şu anda ne yaptığını gösterir ve yalnızca o sohbet için açılıp kapatılabilir.
-
-- Yeniden göndermeyi dene: gönderimi başarısız olan veya doğrulanmayan kendi mesajınızın menüsünde, metin ya da ek için, ve gönderilemeyen durumlar için; bunlar artık Durumlar sekmesinde Durumum'un hemen ardından kalır. Kısayol Ctrl+Shift+Y. Hiçbir şey kendiliğinden yeniden gönderilmez.
-
-- Durum paylaşma: aynı anda tek paylaşım (Paylaş'a yeniden basmak durumu çoğaltmaz) ve büyük bir video hâlâ yüklenirken artık başarısız sayılmıyor; doğrulanmayan bir paylaşım, yeniden paylaşmadan önce Durumum'u kontrol etmenizi söyler.
-
-- Durumum: bir durumu Delete tuşuyla veya "Durumu sil" düğmesiyle, WhatsApp'taki aynı onayla herkesten silin.
-
-- Topluluklar: listede Enter topluluğun gruplarına gider ve bir düğme en son etkinliği olan grubu açar; bir süzgeç tüm grupları, katıldıklarınızı ve katılmadıklarınızı gösterir; ayrıca WhatsApp Web'deki gibi bir gruba katılabilir, katılma isteği gönderebilir ve isteği iptal edebilirsiniz.
-
-- Siparişler: Enter, satıcının sizin için oluşturduğu bir siparişin bilgilerini kalemleri ve ara toplamıyla açar; alıcı, uygulama dışında ödenen bir siparişi WhatsApp Web'deki gibi onaylayabilir; pencere de alıcının hangi yanıtını WinZapp'in henüz sunmadığını söyler.
-
-- WhatsApp ayarları: Gizlilik'te durum seçenekleri "Kişilerim, şunlar hariç" ve "Yalnızca şunlarla paylaş" yalnızca telefonda kayıtlı kişileri sunar, WhatsApp'ın bir durumu görmesine izin verdiği tek kişiler bunlardır; Profil'de Fotoğraf seç düğmesi, nesne gezintisine gerek kalmadan, mevcut bir fotoğraf olup olmadığını ve hangi dosyanın seçildiğini söyler.
-
-- Sohbet listeleri: "Esc seçimi kaldırır" seçeneği açıkken Esc, ana listede, arşivde ve kilitli sohbetlerde işaretli sohbetlerin işaretini kaldırır.
-
-- Birden çok hesap açıkken güncelleme: yükleyici kopyalamadan önce tüm hesapların kapanmasını bekler; WinZapp da hesap zaten açıkken veya bir güncelleme takılmış görünürken başlangıçta artık sessizce kapanmaz: nedenini söyler ve günlüğe yazar. Hâlâ süren bir güncelleme sırasında yalnızca günlüğe yazar ve kutu göstermeden kapanır, çünkü yükleyici işi bitince onu yeniden açar.
-
-- Büyük hesapların eşitlenmesi: büyük mesaj gruplarından sonra WinZapp, WhatsApp Web'den artık kullanmadığı belleği bırakmasını ister; bu da eşitleme sırasındaki tüketimi azaltır.
-
-- Sohbet bilgilerinin Medya sekmesi: Farklı kaydet'ten sonra ekran okuyucu pencereyi artık kullanılamaz olarak duyurmuyor.
-
-- Yeni sohbet: bağlantıyla gruba katılma düğmesinin artık bir Alt kısayol harfi var.
-
-- Yankı önleme artık yankı çok gecikmeli döndüğünde de çalışıyor; bazı mikserlerin geri dönüşünde (loopback) olduğu gibi yarım saniyeyi aşabilen ve karşıdaki kişiye olduğu gibi ulaşan yankılar dahil. WinZapp karşıdaki kişinin sesinin mikrofonunuzdan geri dönmesinin ne kadar sürdüğünü ölçer ve önleyiciyi bu gecikmeye göre, 1,5 saniyeye kadar ayarlar.
-
-- Neonize: kayıtlı bir kişinin adı artık her dakika, kişinin kendi WhatsApp'ında seçtiği profil adıyla (veya telefonun sohbete verdiği adla) değiştirilmiyor. Kişiye verdiğiniz ad kalır; profil adı yalnızca kaydetmediğiniz kişilerde görünür.
-
-- Neonize aramaları: WinZapp artık WhatsApp Web'in sizin yerinize çaldığı sesleri kendisi çalıyor. Karşıdaki telefon çalarken, aradığınız ülkenin ses yüksekliği ve ritmiyle çalma sesini duyarsınız; arama bağlanırken veya yeniden bağlanırken kısa bip sesleri çalar. Sesleri WinZapp kendisi üretir; WPPConnect motorunda hiçbir şey değişmez.
-
-- Neonize aramaları: yanıtlanan bir arama bittiğinde WinZapp, WhatsApp'ın arama sona erdi sesini çalar. Bu, ses paketini izleyen ve ses olaylarında kapatılabilen veya değiştirilebilen yeni bir ses olayıdır: "Arama sona erdi". WPPConnect motorunda WhatsApp Web kendi sesini çalmaya devam eder.
-
-- Çalınmayan sesli mesajlar ve ses kayıtları: WinZapp ses çıkışını açtığı anda ses kartı kullanılamıyorsa (örneğin bilgisayar uykudan uyandığında), WinZapp yeniden başlatılana kadar hiçbir sesli mesaj çalınmıyor ve nedenini söyleyen bir şey olmuyordu. WinZapp artık bir oynatma başarısız olduğunda ses çıkışını geri yüklemeyi dener ve yine de çalamazsa bunu ekran okuyucuyla bildirir.
-
-- Neonize: kaybolmuş gibi görünen sohbetler. WhatsApp eski sohbetlerin çoğuna etkinlik tarihi vermiyor ve WinZapp bunları boş sohbet sanıp yerel veriler silindiğinde (örneğin yeniden eşitlemek için F5) saklamıyordu: 160'tan fazla sohbeti olan bir hesap 37 sohbetle geri geliyordu. Köprü artık her sohbeti en yeni iletisinin tarihiyle tarihliyor ve hepsi geri geliyor.
-
-- Neonize: bir topluluk ve duyuru grubu, WhatsApp'ta olduğu gibi yalnızca grubun kendi katılımcılarını değil, topluluğun toplam üye sayısını gösterir.
-
-- Neonize: bir grupta yazan kayıtlı bir kişi, kayıtsız kişiyi gösteren "~" olmadan rehberdeki adıyla görünür. Kanallar artık sohbet listesinde adsız sohbetler olarak görünmüyor. Numarası gizli bir grup üyesi artık "+55∙∙∙∙∙∙∙∙76" olarak değil, profil adıyla görünür.
-
-- Sohbet listesinde kanallar: Ayarlar, Arayüz, Sohbetler altındaki yeni "Kanalları sohbet listesinde göster" seçeneği varsayılan olarak kapalıdır ve kanalları sohbet listesinin dışında tutar. Kanalları orada yeniden görmek için işaretleyin.
-
-- WPPConnect ve Neonize arasında geçiş: iki motor da 6300 numaralı bağlantı noktasını kullanır ve program, az önce bıraktığınız, hâlâ kapanmakta olan motoru seçtiğiniz motor sanıyordu. WPPConnect seçmek "eşleştirme kodu alınmadı" sonucunu veriyor, Neonize'a geçmek yeniden başlatmaya kadar bağlanıyor, sonra çevrimdışı gösteriyordu. WinZapp artık önce yer açıyor (Neonize köprüsünü durduruyor ya da WPPConnect sunucusunun kapanmasını bekliyor) ve ikinci bir WinZapp klasörü artık birincinin köprüsüne katılmıyor.
-
-- Eşleştirme penceresinde artık ülkeden önce bir "Bağlantı motoru" listesi var; böylece henüz eşleştirmemiş biri Ayarlar'a ulaşmadan WPPConnect ile Neonize arasında seçim yapabilir. Seçim yapınca WinZapp onay ister ve seçilen motorla yeniden başlar.
-
-- Program artık Node.js ile gelmiyor, çünkü Neonize'a gerekmiyor. WPPConnect'i seçerseniz (ilk açılışta, eşleştirme penceresinde veya Ayarlar'da), WinZapp sağlama toplamı doğrulanmış bir Node.js indirir ve bağlanmadan önce WPPConnect'i hazırlar. İndirme daha küçük.
-
-- Neonize: WinZapp açıkken köprü kaybolursa (örneğin hâlâ kapanmakta olan önceki bir çalıştırma, bu çalıştırma köprüyü kabul ettikten hemen sonra onu durdurur; başlangıç bildiriminden Neonize'a geçerken böyle oluyordu), WinZapp artık "bağlanıyor" ve ardından çevrimdışı durumunda sonraki yeniden başlatmaya kadar kalmak yerine köprüyü kendisi yeniden başlatıyor.
-
-- Neonize: son WinZapp kapanırken köprüden artık WhatsApp bağlantılarını ve veritabanlarını kapatıp kendi kendine çıkması isteniyor; 10 saniye içinde çıkmazsa zorla durduruluyor. Önceden her zaman anında zorla sonlandırılıyordu ve bu bir yazma işlemini yarıda kesebilirdi.
-
-- Neonize: eşleştirme QR kodu bağlantı penceresinde artık kesik görünmüyor. Artık tamamı, telefon kamerasının okuyabileceği bir boyutta gösteriliyor.
-
-- Ayarlar > Gelişmiş bölümünde yeni bir "Bu hesabın günlüklerini dışa aktar..." düğmesi var. Geçerli hesabın (ve Neonize köprüsünün) günlüklerini içeren bir .zip dosyasını arka planda kaydeder ve sonucu duyurur.
-
-- Ayarlar > Kısayollar: yeni bir alan bastığınız tuşları yakalar ve eşleşen komutları tüm kategorilerde anında listeler, kaç tane bulunduğunu duyurur; aramayı temizleyen bir düğme de vardır. Kısayol ağacı yazarken artık istenmeyen seçimleri duyurmaz, Ayarlar açılırken yalnızca bir kez oluşturulur, Esc tuşu pencereyi hatasız kapatır ve değişiklikler uygulandıktan sonra odak Tamam düğmesine gider.
-
-- Bir sohbetin otomatik yazıya dökümü artık sohbet veya grup verileri penceresinde tek bir seçimdir: Yok, Yapay zekâ ile çevrimiçi veya Whisper ile yerel. Aynı mesaj asla iki kez yazıya dökülmez ve tutarsız ayarlar reddedilir.
-
-- WinZapp daha hızlı başlar ve Ayarlar daha hızlı açılır: veritabanına yalnızca gerçekten değişen kişiler yeniden yazılır, veritabanındaki her sorgunun hata ayıklama günlüğü (yüzlerce MB) susturuldu ve yarım kalan indirmelerden artakalan eksik Chrome klasörleri temizlenir.
-
-- F5 artık bir süre sohbetleri listede çoğaltmaz: @lid adresi ile telefon numarası arasındaki bağlantı aynı hesabın yeniden yüklenmesi sırasında korunur.
-
-- @lid adresiyle alınan tepkiler artık telefon numarası altında kayıtlı sohbete ulaşır (ve tersi), böylece önizlemede, listede ve canlı bildirimlerde doğru görünür.
-
-- "Topluluk duyurusuna yanıtlar" artık yalnızca topluluk duyuru gruplarında görünür, sıradan gruplarda görünmez.
-
-- WPPConnect: bir mesajı yıldızlama ve bir durumu beğenme yeniden çalışıyor.
-
-- Neonize: uygulama durumu eşitlemesi artık sohbetlerin okundu durumunu bozan çakışmalara yol açmaz; bir sohbeti okundu işaretlemek artık mesaj göndermeyi bekletmez; süreli sohbetlere gönderilen mesajlar sohbetin zamanlayıcısını taşır; okundu bilgileri WhatsApp gizlilik seçeneğine uyar (kapalıyken sessiz bildirimler); ve Brezilya'da numarayla eşleştirme numarayı 9. rakamlı ve rakamsız dener.
-
-- Neonize: sesli mesajlar artık Android kullanan kişilere teslim ediliyor; daha önce mesajda WhatsApp'ın beklediği ses dalgası bulunmadığı için tek gri tikte kalıyordu.
-
-- Neonize: bilgisayarın dosya türü kitaplığı (libmagic) yüklenemediğinde sesli mesajlar, fotoğraflar ve belgeler artık kaybolmuyor; tür artık dosyanın kendisinden tanınıyor.
-
-- Sesli mesajlar: mono ve stereo kayıtlar 256 kbps'ye kadar gönderilir. Neonize ayrıca bazı sesli mesajların neden teslim edilmediğini bulmak için günlüğe gönderilen her medya için bir satır ve teslim bildirimlerinin kimliklerini yazar.
-
-- Neonize: stereo sesli mesajlar artık WhatsApp'ın beklediği audio/mp4 türüyle gönderilir, böylece Android'deki kişilere teslim edilir.
-
-- Sesli mesajlar için mikrofon gürültü azaltma artık sinirsel bir model kullanabilir: Ayarlar, Ses bölümünde "Mikrofon gürültü azaltmayı etkinleştir" işaretliyken aynı sayfa modeli indirmeyi önerir; indirme internet üzerinden bir kez yapılır ve kayıtlar yine bu bilgisayarda işlenir. Model yoksa veya bir kayıtta kullanılamazsa WinZapp her zamanki temel gürültü geçidini kullanır ve bunu bildirir. Gürültü azaltma hiç uygulanamazsa mesaj işlenmeden gönderilir ve WinZapp bunu da bildirir.
-
-- İspanyolca: dinlenen bir sesli mesajın etiketi artık "Reproducida" yerine "Reproducido" yazıyor; "Enviado", "Entregado" ve "Leído" ile uyumlu.
-
-- Yazıyor bildiriminde isteğe bağlı olarak tekrarlayan ses, yalnız ekran okuyucu, ikisi birlikte veya kapalı seçilebilir. Ayarlar, Ses olayları bölümünde kendi ses dosyanızı seçebilirsiniz. İki bağlantı motorunda da mevcut yazıyor duyurusu tercihi korunur; yeni ses varsayılan olarak kapalıdır. Yazıyor sesi varsayılan olarak sesli mesaj kaydı ve arama sırasında susturulur. Bu sırada da çalmasını isterseniz Ses olayları sayfasındaki “Sesli mesaj kaydı ve arama sırasında yazıyor sesini sustur” seçeneğini kapatın. Bu ayar yalnız yazıyor sesini etkiler; ekran okuyucu duyuruları ve diğer sesler mevcut ayarlarını korur.
-
-- İspanyolca: çeviri artık "conversación/conversaciones" ile karıştırmak yerine "chat/chats" sözcüğünü tutarlı biçimde kullanıyor; ilgili metinlerde, kullanıcı rehberi dahil, cinsiyet ve sayı uyumu da düzeltildi.
-
-- WPPConnect: WhatsApp Web uzun bir geçmişi hâlâ eşitlerken WinZapp artık hesabı bağlantısı kesilmiş göstermek yerine "WhatsApp ile eşitleniyor..." der ve bağlantı kesilme sesini çalmaz.
-
-- WPPConnect: eksik bir WhatsApp Web sürüm kataloğu sunucu başlarken onarılır ve başlangıçta duran bir Node beş dakika sonra değil hemen bildirilir.
-
-- Arapça: kullanım kılavuzu (Yardım > Kullanım kılavuzu) artık Arapça olarak tamamlandı.
-
-- Neonize: doğrulanmış bir işletmeyle yapılan sohbet, işletme rehberinizde yoksa artık işletmenin doğrulanmış adını gösterir.
-
-- Yeni dil: İtalyanca. Ayarlar > Genel > Dil bölümünden, yükleyicide ve kaldırıcıda seçebilirsiniz. Program tamamen çevrildi; kullanım kılavuzu ve bu sürüm notları şimdilik İngilizce.
-
-- Bağlantı içeren bir mesajı iletirken bağlantı önizlemesi artık korunuyor. İletme penceresinde yeni "Bağlantı önizlemesini koru" kutusu var; varsayılan olarak işaretlidir ve seçilen bir mesajın önizlemesi varsa görünür; Ayarlar > Kullanıcı arayüzü > Mesajlar altındaki "Mesajları iletirken bağlantı önizlemelerini varsayılan olarak koru" seçeneği kutunun nasıl başlayacağını belirler. WPPConnect ve Neonize ile çalışır. Not: WPPConnect ile önizlemesiyle iletilen mesaj yeni bir mesaj olarak gönderilir ve "İletildi" etiketini taşımaz; Neonize ile taşır.
-
-- Bağlantı içeren bir mesaj yazarken ekran okuyucu artık önizleme alınırken "Önizleme yükleniyor...", eklendiğinde "Önizleme eklendi.", başarısız olduğunda "Bağlantı önizlemesi yüklenemedi: neden." der. Ayarlar > Erişilebilirlik > Seslendirilen içerik altındaki yeni "Bağlantı önizlemelerinin yüklenmesini ve eklenmesini duyur" seçeneği bu üç iletiyi açar veya kapatır; varsayılan olarak işaretlidir.
-
-- Neonize: bir sesli mesaj alıntılandığında, süresi (örneğin 0:15) artık karşı tarafın WhatsApp'ındaki alıntı balonunda görünüyor, tıpkı WPPConnect'teki gibi (sorun #707).
-
-- Durumlar: konum, anket, kişi listesi ve "Uyumsuz mesaj" olarak görünen diğer kişi durumu türleri artık kendi etiketleriyle gösteriliyor.
-
-- Aramalar: arama penceresindeki "Arama katılımcıları" düğmesi artık Ctrl+Shift+P kısayoluna sahip (Ctrl+P görüntülüye geçiş olarak kalır). Ekran okuyucu bu kısayol tuşunu düğmede duyurur ve kısayol arama penceresi kısayolları listesinde yer alır.
-
-- Neonize: "Seninkini ekle", soru ve hareketli çıkartma durumları artık "Uyumsuz mesaj" olarak görünmüyor; köprü günlüğü artık eşleşmesi olmayan mesajların türünü kaydediyor.
-
-- Yazma: karşı taraf mesajını gönderdikten birkaç saniye sonra "yazıyor" göstergesi artık yeniden görünmüyor (sorun #743).
-
-- Yenilikler penceresi: Esc tuşu artık hem Yardım > Yenilikler hem de Yardım > "Son baktığınızdan beri yenilikler" ile açılan pencereyi kapatıyor. Önceden Esc hiçbir şey yapmıyordu ve kapat düğmesine gitmek gerekiyordu.
-
-- Birden fazla hesap açıkken güncelleme: WinZapp artık güncellemeyi yüklemeden önce diğer hesapların kapanmasını bekliyor. Önceden kurulum, başka hesapların açık olduğu uyarısıyla başarısız olabiliyordu ve ancak yeniden denemek için Evet yanıtını verdikten sonra devam ediyordu.
-
-- Çevrimiçi yapay zekâda Google Gemini'nin varsayılan modeli artık Gemini 3.5 Flash-Lite; bu model yüksek talep sorunlarıyla daha az karşılaşma eğiliminde. Başka bir sabit model seçmiş olanlar onu korur; WinZapp'ın önerdiği modeli kullananlar yeni modele geçer.
-
-- Gruplar: sohbet listesindeki önizleme ve ekran okuyucu duyurusu artık aynı anda yazan ya da ses kaydeden herkesi, doğru tekil ve çoğul kullanımıyla gösteriyor ("Ana ve Bia yazıyor...", "Ana yazıyor ve Bia ses kaydediyor..."); yalnızca sonuncuyu değil. Ekran okuyucu her değişiklikte listenin tamamını duyurur, biri durup diğerleri devam ederken de; kimse etkin kalmadığında hiçbir şey söylemez. Tek kişide önizleme artık iki nokta üst üste olmadan "Ana yazıyor..." der. Alt+T da listeyi kullanır; yazıyor ve ses kaydediyor duyurusu seçenekleri konuşulan duyurular için geçerlidir. Ayarlar > Erişilebilirlik > Konuşulan içerik altındaki "Bir grubun durumunu duyururken birden çok katılımcının etkinliğini dikkate al" seçeneği varsayılan olarak işaretlidir; işareti kaldırılırsa gruplar eski davranışa döner.
-
-- Mesaj alanı: bir emoji eklemek, yazma yardımı düğmesi etkinleştirilirken artık "surrogates not allowed" hatası vermiyor. UlisesMilani bildirdi (#797).
-
-- Ayarlar > Bildirimler bölümüne, arşivlenmiş ve sessize alınmış sohbetleri sistem tepsisi simgesindeki ve pencere başlığındaki okunmamış sayısına dahil etmemek için iki yeni seçenek eklendi. İkisi de varsayılan olarak işaretli: arşivlenmiş sohbetler zaten sayılmıyordu ve artık bu değiştirilebiliyor; sessize alınmış sohbetler artık sayılmıyor, bu da önceki davranışı değiştiriyor. Yeniden saymak için seçeneğin işaretini kaldırın.
-
-- Uzun sohbetler: binlerce mesajlı açık bir sohbetin geçmişi yenilenirken, mesaj listesi her mesajın konumunu ("N / M") gösterdiğinde pencere artık onlarca saniye donmuyor.
-
-- Düzeltildi: sinirsel ses gürültü engelleme açıkken sesli mesajlar, birinin işlenmesi diğerinden önce bitse bile artık kaydedildikleri sırayla gönderiliyor.
-
-- Bir sohbet açılırken gösterilen mesajlar: ayar artık en fazla 1.000 kabul ediyor. On binlerce değerler, çok sayıda mesaj bir anda geldiğinde ya da yazarken pencereyi bir dakikadan uzun süre donduruyordu; kaydedilmiş daha yüksek bir değer 1.000 sayılır ve Ayarlar > Mesajlar 1 ile 1.000 arasında bir sayı ister.
-
-- Aramalar: bir WhatsApp Business hesabından (WPPConnect) arama yapmak artık çalmadan 75 saniye takılı kalmıyor. WinZapp, WhatsApp'ın bu hesaplardan yapılan ilk aramada gösterdiği "Bu arama hakkında" bildirimini artık kendisi yanıtlıyor.
-
-- UTF-16 olarak kaydedilmiş bir metin dosyasını (msinfo32 ile alınan Windows Sistem Bilgileri raporu gibi) mesaj alanına yapıştırmak artık onu ses olarak göndermiyor: belge olarak kalıyor. UlisesMilani tarafından bildirildi (#838).
-
-- Ayarlar, Mesajlar: yeni seçenek "Açık sohbette gelen yeni mesajları okunmamış mesajlar ayırıcısına ekleme; geldiklerinde okundu olarak işaretle", varsayılan olarak kapalı. Kapalıyken, açık sohbeti okurken gelen mesajlar okunmamış ayırıcısına eklenmeye devam eder; böylece sonradan geleni takip edersiniz. Açıkken geldiklerinde okunur, ayırıcı olmaz.
-
-- Neonize ile sohbet bilgilerindeki "Kişi ekle" artık kişiyi gerçekten WhatsApp rehberine ve telefona kaydediyor. Önceden kişi, telefon numarası yerine dahili tanımlayıcıyla (LID) yazılıyordu ve WinZapp eşitlemenin istendiğini söylese de iPhone onu birkaç saniye sonra siliyordu.
-
-- Neonize: bağlantı köprüsü başlatılamadığında WinZapp artık bunu hemen sesli olarak söyler; uyarı gösterilirken program kilitlendiği için kaybolmaz. Ayrıca nedenin bulunabilmesi için köprünün kendi çıktısının sonunu ve bilgisayarın işlemci mimarisini günlüğe yazar.
-
-- ARM üzerinde Windows'ta Neonize: bağlantı köprüsü, programın yükleyemediği ARM sürümünü istediği için artık başlatılamamazlık etmiyor (ve QR kodla eşleştirme takılı kalmıyor); artık gerçekte çalıştığı mimarinin sürümünü kullanıyor.
-
-- Düzeltildi: Çıkışta yükleme açıkken, güncellemenin indirildiği duyurulduktan sonra Yardım > İndirilen güncellemeyi yükle öğesi kullanılamaz kalıyordu. Artık öğe kullanılabilir; güncellemeyi hemen yükler ve ardından WinZapp'ı yeniden başlatır; çıkış yapmak yine yeniden başlatmadan yükler.
-
-- Neonize: bağlantı köprüsü başlatılırken çok uzun sürdüğünde programın günlüğü artık hâlâ çalışıp çalışmadığını söyler ve çıktısının son satırlarını gösterir; köprü de başlangıcının her adımını ilerledikçe kendi günlüğüne yazar, böylece yarıda kalan bir köprü nerede durduğunu gösterir.
-
-- Düzeltildi: ses aygıtı değiştirildikten sonra bildirim (toast) sesleri çalmaz oluyordu; sohbet sesleri ve WinZapp'ın diğer sesleri ise çalışmaya devam ediyordu. Aygıt değişikliği önceden yüklenmiş bildirim seslerini kullanılamaz hale getiriyordu; artık diğer seslerle birlikte yeniden yükleniyor.
-
-- Neonize ile ad ve soyadıyla kaydedilen bir kişi, birkaç saniye sonra sohbette soyadını artık kaybetmiyor: tam ad doğru sırayla saklanıyor, böylece sohbet örneğin yalnızca "Nuno" yerine "Nuno Soares" göstermeye devam ediyor.
-
-- Neonize: bağlantı köprüsü başlatılırken takılırsa, artık 25 saniye sonra nerede takıldığını kendi günlüğüne yazar.
-
-- ARM üzerinde Windows'ta Neonize: bağlantı köprüsü artık başlar başlamaz kendiliğinden kapanmıyor (başlatılamadığı mesajıyla), bu da eşleştirmeyi engelliyordu.
-
-- Mac: Neonize motoru artık Mac için WinZapp'te de, Apple Silicon ve Intel'de geliyor ve tarayıcı olmadan doğrudan WhatsApp'a bağlanıyor. Bağlantı penceresindeki "Bağlantı motoru" listesinden ya da Ayarlar > Bağlantı'dan seçin.
-
-- Ayarlar > Genel > Bildirimler içinde yeni seçenek: "WinZapp kullanılmadan belirli bir süre geçtikten sonra beni uzakta say: çevrimdışı görün ve mesajları okundu olarak işaretlemeyi bırak", varsayılan olarak açık, süre dakika olarak ayarlanır (varsayılan 2). WinZapp'ta bu süre boyunca hiçbir tuşa basılmaz ya da tıklanmazsa, pencere öndeyken bile çevrimdışı görünürsünüz ve açık sohbete gelen mesajlar artık okundu olarak işaretlenmez; WinZapp'ı yeniden kullanana kadar okunmamış kalır, ardından açık sohbet okundu olarak işaretlenir. Bir arama, bir kayıt ya da çalan bir ses de varlık sayılır. Kapalıyken bunların hiçbiri olmaz.
+- Genel kısayol: cevap bekleyen bir WinZapp penceresi varken kısayol o pencereyi öne getirir ve yapay zekâ görsel betimlemeleri sağlayıcının kredisi bittiğinde bunu söyler. Hesap günlüğü artık WPPConnect oturumunun erişim kodunu kaydetmez.
 
 V2.1.0.0
 
