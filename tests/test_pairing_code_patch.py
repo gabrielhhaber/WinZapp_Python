@@ -70,7 +70,7 @@ from core.wppconnect_host_layer_patch import (
     ORIGINAL_CHECK_QR_CODE, V1_CHECK_QR_CODE, V2_CHECK_QR_CODE,
     V3_CHECK_QR_CODE, V4_CHECK_QR_CODE, V5_CHECK_QR_CODE, V6_CHECK_QR_CODE,
     V7_CHECK_QR_CODE, PATCHED_CHECK_QR_CODE,
-    ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
+    ORIGINAL_GET_QR_CODE, V247_ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE,
     ORIGINAL_WAIT_FOR_QR_CODE_SCAN, PATCHED_WAIT_FOR_QR_CODE_SCAN,
     ORIGINAL_LOGIN_BY_CODE, LEGACY_LOGIN_BY_CODE_RAW, PATCHED_LOGIN_BY_CODE,
     MANAGED_LINK_MARKER,
@@ -888,6 +888,19 @@ class TestGetQrCodeReadsWaJsNotTheDom:
         content = host_layer.read_text(encoding="utf-8")
         assert PATCHED_GET_QR_CODE in content
         assert ORIGINAL_GET_QR_CODE not in content
+
+    def test_wppconnect_2_4_7_get_qr_code_is_patched(self, fake_wppconnect_dist):
+        """2.4.7 reads WPP.conn.getQRCode() (the page's data-ref canvas); we
+        keep reading the real 2@ login code from getAuthCode()."""
+        setup_api = _load_setup_api()
+        api_dir, host_layer = fake_wppconnect_dist
+        _write(host_layer, ORIGINAL_CHECK_QR_CODE, ORIGINAL_LOGIN_BY_CODE,
+               V247_ORIGINAL_GET_QR_CODE)
+
+        assert setup_api._patch_wppconnect_host_layer(str(api_dir)) is True
+        content = host_layer.read_text(encoding="utf-8")
+        assert PATCHED_GET_QR_CODE in content
+        assert V247_ORIGINAL_GET_QR_CODE not in content
 
     def test_reapplying_is_idempotent(self, fake_wppconnect_dist):
         setup_api = _load_setup_api()

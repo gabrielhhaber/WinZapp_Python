@@ -191,3 +191,9 @@ Server 2.10.63 changed only `CHANGELOG.md`, `package.json` (a dev dependency) an
 ## 2.10.86 → 2.10.87 (2026-11-19)
 
 `util/functions.ts` is one of our own restored files, so upstream's change to `autoDownload` does not flow in by itself: a message without `clientUrl`/`deprecatedMms3Url` (what wa-js 4.8 can deliver) is now downloaded with `client.downloadMedia(message.id)` instead of `client.decryptFile(message)`, which needs the URL. Ported by hand and covered in `tests/test_media_event_payload.py` (the fake client in `media_event_payload_runtime.cjs` now records which method ran). The rest is `package.json`/`yarn.lock` (`@babel/runtime`, `@babel/preset-env`) and upstream tests: nothing we restore or compile.
+
+## 2.10.87 → 2.10.99 (2026-11-27), wppconnect 2.4.7, wa-js 4.8.5
+
+The one patch that stopped matching is the host layer's `getQrCode()`: upstream 2.4.7 reads `WPP.conn.getQRCode()`, the page's `[data-ref]` canvas, which can be the download banner's `wa.me` code. `wppconnect_host_layer_patch.py` knows that text (`V247_ORIGINAL_GET_QR_CODE`) and rewrites it to the same `WPP.conn.getAuthCode()` read as before (the real `2@` login code). Covered in `tests/test_pairing_code_patch.py`. The other patchers still apply to the 2.4.7 dist and the 4.8.5 bundle (checked offline on the npm tarballs). `'4.8.5'` joins `nativeContractVersions` in `chatListsRuntime.ts` (src/lists and src/labels unchanged).
+
+**Not verified offline:** wa-js 4.8.5 replaced the `conn.auth_code_change` listener with `conn.qrcode_change`/`conn.qrcode_idle`. A live QR test on the login-only page is still owed.
