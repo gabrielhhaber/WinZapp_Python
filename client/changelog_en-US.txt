@@ -1,732 +1,114 @@
 V3.0.0.0
 
-This release brings communities and a reorganized settings window, on top of everything in version 2.1.0.0.
+This release lets you choose how WinZapp connects to WhatsApp: with the new Neonize engine, which needs no browser, or with WPPConnect, as before. It also brings communities, channels, a contacts list, group calls and call links, AI summaries, writing help and message translation, a reorganized settings window and three new languages.
 
 WHAT'S NEW
 
-- Connecting WinZapp (QR code or phone number): after File > Disconnect, the chat list could stay in front of the "Connect to WinZapp" window while the keyboard and the screen reader were already on it, so the QR code was hidden and the phone could not scan it. The window now opens above the main window.
+- Two connection engines. Neonize connects to WhatsApp without a browser or Node.js, through a local bridge, and is now the engine recommended for general use; WPPConnect stays available as the alternative. On the first launch WinZapp asks which one to use, the pairing window has a "Connection engine" list, and Settings > Connection lets you change it later; changing asks for confirmation and restarts WinZapp on the chosen engine. Each engine keeps its own connection, so switching and coming back loses neither. If you already use WPPConnect you stay on it until you switch, and a one-time notice offers the change. WinZapp no longer ships with Node.js: if you choose WPPConnect, it downloads a checksum-verified Node.js and sets WPPConnect up before connecting. Neonize also works on Windows on ARM and, on the Mac, on Apple Silicon and Intel. The features below work with both engines unless said otherwise.
 
-- Sounds, "Only the original WhatsApp sounds" option (installer and updates): it now also keeps the sounds WhatsApp plays when you start, pause, cancel and send a voice message, when you send a message and when a message arrives in a chat of the app that is not the open one, besides the notifications, the new message in the open chat, the transition between voice messages, calls and the end of a call. Updating restores the ones an earlier version of the option had removed. Imported packs and your own sounds stay untouched.
-- WPPConnect: the Chromium used by WPPConnect no longer adds a "Search with Chromium" button to the Windows notification area. Chromium's floating search feature, which creates that button, is now turned off in the internal browser.
-- Sent messages: with the Neonize engine, messages you sent could disappear from the conversation when WinZapp was reopened, because no copy of them was stored. Each sent message is now stored as soon as its delivery is confirmed.
-- WPPConnect, connecting with a QR code or a phone number: after the phone accepts the pairing, WinZapp no longer says the connection failed while WhatsApp Web is still opening the chats. The check made 4 minutes after pairing could not read the connection state on recent WhatsApp Web versions and reported a working connection as failed.
+- Neonize, pairing and history: when connecting you choose how much history to bring (recent messages only, 30 days, 6 months, 1 year, all of it, or a period of your own), and WinZapp keeps asking the phone for the conversations and older messages that WhatsApp leaves out of the first batch; the Home key keeps asking for older messages until there are none. While the phone sends its history, WinZapp says so, asks you to keep WhatsApp open on the phone, and warns when it stops, resumes and finishes. With WPPConnect, after the first sync WinZapp also asks the phone for the chats beyond the first batch.
 
-- WPPConnect: a browser named in the PUPPETEER_EXECUTABLE_PATH environment variable, such as a native Chrome for Windows on ARM, is used again, and when more than one browser version is downloaded WinZapp uses the one WPPConnect asks for, not the first one it finds.
+- Communities: the "New chat" window has a "Communities" button listing the communities you are in, with their description, admins and the groups you have joined. Enter or "Open group" goes to a group; a button opens the one with the most recent activity; a filter shows all groups, the ones you are in or the ones you are not; and you can join a group, ask to join and cancel the request. Admins can add and remove groups, promote and demote admins, deactivate the community and create a new one, and WinZapp only says an action is done once WhatsApp shows it. Communities is also a row of the navigation list (Alt+8). In announcement groups, "Community announcement replies" on the message menu reads and sends the replies. Enter on a community in the chat list opens the Communities panel on that community's groups (an option in Settings > Interface > Chats, on by default).
 
-- Pinned messages: a chat's pinned messages button now opens the "Pinned messages" window, listing the pinned messages. Each one has the message list's context menu and shortcuts: copy, forward, react, star, unpin, delete, transcribe and the rest, with the keys you chose. Reply, edit and the other actions that take you into the chat close the window and run on the message, focused in the chat; Enter or "Go to message" takes you to it in the history.
+- Channels: a new Channels window (Alt+9, also in the navigation list) shows the channels you follow or searches WhatsApp's directory by category and view (recommended, trending, popular, new). You can open a channel and read its updates, follow or unfollow it, mute it, copy its link, follow one from a link and create one. In your own channels you can post text, photos, videos and polls, edit and pin updates, choose who can react, read the insights WhatsApp Web shows (from 100 followers on), edit the channel, delete it, and manage admins and invitations. Invitations to follow or administer a channel show in the chat. Showing channels in the chat list is a separate option in Settings > Interface > Chats, off by default.
 
-- Selected messages: "Unpin selected", under "Bulk actions" in the context menu, unpins every selected message that is pinned at once. With "Replace shortcuts with bulk actions when selecting chats and messages" checked, Ctrl+Shift+P pins the selected messages, or unpins them when all of them are already pinned.
+- Contacts: the navigation list gains "Contacts", with the saved contacts one row per person, even when a contact is kept under two addresses. "Search contacts" filters by name or number, and buttons and the context menu open the conversation, start a voice or video call, show the details, delete, block or unblock the contact, or add a new one. "Enter on a contact" chooses what Enter does.
 
-- New option in Settings > Accessibility > Spoken content: "Announce how many messages are pinned when a chat opens", checked by default. Unchecked, WinZapp no longer says "Pinned messages in this chat: N" when you open a chat.
+- Starred messages: a new window (Alt+0, or the "Starred messages" row of the navigation list) lists every starred message of every chat with a search field; Enter opens the chat on the message and Delete removes the star. The Chat info and Group info windows get a "Starred messages" tab with the same actions for that chat. Starred messages now end with the word "Starred", like "Edited" and "Forwarded", and a new option in Settings > Interface > Messages says it at the start of the line.
 
-- New option in Settings > General > Notifications: "Notify reactions to your messages", checked by default. Unchecked, a reaction to one of your messages is not spoken, plays no sound and does not appear in Windows notifications; it still shows on the message and in the chat list.
+- Group calls: group chats now have the voice and video call buttons, and an incoming group call rings, is announced by the group's name and can be answered. A call that grew to several people is listed by its people, as on the phone, and a call that went on without you is no longer shown as answered. Calls started on the phone can be rejoined: "Join ongoing voice call" (or video, camera off) replaces the call buttons while a call is available, "Return to call" brings back the call window, and the Calls tab lists ongoing calls, including the ones outside groups. A group of more than 32 people cannot be called on WhatsApp, and WinZapp says so.
 
-- Message text (Alt+C): the window has a new "Wrap long lines" box, checked by default. Unchecked, a line only ends where the message itself has a line break, whatever the length of the line or the size of the window. The choice is kept for next time, and copying still gives the text as it was written.
+- Calls with several people: "Call participants" shows who is connected by name, with the Ctrl+Shift+P shortcut; WinZapp says who joins and who leaves (two options in Settings > Calls, on by default) and the list updates by itself. "Add participants" adds people to a call in progress, from a group's members or from your contacts and conversations, with a field for a typed number; it works with a screen reader, with the same marking keys as the conversation lists and a spoken result.
 
-- Calls: a call you started on your phone that became a group call can be rejoined from WinZapp after you leave it: "Join ongoing voice call" appears in the chat of each person still in it, and its row in the Calls tab shows their names. Works with Neonize and WPPConnect.
+- Call links: in Calls (Alt+6), "Create call link" creates a voice or video call link that you can copy, send to a chat or join. A call.whatsapp.com link in a message joins its call with Enter or "Join call", and a link opened in a browser also joins in WinZapp when it is the program set to open WhatsApp links. Whoever joins first is the call's admin: people without a WhatsApp account wait in a waiting room, WinZapp says each name, and a button lets them in or denies them.
 
-- Neonize: joining a group call already under way, you now hear the people whose phones send audio in a format WinZapp used to drop; with them, you heard nobody.
+- Call controls: Ctrl+M mutes or unmutes the microphone from any control of the call window, and the outgoing call window announces when it rings or connects. During a voice call on Windows 11, "Share desktop audio" sends the system sound or the sound of a single application, with or without NVDA, at the volume you choose, and keeps going when you mute the microphone. Ctrl+Alt+Shift+Enter answers a ringing call from any window and Ctrl+Alt+Shift+Backspace rejects it or hangs up the call in progress. Stereo microphones and headphones are supported in shared mode, with a mono fallback.
 
-- Neonize group calls: each person's audio now has its own NetEQ playback, as in one-to-one calls, which smooths network jitter and audio loss for each of them separately; before, the whole group was mixed without it, with more gaps and delay. Live translation and devices not supported by NetEQ keep compatible playback.
+- Calls, extras: individual calls can be translated live with Gemini Live Translate, in one or both directions. With Neonize the other person's voice is played with NetEQ, which smooths network jitter and audio loss, in one-to-one and group calls, WinZapp plays the ringback and connection tones that WhatsApp Web plays and the "Call ended" sound (a new sound event), and the calls you place show in your phone's call history.
 
-- Neonize calls: when an audio packet is lost and the next one carries a copy of it, as some phones send, WinZapp now plays that copy instead of filling the gap with an estimate.
+- AI summary, as in WhatsApp: the open conversation gains "Summarize unread messages" (Ctrl+Shift+U; the button shows with 10 or more unread messages), the chat list menu summarizes without opening the chat or marking it as read, and the message menu summarizes from a message to the end (Alt+Shift+I) or the selected messages (Ctrl+Alt+Shift+I). It uses the providers set up in Settings > Online AI, opens in a window with follow-up questions and a Copy button, and says it was made by AI. Voice messages go in as text, using the transcription saved or a local or online one you choose, with their own consent, which is asked every time in locked chats.
 
-- Save As (Ctrl+Shift+S) on a JSON document received in a chat, such as the settings file app.json, now saves the file instead of saying it could not be downloaded.
+- Writing help: a button after Emoji, the composer context menu and Alt+Shift+H open a window that corrects, rephrases, changes the tone of your draft with your AI providers (not Meta AI) or translates it. Consent is asked before the draft is sent, the result is previewed before replacing the text, and nothing is sent automatically.
 
-- Shortcuts: switching to another account right after changing a key, the account that comes up answers to the new key even while the previous one is still saving its settings; before, it could stay on the old key until it saved something.
+- Message translation: Shift+Enter on a text message, or its context menu, translates it. In Settings > Online AI you choose the provider (your AI providers, Grok, your own OpenAI- or Anthropic-compatible address, the translation services LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator and Google Translate, Ollama, LM Studio or an offline model on this computer), the target language and whether the translation replaces the text, follows it or opens in a window. Automatic translation of received messages works in all chats or only the ones you choose, with a maximum age and a daily limit, and never in locked chats. "Translate from here to the end" (Alt+Shift+Y) and the bulk action translate up to 50 messages at a time.
 
-- Reconnecting after a long time offline: WinZapp now receives the accumulated messages, reactions and read receipts without freezing the interface on every database write, and the Neonize engine writes its database faster.
-- macOS: choosing another connection engine in the pairing window now restarts WinZapp on it. It used to say that WinZapp could not restart by itself, and the engine was not changed.
-- History of unknown groups: WinZapp no longer freezes its interface when it recovers old messages of a group it did not know yet. It used to look up the group's name on the interface thread, and each lookup could take up to 10 seconds during which WinZapp did not respond. The name is now looked up in the background and appears as soon as it arrives.
-- When the playback or recording device chosen in Settings, such as headphones, is not connected as WinZapp starts, WinZapp now says so once and uses the system default device, instead of showing a message box at every launch. The box held up startup until it was answered, so a launch with no one at the computer ended in an error saying the WinZapp API had failed to start in time, and the program closed. The chosen device is kept and used again once it is connected.
+- Mistral is available for online transcription, image descriptions and PDF text extraction. The default Google Gemini model is now Gemini 3.5 Flash-Lite, which runs into fewer high-demand errors; a model you picked yourself is kept.
 
-- macOS: WinZapp's check for newer WhatsApp Web versions now works on Macs without Python from python.org installed. It used to fail with a certificate error that the log reported as "offline", so the list of versions never updated and, once WhatsApp stopped serving the build WinZapp was using, WPPConnect could no longer connect.
+- Voice messages: there is a single record button. Settings > Audio chooses Automatic, Mono or Stereo, and the bitrate (32 to 256 kbps, 64 for mono and 128 for stereo by default). A stereo recording is a real voice message that plays on iPhone, and in Automatic a recording with one silent input goes out in mono so you are heard on both sides.
 
-- Neonize engine: in the pairing window and in Settings, the Neonize label no longer says "experimental" and now says "default".
+- Noise reducer: with "Enable microphone noise reduction", Settings > Audio can download a neural model, and a new "Noise reducer settings" window chooses the neural or the common reducer, the processor it runs on (the computer's, an NVIDIA card with CUDA 12 or 13, or Core ML on a Mac), and whether to process while recording or when sending. If it fails, you choose between sending with basic reduction or keeping the message pending.
 
-- Neonize calls: fixed compatible audio fallback when exclusive output uses a rate unsupported by NetEQ, preserving packet-loss concealment.
+- Recording the microphone together with the computer's audio now goes out as a voice message (Ctrl+Shift+H), in stereo when both channels carry sound. On the Mac this works on macOS 14.4 and later, and WinZapp says when macOS is waiting for or denied the microphone permission. Voice messages and audio can also be saved as MP3 in Save As.
 
-- One-to-one Neonize calls: NetEQ playback smooths network jitter and audio loss, with automatic fallback to compatible playback.
+- A reorganized Settings window: a search field and a list of categories (arrow keys change category, Tab enters its options), with several categories merged and others turned into buttons that open one window each. WhatsApp settings (File menu) opens Settings on its own category. A new Advanced category sets the log level, a fixed port for the local API and "Show every WPPConnect Server update", and has "Export this account's logs...". Every control has its own Alt letter in every language, and Settings opens at once, building each page when you first go to it.
 
-- Neonize calls: audio uses a direct local connection to the native engine, with automatic Socket.IO fallback when unavailable.
+- Keyboard shortcuts: the list is a tree by category with a field that finds commands by the keys you press, and the keys you change now apply to every account (a box keeps them for one account only). New commands: Ctrl+Alt+Shift+F1 to F10 assign quick chats that Ctrl+Shift+F1 to F10 open from anywhere, ten commands react to the focused message with the reaction in position 1 to 0 of Settings > Interface > Reactions (without a key, for you to choose), and Alt+Up and Alt+Down move items in the AI provider list and in the options of a new poll.
 
-- One-to-one Neonize calls: removed a duplicate wait in incoming audio while keeping automatic playback buffering that protects against network jitter.
+- Drafts: text typed and not sent stays with the conversation it was written in, mentions included, and comes back when you open it; Settings > Interface > Chats lets you keep it for the next conversation or discard it instead.
 
-- Neonize calls: microphone audio conversion is optimized to reduce Python processing, with automatic fallback when the installed engine does not support the optimization.
+- Chat list and Esc: archiving a chat asks for confirmation, like deleting, with a "Don't show again" box and an option in Settings to turn it back on. In the chat lists Esc clears the search and the filters, and in an open chat with message search the first Esc clears the search, both with an option to turn off. New chat options: continue where you left off in the messages list, remove bookmarks after the first use, say the number of new messages before the chat name, and an option that stops new messages in the open chat from joining the unread separator.
 
-- Czech: WinZapp is now available in Czech (Čeština): the interface, the user guide, the installer and uninstaller (which follow the Windows display language) and these release notes. Czech is also offered as a language to translate messages into, and the spell checker supports it. Thanks to jaxcze for the translation.
+- Notifications: when many messages arrive at once WinZapp speaks and plays only the first three (the limit is in Settings > General > Notifications); an option sets the order of group toasts ("Participant name first" or "Group name first"); two options leave archived and muted chats out of the unread count in the tray icon and the window title; "Announce even when WinZapp is not focused" is off by default, so WinZapp no longer interrupts you while you work in another program; and "Notify reactions to your messages" can be turned off.
 
-- Connect with QR code: the QR code shows up again. With the latest WhatsApp Web versions, some computers get a separate login page that only has the QR code screen, and on it WinZapp kept connecting until it gave up, without showing the code. The QR code now shows up on that page within a few seconds.
+- Away mode: after a period without a key press or a click in WinZapp (2 minutes by default, in Settings > General > Notifications) you show as offline and messages arriving in the open conversation stay unread until you come back. A call, a recording or audio playing counts as being present.
 
-- Logged out when WinZapp starts: with the latest WhatsApp Web versions, WinZapp opened WhatsApp Web's separate login page even for an account that was already linked, so the account came back logged out, showing a QR code, every time WinZapp started, and a device just linked with the QR code or the phone number was dropped again a few seconds later. WinZapp no longer opens that page for a linked account: WhatsApp Web opens your chats as usual, and the login page is only used to link.
+- Sounds: Sound events gains "Edit of your message saved" and "Message edited by someone else", with their own spoken options per conversation, typing notifications with an optional repeating sound (off by default, silenced while recording and in calls), a "new message" sound choice for the open conversation and for the others, and the sounds and calls set to "system default" follow Windows' default playback device. The installer has a "Sounds to install" group and the update window has "Additional settings" (Alt+A) to keep only the original WhatsApp sounds, which now includes the sounds WhatsApp plays when recording, sending and receiving messages. Imported packs and your own sounds are never touched.
 
-- Restoring the saved copy of the browser profile: when WhatsApp Web opened logged out and WinZapp restored the last saved copy, the restore could fail if the previous browser had not finished closing, and WinZapp was left on an empty profile that only offered a QR code. WinZapp now waits for that browser to close before restoring and does not restore while it is still open; if a restore fails anyway, the profile it had is put back, so the saved copy can still be restored on the next attempt.
+- Pinned messages: the chat's pinned messages button opens a "Pinned messages" window with the message list's context menu and shortcuts. "Unpin selected" unpins the selected messages at once (Ctrl+Shift+P pins or unpins them with bulk shortcuts on), and an option in Settings > Accessibility > Spoken content stops WinZapp saying how many messages are pinned when a chat opens.
 
-- Communities: Enter on a community in the chat list now opens the Communities panel with that community selected and the focus on its groups, instead of the community's own chat. Settings > Interface > Chats has the option, on by default.
+- Messages: Copying selected messages also copies their documents, audio, images and videos, which can be pasted together under their original names; Ctrl+C on a file in the Media tab copies the file; copying only the caption says "Caption copied"; "Message text" (Alt+C) has "Wrap long lines"; and the Open button opens files under their real name. "Try sending again" (Ctrl+Shift+Y) resends a message or status that failed or was not confirmed; nothing is resent on its own. Round video messages show as videos, and a message with a link keeps its link preview when forwarded, with the screen reader saying when a preview is loading, added or not available.
 
-- Linking by phone number: the link no longer fails after WhatsApp on the phone accepts the pairing code. WinZapp used to close WhatsApp Web during the reload that finishes the login, or ask for a new code on it, so the phone showed the device as linked while WinZapp stayed on the pairing window. The pairing code window also lists its text, the code and Cancel in order instead of drawing them on top of each other. If WhatsApp Web still does not open your chats after the code is accepted, WinZapp now tries once more and then tells you, instead of waiting on the pairing window forever, and a link the phone accepted is no longer discarded when you restart WinZapp. Linking with the QR code now survives that reload too: WinZapp no longer shows a new QR code and gives up a few seconds after the phone accepted the scan.
+- Business messages: the buttons of a message are answered (reply, quick reply, template buttons and list rows send the answer, links open, copy buttons copy the code, call buttons say the number), orders can be opened with their items, and a buyer can confirm an order paid outside the app. Templates keep their text and buttons, and ClickBus shows its trips in full.
 
-- When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so right away instead of staying on "connecting" for a minute and a half, and suggests "Connect with QR code", which does not use a pairing code.
+- Polls: when creating a poll, "Hide voter names", a time limit (none, 1 hour, 8 hours, 24 hours, 3 days or 7 days) and Move up and Move down for the options are available, and View votes says "Hidden name" for a poll that hides them.
 
-- Copying just the caption of a message (Ctrl+Shift+C) now makes the screen reader say "Caption copied" instead of "Message copied", so it no longer sounds as if the file (photo, video or document) was copied.
+- Status: you can delete a status for everyone with the Delete key or its button; posting is one at a time and a large video is not reported as failed while it uploads; statuses that did not go out stay in the Status tab; and location, poll, contact and other statuses show their proper label.
 
-- The contact name on the quoted message of a reply now follows their most recent profile name instead of showing an old one, even when their original messages were already up to date. Applies to Neonize and WPPConnect.
+- WhatsApp links: a wa.me or api.whatsapp.com link opens the chat with that number, even when it is not a contact, with the message from the link ready in the message field. The installed version registers itself for these links on its first launch; the portable one has the option in Settings > General.
 
-- Copying the selected messages (Ctrl+Alt+Shift+C, or Ctrl+C with "Replace shortcuts with bulk actions when selecting chats and messages" checked) now also copies documents, audio, images and videos: the files go to the clipboard at once and can be pasted together, for example in File Explorer, under their original names. In a selection that mixes text and files, the text comes along as a single block to paste into a text field. WinZapp says "Messages copied" and, if a file could not be downloaded, how many were left out.
+- Updates: "Update on exit" in Settings > General downloads updates by itself and installs them when you exit (Help > Install downloaded update installs at once). The portable version offers, on its first start, to use a copy of the accounts of the WinZapp installed on the computer instead of linking another device, and "Connect all accounts when WinZapp starts" in the account manager opens every paired account in the background.
 
-- Reactions: a custom reaction chosen with "Add more reactions" now joins the quick reactions list the first time it is used, in place of the last default reaction you have never used. There are also ten new commands in Settings > Keyboard shortcuts (Messages), "React to the selected message with the reaction in this position", 1 to 9 and 0 for the tenth: each reacts to the focused message with the reaction in that position of Settings > Interface > Reactions, which you choose and which does not change with usage; pressing the reaction already sent removes it. They come without a key, because Ctrl+Alt+1 to 9 already switch accounts; you pick the key for each.
+- Local transcription: with automatic transcription on, "Also transcribe the ones that arrive late" transcribes received messages however old, voice messages that arrive together after the computer slept are no longer skipped, a chat chooses between no automatic transcription, online or local, and on Windows ARM64 whisper.cpp uses the native build, with an optional CUDA 13 one. "Transcribe without the progress window" queues another message instead of refusing it, and only one model is loaded at a time, so switching accounts no longer fills the memory.
 
-- Updates: the update window gains "Additional settings" (Alt+A), after Yes, No and What's new?. It opens a window where you choose, for the installation, between "All WinZapp sounds" and "Only the original WhatsApp sounds", with the current choice stated, plus OK and Cancel. The choice is applied when the update is installed, also when it installs in the background or on exit: choosing only the original WhatsApp sounds removes the extra WinZapp sounds, and choosing all of them again restores them from the update. Sound packs you imported, your own sound files and your sound preferences are kept.
+- Storage: Settings > Storage gains a Storage manager that shows sizes and coverage, previews the removal of local copies and lets you restore them; cleaned media can be requested again one by one. With Neonize there is no browser profile, so the profile backup is not shown.
 
-- Voice messages and audio can now be saved as MP3 using the file type list in Save As.
+- Arabic, Czech and Italian: WinZapp is now available in Arabic (with a complete usage guide and the installer), in Czech (interface, usage guide, installer and release notes, thanks to jaxcze for the translation) and in Italian (the program; the usage guide and these release notes are still in English). They can also be chosen as languages to translate messages into. Spanish now says "chat" throughout, and Arabic uses "تفريغ" for transcription.
 
-- Individual calls can be translated with Gemini Live Translate in one or both directions, with optional volume reduction for the original voice and automatic reconnection.
-- New option in Settings > Accessibility: "Announce even when WinZapp is not focused", unchecked by default. Unchecked, WinZapp speaks through the screen reader only while one of its windows has focus, so it does not interrupt you while you work in another program, even with the window open; this covers every spoken announcement, the new-version notice included. Checked, announcements continue in every situation.
+- WhatsApp settings > Privacy has the "Keep chats archived" option, and a chat archived on a device that has it off returns to the list on a new message, as on the phone.
 
-- When a contact changes their profile name, their older messages in the open conversation are now updated at once with the new name, without closing and reopening the program. Applies to Neonize and WPPConnect.
+IMPROVEMENTS
 
-- Call links: in Calls (Alt+6), "Create call link" opens a window where you choose a voice or video call, create the link, copy it, send it to a chat or join its call. A call.whatsapp.com link in a message joins its call with Enter, or with "Join call" in its context menu, after a confirmation; a link opened in a browser also joins in WinZapp when WinZapp is the program set to open WhatsApp links (Settings > General). Whoever joins a link first is the call's admin: people without a WhatsApp account wait in a waiting room, WinZapp says the name of each one who arrives, and the call window's "Waiting room" button lets them in or denies them. It works with Neonize and WPPConnect.
+- Settings opens and WinZapp starts faster: only contacts that changed are rewritten to the database, big debug logs are silenced and half-downloaded Chrome folders are cleaned up. After a long time offline, WinZapp receives accumulated messages without freezing the interface at every database write, and while WhatsApp is still delivering old messages the window title keeps saying "Updating chats" and the list stays still.
 
-- Contacts: the navigation list gains "Contacts" after Channels, with no Alt+number shortcut. It shows the saved contacts, one row per person by name and number; a contact kept under two addresses (its number and its linked ID, or a Brazilian number with and without the 9th digit) is a single row. "Search contacts" filters by name or number. Buttons and the context menu (Applications key or Shift+F10) open the conversation, start a voice or video call, show "Contact details", delete the contact, or block or unblock it; "New contact" adds one. "Enter on a contact" chooses what Enter does: open the conversation, call, video call or show the details.
+- Chats keep up with the other devices: archive, mute, pin, lock, deletion, clearing, disappearing messages, privacy, "Keep chats archived", lists, blocking, contacts, profile photos, group settings and admins, starred and pinned messages, deleted-for-you messages and poll votes update in WinZapp when WhatsApp tells it, without a full sync.
 
-- Conversation: the Chat info and Group info windows get a new "Starred messages" tab after "Media", listing the starred messages of that chat with a search field; "Open in the conversation" (or Enter) focuses the message in the conversation, and "Remove star" (or Delete) removes its star.
+- Many contact presence updates in a row (typing, online) no longer freeze WinZapp or slow the computer down on accounts with many chats, and typing and recording indicators are kept per conversation and stay available when WhatsApp reports the contact as offline. In groups, WinZapp lists everyone typing or recording at the same time.
 
-- Calls: a chat that is in an ongoing call, a group or a private chat whose call grew to several people, now shows "Join ongoing voice call" or "Join ongoing video call (camera off)" instead of the call buttons; while this device is in the call with that chat, the button reads "Return to call" and brings the call window back.
+- Echo cancellation in calls was rebuilt on WebRTC's canceller, the same engine used by Google Meet and WhatsApp: talking through a laptop speaker or with a mixer's loopback no longer makes the other person hear their own voice, even when the echo comes back after more than half a second. It is on by default, also for people who already used WinZapp, and microphone noise reduction in calls uses it too. Recordings of the microphone with the computer's audio also no longer skip or stop with "audio device problem" on slow computers.
 
-- Calls: a one-to-one call that became a group call is listed by its people, as on the phone ("A, B and C", or "A and N more people"), in the chat, the chat list preview and the Calls tab. A group call that went on without you, where your device only rang, is no longer shown as answered.
+- A contact now has a single name: when someone changes their profile name, all their messages, old ones, group ones and the quoted message of a reply show the new name at once, and a saved contact's name is not replaced by their profile name. A new message from a deleted conversation brings it back to the list, and a number typed in a new chat opens the chat under the address WhatsApp knows, with or without the 9th digit of Brazilian mobiles, with no duplicate.
 
-- Calls, "Add participants": each person appears once, so a contact saved with and without the 9th digit, or under its number and its linked ID, is a single row; a second list offers every one-to-one conversation, saved contact or not; and a field takes a phone number typed by hand.
+- The chat list uses the full width of the list and shows one row saying so when a filter or search finds nothing. A new reply or sent message no longer appears above the original when the computer's clock is behind WhatsApp's.
 
-- Calls: when you add people, WinZapp says "Calling <names>..." while the invitation is out and "Invited to the call" only after WhatsApp's server confirmed it, instead of announcing people who never rang. Neonize: adding someone to a one-to-one call, or to a call that is already a group call, now rings them without silencing the person already in the call; and someone the roster names by number in one answer and by linked ID in the next is no longer announced as leaving and joining.
+- WPPConnect Server was updated to 2.10.99, with WPPConnect 2.4.7 and WA-JS 4.8.5. Reading message history no longer piles up copies in memory, WinZapp closes the browser automatically only when it opened it, waiting for WhatsApp Web to load works while the page is hidden, and media received without a download address is downloaded by the message ID. When disk space runs low (under 4 GB), WinZapp closes WhatsApp safely before the session is lost and connects again by itself once 5 GB are free. While WhatsApp Web syncs a long history, WinZapp says "syncing with WhatsApp..." instead of showing the account as disconnected.
 
-- Calls: when the NVDA process that desktop audio sharing follows closes while the call goes on, the share starts again once by itself, as pressing "Share desktop audio" again would; a restart that fails is announced as before.
+- Long chats and sync: refreshing a chat with thousands of messages no longer freezes the window, "Messages shown when opening a chat" accepts at most 1,000, and WinZapp asks WhatsApp Web to release memory after large batches of messages. History of unknown groups is recovered without freezing the interface, and "Downloading media: X of Y" counts only the media still to download.
 
-- Neonize: a one-to-one call you place from WinZapp now also appears in your phone's call history.
+- Updates: installing and building run at lower priority, so the screen reader keeps speaking, several accounts wait for each other to close before the installation, an update that was installed keeps ownership after WinZapp closes, a successful update clears an earlier failure warning, and a failed one opens recovery instructions.
 
-- Message translation: besides your online AI providers, "Provider" in the translation settings offers "Offline model on this computer" (twelve models, SMaLL-100, M2M-100, mBART-50, NLLB-200 and MADLAD-400 in several sizes, downloaded with "Download model" and run on the processor or the graphics card; the text never leaves the computer, so there is no consent question and no daily limit), the translation services LibreTranslate, DeepL, Google Cloud Translation, Microsoft Translator (with its resource region) and Google Translate, and Ollama and LM Studio as local providers. For the offline model, the source language is detected or chosen.
+- Audio playback: when the sound card was not available as WinZapp opened the audio output, WinZapp restores it when a playback fails and says so if it still cannot play; notification sounds keep working after switching the audio device; and an audio device chosen in Settings that is not connected at startup is reported once, with the system default used meanwhile, instead of a box that held up startup.
 
-- Installer: a new "Sounds to install" group chooses between "All of WinZapp's sounds" (the default) and "Only the original WhatsApp sounds". With the second, the other sounds are not kept in the installation, and updates keep leaving them out.
+FIXES
 
-- Portable version: on its first start, when the WinZapp installed on the computer has paired accounts, WinZapp asks whether to use a copy of them instead of linking one more device. The installation is only read; if it is running, WinZapp asks you to close it and choose Retry, and if the copy fails nothing is changed and a new device is linked.
+- Connecting: after File > Disconnect, the "Connect to WinZapp" window opens above the main window, so the QR code is visible. With the latest WhatsApp Web versions an account that was already linked is no longer logged out every time WinZapp starts, restoring the saved browser profile waits for the previous browser to close and puts the original back if it fails, and linking with a pairing code no longer fails after the phone accepts it. When WhatsApp temporarily refuses pairing codes for a number, WinZapp says so and suggests the QR code.
 
-- Settings > Shortcuts: the keys you change now apply to every account of the installation, not only the one where you changed them; a key set for switch to account 2 answers from every account. On the first start with this version, each account's changed keys join the installation's: where both changed a command the installation's key stays, and a key that another command already uses is left out. You can also keep keys for one account only: the "Use the same shortcuts in every account" box on the same page comes checked; unchecked, the keys you change in this account apply to it alone, and the other accounts keep theirs. Each shortcut's Change window also has a "Use this shortcut in every account" box, which follows the general one until you change it; a shortcut that does not follow the general box shows "every account" or "this account only" in the list.
+- Messages and chats: unread conversations no longer disappear from the Unread filter after an update or restart, pinned messages of a group whose pins are old load, blocking a number that is not saved works, and deleting the last message for everyone updates the list preview. When you switch conversations, buttons of the previous message no longer show up with Tab, and the "Replies to the community announcement" item appears only in announcement groups.
 
-- Edited messages: Sound events gains "Edit of your message saved" (on) and "Message edited by someone else" for the program in the foreground and in the background (off); Settings > General > Notifications gains "Speak edits while the window is active" and "Notify edits while in the background" (off); and each conversation's data window has an "Edited messages" window to choose different sounds and announcements for that chat. Someone else's edit is announced only while WhatsApp still accepts an edit of that message, so edits replayed after a reconnection stay silent.
+- Keyboard: on a Brazilian (ABNT2) keyboard, "/" and "ç" typed in the message list no longer write "Á" and "º" in the message field, a shortcut change reaches the account you switch to at once, and Esc closes the What's New window. Alt+A no longer opens the attach menu (Ctrl+Shift+A still does), several windows had two controls with the same Alt letter, and Save As on a received JSON file saves it.
 
-- Sounds and calls set to "system default" now follow Windows' default playback device: when you plug in a headset that Windows makes the default, WinZapp's sounds and the call audio move to it, as other programs do.
+- Pasting a text file saved as UTF-16 into the message field no longer sends it as audio, inserting an emoji no longer raises an error while the writing help button is enabled, and with neural noise reduction voice messages are sent in the order they were recorded.
 
-- While you record audio (a voice message or microphone plus computer audio), the recurring background sync, the history walk and the media downloads pause, as they already did during a call, so the recording is not cut into pieces by a busy computer.
-
-- A deleted conversation comes back to the list when it is used again, by a new message or by reopening it from New chat, even when it was deleted under another form of the person, such as the linked ID or the number with or without the 9th digit.
-
-- WPPConnect: a message that a reply quotes no longer jumps to the end of its chat after WinZapp restarts; it keeps its real time.
-
-- WPPConnect, New chat: a Brazilian number typed with the 9th digit that WhatsApp does not use now opens the real conversation instead of a second, empty one.
-
-- Neonize: while the phone sends the message history, WinZapp says so and asks you to keep WhatsApp open on the phone's screen, warns when the phone stops (with the percentage), when it sends again and when it finishes; while it is stopped, WinZapp asks the phone for the rest every 90 seconds.
-
-- Neonize: the conversations that WhatsApp for iPhone leaves out of its first history batch (it now sends only 400) are now requested and imported as well. When the phone does not send the list of the ones left out, WinZapp, once the pairing's history is done, asks the phone for the conversations that are missing and waits a few minutes for the answer before calling the sync complete. On WPPConnect, after the first sync, WinZapp asks the phone once for the conversations beyond that first batch when the list is close to that limit.
-
-- Neonize: deleting a list also removes it from its chats, so they do not keep pointing at a list that no longer exists.
-
-- Noise reducer settings: the model field now has an Alt letter in every language.
-
-- The microphone + computer audio recording now goes out as a voice message (Ctrl+Shift+H), not as an audio attachment; it keeps stereo (AAC) when both channels carry sound, like other stereo recordings. Before, it was sent as an ordinary audio file in the chat.
-
-- Neonize: messages received while WinZapp is open now show as delivered to the sender, even with the window unfocused or in the background. Before, the sender only ever saw "sent" while WinZapp was unfocused; and with read receipts off, opening the conversation changed nothing. The online presence stays bound to the window.
-
-- Neonize: a message you sent could flip back to "Sent" after WhatsApp had already confirmed it as delivered — in the messages list and the status line. The app no longer overwrites a real delivery, read or played confirmation with its own "sent" ack, and no message status moves backwards once confirmed.
-
-- While NVDA is running, recording the microphone together with the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync. This already held without separate NVDA capture; the separately recorded NVDA and other computer sound readers are covered now too.
-
-- Voice messages can use neural noise reduction in the background while recording, instead of waiting until send time. The noise reducer settings window in Settings > Audio lets you choose basic or neural reduction, processing while recording or when sending (the default), and what to do if neural reduction fails: send with basic reduction or keep the message pending for a manual retry. Recording-time processing uses the CPU or CoreML; selecting CUDA disables it and uses processing at send time. There is no CUDA processing while recording. The CoreML recording path has not been validated in real use.
-
-- A contact now has a single name: when someone changes their profile name, all their messages, old ones and group ones included, show the new name instead of switching between the old and the new. Applies to Neonize and WPPConnect.
-
-- Startup: speech support now uses its own temporary COM cache, preventing circular-import errors when the shared Windows cache has lost its index.
-
-- The buttons of a business message now also show when the conversation opens with the message already focused, such as a conversation with a single message, not only after moving focus to it. This works with Neonize and WPPConnect.
-
-- In the online AI provider list and in the options of a new poll, Alt+Up Arrow and Alt+Down Arrow move the selected item, and the Move up and Move down buttons announce those keys. The keys appear in the F1 list and can be changed in Settings > Shortcuts.
-
-- When creating a poll, the Hide voter names checkbox and the Time limit choice (no limit, 1 hour, 8 hours, 24 hours, 3 days or 7 days) now work with both Neonize and WPPConnect. In View votes, a poll that hides names shows "Hidden name" in place of who voted; your own vote still reads "You".
-- When creating a poll, the Move up and Move down buttons reorder the options before sending; the poll goes to WhatsApp in the order you left it, with both Neonize and WPPConnect.
-
-- Starred messages now end with the word "Starred", like "Edited" and "Forwarded", instead of starting with the ★ symbol. A new option in Settings > User interface > Messages announces the word at the start of the line, before the sender.
-
-- The default sound pack's typing, typing_bubble, typing_pulse and AI processing sounds are now Ogg files, like the rest of the pack. Nothing changes in how they sound or in your custom sounds.
-
-- Inside an open chat with the message search (Ctrl+Shift+F) active, the first Esc clears the search and closes the bar, and the screen reader says "Message search cleared"; the next Esc closes the chat. You can turn it off in Settings, Chats.
-
-- In the chat lists (regular, archived and locked), Esc clears the search and the filters and the screen reader says "Filters cleared"; with chats selected, the first Esc still deselects just the selection. You can turn it off in Settings, Chats. This also works from the filters, the search and the other controls of the chat panel; inside an open chat, Esc still closes the chat or deselects the messages first.
-
-- Adding a chat to a list or removing it from one on another device updates the lists and the open filter, without changing the list you selected.
-
-- Changing your profile photo on another device updates the open Profile panel, without replacing a name, About or photo you have not saved yet.
-
-- Changing Keep chats archived or Status privacy on another device updates the open panel, keeping the choices you have not applied yet.
-
-- Fixed saved contacts missing from WhatsApp on iPhone: the linked-device contact ID is now sent in full, matching WhatsApp's native contact screen.
-
-- Saving a contact to the phone now says that the phone was asked to add it, instead of saying it is already in the address book; a save WhatsApp did not confirm is no longer reported as done.
-
-- Privacy changes made on another device update the open panel, keeping the fields you have changed but not applied yet.
-
-- Blocking or unblocking a contact on another device updates WinZapp as soon as WhatsApp reports it.
-
-- When a contact or group changes or removes its picture, WinZapp stops showing the old one.
-
-- Contacts saved, renamed or removed from the address book on another device, and public profile-name changes, update WinZapp when notified while preserving local names and history.
-
-- Group descriptions, settings and participants now follow live notices, including admin promotion and demotion, and refresh sending permissions in the open chat.
-
-- Deleting a chat on another device removes it from WinZapp when the notice arrives; a chat with messages newer than the notice is kept. If it was open, it is closed and WinZapp says why.
-
-- Pinning or unpinning a message on another device updates its flag and the open chat’s pinned-message overview when the notice arrives.
-
-- Changing the disappearing-messages timer on another device, in a chat or a group, updates WinZapp without waiting for a full sync.
-
-- Locking or unlocking a chat on your phone updates WinZapp when the notice arrives; if it was open, it is closed and WinZapp says why.
-
-- Mute, archive and pin changes made on another device update the chat list when the notice arrives, with WPPConnect and Neonize.
-
-- Messages deleted for you on another device are removed from the conversation when the deletion notice arrives, with WPPConnect and Neonize.
-
-- Starring or unstarring a message on the phone or another device updates its mark in the open conversation when the notice arrives, with WPPConnect and Neonize.
-
-- Neonize: edits preserve the original message ID and record the complete edit-notice key, including the author in groups.
-
-- Neonize: reaction events use the WPPConnect format, with complete keys for the reaction and original message, the sender and a timestamp in seconds.
-
-- In the open conversation, poll results refresh when a new vote event arrives, with both Neonize and WPPConnect. Neonize: WPPConnect-compatible events for votes, revoked messages and label associations; received status IDs preserve the author.
-
-- Archiving a chat now asks for confirmation, from the context menu or with Ctrl+Shift+Q, like deleting does. The dialog asks "Are you sure you want to archive this chat?" and has the buttons "Archive chat" (Alt+A) and "Cancel" (Alt+C), plus a "Don't show again" box that only counts together with the confirmation. In Settings > User Interface, the option "Ask for confirmation before archiving chats" turns the question back on.
-
-- Translating the messages already in a chat: the message context menu gains "Translate from here to the end" (Alt+Shift+Y) and the bulk action "Translate the selected messages" shows its shortcut, Ctrl+Alt+Shift+Y. Both can be changed in the Shortcuts tab of Settings, and the menu items show the shortcut in use. While a translation of several messages runs, the same menu item and shortcut become "Cancel translating the messages". It covers received text messages, up to 50 at a time, with the provider, model and display of "Translate message".
-
-- Writing help: WinZapp gains a feature similar to writing help in WhatsApp for mobile, with the added option of translating the draft. The new button after Emoji and the composer context menu open the same window. Correct, rephrase, use a professional or encouraging tone with the AI providers configured in WinZapp, not Meta AI; translation uses Google. Consent is requested before sending the draft and the result is previewed before replacement; the message is never sent automatically. Choose an action, then press "Run selected action". Opening or closing this window does not send the draft.
-
-- Writing help: new Alt+Shift+H shortcut to open the window from anywhere in the chat while a draft is written. It can be changed in the Shortcuts tab of Settings, and the field's context menu and the button now show the shortcut in use.
-
-- WPPConnect Server updated to 2.10.99, with WPPConnect 2.4.7 and WA-JS 4.8.5, which makes sending messages work again after WhatsApp Web changed internally. Reading message history no longer piles up copies in memory, the browser WinZapp drives is closed automatically only when WinZapp itself opened it, and waiting for WhatsApp Web to load now also works while the page is hidden. Media received without a download address is now downloaded by the message ID.
-
-- AI message summary, as in WhatsApp: the open conversation gains a "Summarize unread messages" button and the Ctrl+Shift+U shortcut; the context menu of the conversations list gains "Summarize unread messages with AI", which reads the messages from the database without opening the chat or marking it as read; and a message's context menu offers summarizing the unread ones, "from here to the end" and the selected ones. The button only appears with 10 or more unread messages; the shortcut works with any number. The summary uses the AI providers already set up in Settings > Online AI (not Meta AI), opens in a window with follow-up questions and a Copy button, and says it was made by AI and may contain errors. Voice messages go in as text: WinZapp uses the transcription already saved or transcribes on the spot with local transcription, the 20 most recent ones, in a window that shows the progress and has a Cancel button; without transcription set up they stay a marker and the result says so. Consent is its own, asked before any voice message is transcribed, once, and remembered in ordinary chats; in locked chats it is asked every time, never remembered, and the window closes when the vault locks. The summary covers up to 200 messages and 15,000 characters and says how many older messages were left out.
-
-- AI summary: two new shortcuts for the message context menu, Alt+Shift+I to summarize from here to the end and Ctrl+Alt+Shift+I to summarize the selected messages. They can be changed in the Shortcuts tab of Settings, and the menu items now show the shortcut in use, including Ctrl+Shift+U on the unread one.
-
-- AI summary: when you summarize messages that include voice messages without a saved transcription, a window asks how to transcribe them: locally (the default), online with a provider and a transcription model separate from the summary's model, or not at all. Before the voice messages are sent, a question says how many go, to which provider, and that this may use quota or incur charges, with a box to remember that provider's consent. Saved transcriptions are reused, and the result warns how many voice messages failed or were left out by the limit. Opening, changing or closing the windows sends nothing. Requested by UlisesMilani (#791).
-
-- WPPConnect: when disk space runs low (less than 4 GB free), WinZapp closes WhatsApp safely before it loses the session, goes offline and says why. Once at least 5 GB are free it connects again by itself. Before, with about 3 GB free, the session could come back logged out as if it had been wiped.
-
-- Automatic transcription: a voice message received while the computer was asleep is no longer left untranscribed when it arrives together with others on waking.
-
-- Neonize: someone joining a group by its invite link shows as "joined using the group's invite link", as on WhatsApp Web, and joining a group by link yourself also leaves that notice in the chat.
-
-- Clearing a chat on the phone now clears the same chat in WinZapp, on both connection engines. Starred messages stay when the phone kept them, and a message that arrived after the clear is not removed.
-
-- Channels: a channel opened from the Channels window, for example from the Trending or Recommended lists, loads its updates right away instead of showing "No updates in this channel yet." until the next sync. The details of a channel you do not follow are read too.
-
-- Groups: the "Group info" button keeps up with the number of participants. In a group you just joined whose participant list takes a while to arrive, the number appears as soon as the list arrives, and it changes when someone joins or leaves while the chat is open.
-
-- After the computer resumes from sleep, WinZapp no longer shows "Updating chats" again a few minutes later. Chats that could not be read while the connection was coming back are read in the same sync.
-
-- Neonize: changing a WhatsApp privacy option, such as "Last seen" or "Read receipts", no longer shows "Some settings could not be applied." when WhatsApp applied the change.
-
-- The account log no longer records the WPPConnect session's access code when media is downloaded.
-
-- Connection engine: Neonize is now first in the list and the option already selected when WinZapp asks for the engine on the first launch; it is still marked as experimental, but it is the one recommended for general use. WPPConnect becomes the second option, marked "alternative" after its name, on the first launch, in the pairing window and in Settings > Connection. Anyone already using WPPConnect stays on it until they switch.
-- After a long time without opening WinZapp: while WhatsApp is still delivering old messages after the sync, the window title keeps saying "Updating chats" instead of presenting everything as synced, and the chat list stays still, so you can move through it without chats changing place. It is updated once when the messages stop arriving. This applies to both Neonize and WPPConnect. On Neonize, WinZapp also uses WhatsApp's own notice that old messages are waiting to be delivered, so the status shows from the first message and only goes away when the delivery ends.
-
-- Notifications: when many new messages arrive at once (for example, after an unstable connection comes back), WinZapp plays and speaks only the first three and stays quiet until the burst ends, instead of repeating the sound dozens of times. The messages are still in the list and count as unread. The limit is chosen in Settings > General > Notifications, under "Maximum notifications per second when many messages arrive at once" (default: 3).
-
-- Neonize: accepting the Meta AI terms no longer fails with a WhatsApp error. WinZapp now sends the acceptance in the same format WhatsApp Web uses for this notice and only confirms it after reading again that the notice is recorded as accepted.
-
-- Calls: better support for stereo microphones and headphones in shared mode, with mono fallback when needed. Voice is still sent in mono.
-
-- In the call window, press Ctrl+M from any control to mute or unmute the microphone and hear its new state. The outgoing call window shows the call status and announces when it rings or connects.
-
-- During a voice call on Windows 11, use Share desktop audio to send the system sound or the sound of a single application, with or without NVDA audio, at the volume you choose. Nothing is selected at first. Muting the microphone does not stop the share, and changing the call's audio devices keeps it going. Use Stop sharing desktop audio to end sharing independently of the microphone.
-
-- Neonize: in calls, the other person's voice is buffered a little longer (about 60 ms) to reduce breakups when audio arrives in bursts.
-
-- Message translation: press Shift+Enter on a text message in the message list (the shortcut can be changed), or use its context menu. Set it up in Settings > Online AI: Transcriptions and Descriptions > Message translation: the provider (your AI providers, Grok, or your own OpenAI- or Anthropic-compatible address), the model, the target language, and whether the translation replaces the text, follows it or opens in a separate window. Optional automatic translation of received messages, in all chats or only the ones you turn on, with a maximum message age and a daily limit; it pauses for an hour if the provider refuses the key, quota or credit. Locked chats are never translated automatically, and translating a message from one asks for confirmation every time. The kinds of media that online AI handles are now in the "Types of media handled..." window, on the same page. Turning automatic translation on for a chat now also translates its 10 latest received messages, however old, and "Translate the selected messages", in the bulk actions, translates the selected text messages (up to 50) after asking for confirmation. Requested by UlisesMilani (#793).
-
-- Neonize: a notice that a message was deleted, for a message or chat WinZapp does not have, no longer creates an "Unnamed group" in the chat list. Deleted messages in your existing chats are unchanged.
-
-- Neonize: old media that the phone re-uploads after the request to send it again is now actually downloaded. Before, the re-uploaded file was refused because it did not match the check of the original file and the media still would not open.
-
-- Update on exit: a new option in Settings > General downloads updates automatically, without asking, and installs them when you exit WinZapp. Closing the window to the tray does not count as exiting, and WinZapp does not open again after the installation: it stays closed and uses the new version the next time you open it.
-
-- Neonize: old chat history is now really imported during the background sync; the previous fix was still undone at the end of each sweep. Old media that cannot be recovered even after asking the phone now shows as expired instead of a repeated connection error.
-
-- Neonize: media whose link expired is now requested again from the phone. When a download fails because the link expired, WinZapp asks the phone to upload the media again and downloads it from the new link; if the phone no longer has the file, the media stays marked as expired.
-
-- New replies and sent messages no longer appear above the original message when the computer's clock is behind WhatsApp's. The provisional time of a sent message is never earlier than the last message already shown or the message being replied to.
-
-- Neonize: history that the phone sends over several hours is no longer declared complete by a 45-second pause between blocks. While the reported progress is below 100%, WinZapp waits up to 10 minutes of silence, so chats are not treated as final too early.
-
-- Media that fails to download: the error message no longer mentions WPPConnect, which does not exist on the Neonize engine. It now says the link may have expired or the WhatsApp connection may be unavailable.
-
-- Business templates: preserve available text and supported buttons, keep button positions, and explain missing content or unsupported actions. Empty old records cannot be reconstructed.
-
-- WPPConnect Server 2.10.79 is now offered as an update without waiting for a new WinZapp version. It only updates security dependencies, and WinZapp's changes to the server are not affected.
-
-- Neonize: after pairing with "All the history", old chat history is now really imported. Before, hundreds of old, empty chats you never opened stalled the import, and most of the messages already downloaded never showed up. Old media whose link has expired is now recognised as expired instead of failing with an error and being retried several times.
-
-- Mentions: in a group message with @all, Tab no longer goes through one link per member right after the chat opens. Before, this happened until the group's members finished loading and the message lost focus.
-
-- Local transcription: switching accounts while voice notes are transcribed no longer fills the computer's memory. One model is loaded at a time: a second transcription, of the same account or another, waits for the first and says it is waiting, and an account's idle model is released when another one needs the card.
-
-- Clear chat (Neonize): clearing a chat in WinZapp now clears it on the phone too. The notice used to miss the phone, and the messages came back at the next sync.
-
-- Automatic transcription: voice notes that arrive all at once after the computer hibernated or was offline are now transcribed. The time the computer slept or was offline no longer counts as a message's age, and the queue holds up to 100 messages.
-
-- Local transcription: a new option, "Also transcribe the ones that arrive late", shown with automatic transcription on, transcribes received messages however long ago they were sent.
-
-- Disappearing messages (Neonize): audio recorded with Ctrl+Shift+H, photos, videos and documents now follow the chat's disappearing messages timer.
-
-- Calls (Neonize): a call you place to a contact no longer shows up in your own chat, as if you had called yourself.
-
-- Group messages (Neonize): a message this computer could not open is now asked of your phone too, as WhatsApp Web does. It used to be lost when the sender's device did not send it again.
-
-- Pairing (Neonize): when connecting, you choose how much history to bring: recent messages only, 30 days, 6 months, 1 year, all the history or a custom period in days, months or years. Messages older than about a year only arrive this way.
-
-- Older messages (Neonize): the Home key goes on asking the phone for older messages until it has nothing more, even where WhatsApp Web stops.
-
-- Channels: invitations to follow a channel or to be one of its admins now show in the chat, with the channel's name and the inviter's words. Enter opens the channel.
-
-- Noise reducer: a new "Noise reducer settings" window in Settings, Audio, with the neural model and the processor it runs on: the computer's, an NVIDIA card with CUDA 12 (which uses the local transcription's components) or with CUDA 13, or Core ML on a Mac. Only the missing components are downloaded, following the option to download in the background, and they can be removed there. A new box chooses between the neural reducer and the common one, which is faster.
-
-- Local transcription (whisper.cpp): on Windows ARM64 computers WinZapp uses the native ARM64 build and offers, as an option, the build for NVIDIA cards with CUDA 13.
-
-- Channels: where WhatsApp offers it to your account, "Edit channel..." has "Show admin profile on updates", as in WhatsApp Web (WPPConnect).
-
-- Channels: "Insights..." in the Channels window reads the statistics of a channel you administer, as WhatsApp Web shows them (reach, followers, net followers, new followers and unfollows over 30 days, by followers and others and by country), on WPPConnect and Neonize. WhatsApp has them from 100 followers on.
-
-- Media downloads: "Downloading media: X of Y" now counts only the media still to download. It used to count the ones downloaded in earlier sessions too, and it looked as if almost nothing had come down (for example "723 of 728 processed (66 downloaded)", when the other 659 were already on the computer).
-
-- Channels: in "Create channel..." and "Edit channel...", Reactions sets who may react to the updates (any emoji, default emojis only or no reactions), as in WhatsApp Web, on WPPConnect and Neonize.
-
-- Starred messages: a new window lists every starred message of every chat (Alt+0, or the "Starred messages" row of the navigation list), with a search field; Enter opens the chat on the message, and Delete removes the star. Suggested in issue #708.
-
-- Settings > User Interface > Chats: new option "Automatically focused position in the messages list". With "Continue where you left off (last focused message)", going back to a chat (including switching from one chat to another) puts the messages list on the message you were on when you left, whether or not new unread messages arrived. The unread separator and other rows that are not messages never count as a position. The default is still "Unread separator or last message". The option only chooses the message in the list: whether focus goes to the list or to the message field is still decided by the existing option.
-
-- Bookmarks: two new checkboxes in Settings > User Interface > Chats, "Remove permanent bookmarks automatically after the first use" and "Remove temporary bookmarks automatically after the first use". When checked, jumping to a bookmark (Ctrl+0 to 9 for permanent ones, Alt+Shift+0 to 9 for temporary ones) removes it right away, so the same key sets a new bookmark next time, without removing it with Ctrl+Shift+number.
-
-- Sounds: two new options in Settings, Sounds let you choose which sound plays for a new message while WinZapp is in the foreground, one for the open conversation and one for the other conversations. Each can keep the dedicated foreground sound, as before, or use the same notification sound you chose for messages in the background.
-
-- WhatsApp links: WinZapp now opens chat links. A wa.me or api.whatsapp.com link (for example from an airline, a shop or a website) opens the chat with that number, even if it is not in your contacts, puts the message from the link in the message field and leaves the focus there, ready for you to review and send. Links with only a number work too. The installed version now registers itself for WhatsApp links on its first launch, so WinZapp appears under Default apps in Windows; the portable version keeps the option in Settings, General.
-
-- Account manager: new check box "Connect all accounts when WinZapp starts". When it is on, starting WinZapp also opens every other paired account in the background.
-
-- Backup: the profile backup (in Settings > Storage and the storage manager) is no longer shown when WinZapp runs with the Neonize engine, which has no browser profile to back up.
-
-- Messages: conflicting alternate identities no longer route messages sent to or received from another person into your self-chat. Invalid aliases are ignored; unresolved messages stay with their original chat until the identity is resolved.
-
-- Unread filter: after updating or restarting the program, some conversations with unread messages disappeared from the filter (for example, 12 became 9) until you resynced with F5. The count now looks at the conversation's newest messages instead of its oldest. Group conversations whose latest entries were group notices (invites, members added, a description change) no longer vanish either: those notices no longer take the place of the real unread messages.
-
-- Alt+letter shortcuts: in several windows two controls used the same letter, so Alt+letter only moved between them (in some languages, for example, "Refresh" and "Add participants" in the call participants window). Each control in a window now has its own letter, in every language.
-
-- Chat list: when the chosen filter (Unread, Groups, Individual), a WhatsApp list or the search finds no chat, the list shows one row saying so (for example "No unread chats."), as the message list already did for an empty chat, instead of leaving the screen reader nothing to read.
-
-- Group calls: WinZapp now says who joins and who leaves the call (Settings > Calls, "Announce when someone joins a call" and "Announce when someone leaves a call", on by default), and the "Call participants" window updates by itself when it happens, with no Refresh button; F5 reads the list again.
-
-- Global hotkey: with a WinZapp window waiting for an answer, such as the update prompt left open while the program was in the tray, the global hotkey now brings that window to the front. The main window used to come up and answer nothing.
-
-- AI image descriptions: when the provider's account runs out of credit (OpenRouter answers 402), WinZapp now says so and suggests adding credits or choosing a free model, instead of asking to check the model identifier; with several providers it moves on to the next one.
-
-- Recording with computer audio: on slower computers, recording the microphone together with the computer's audio (Ctrl+Shift+H) skipped and stuttered, worst with NVDA's speech recorded separately, because mixing the sounds could not keep up and pieces of audio were lost. The mixing is now many times faster and the recording comes out whole.
-
-- Channels: on WPPConnect, posting to a channel you administer (text, photo, video or poll) failed before reaching WhatsApp, and an open channel showed only what WhatsApp Web already held, often no updates at all (The New York Times, for example) and none of your own new posts. Posts now go out, and a channel opens on a whole page of its newest updates, read from WhatsApp's server. Coming back from a channel with Esc, the Channels window is as you left it: the same list, search, category and selected channel.
-
-- Updates: on a busy computer an update could stop with "WinZapp could not verify that it is safe to install the update. Installation was not started.", because the PowerShell that guards the install took more than 15 seconds to start; it now gets up to a minute. With Neonize, an update could also stop halfway, the bridge still closing in the background and holding its file: the installer now waits for it to close, and closes it if needed, before copying the files.
-
-- Channels with Neonize: opening or syncing a channel asked WhatsApp for a thousand updates at once; the server did not answer, the channel stayed empty and the sync tried again every 30 seconds. Updates are now asked 100 at a time, as WhatsApp Web does.
-
-- Message list: on a Brazilian (ABNT2) keyboard, pressing "/" in the message list wrote "Á" into the message field, and "ç" came out as "º". Typing in the list now sends the field the letter or digit the keyboard really types, and punctuation stays in the list. For the same reason, the "ÿ" that NVDA gestures with the Windows key left in the field came from a key NVDA itself injects; only that key is ignored now, and a real "ÿ" can be typed.
-
-- Calls: the "Add participants" window now works with a screen reader. People are marked with the same keys, sound and announcements as in the conversation and message lists (Ctrl+Space, Space while something is marked, Shift+arrows, Ctrl+Shift+Space, Esc), and the result is spoken: who was invited, who could not be added, or why the request failed.
-
-- Calls: delayed media and device/camera work stay with their original call and stream. Neonize processes media in bounded queues off the server loop and keeps its reader after a transient emission failure. Ambiguous WASAPI names no longer select the first matching device. Neonize call logs also include signal-level summaries without saving audio content, to help investigate silence. When call output is reopened, an old stream that fails to close cannot consume the new stream's audio; an echo-reference failure no longer silences rendered audio.
-
-- Media tab of chats and groups: Ctrl+C on a document, photo, video or audio now copies the file to the clipboard, as in the message list, instead of saying "Could not copy this message." The context menu item is now "Copy file" too.
-
-- The Open button now opens documents, photos, videos and other files in the external viewer under their real name, instead of a name like "tmpab12cd34", just as Save as already did.
-
-- Settings > General > Notifications gains "Order of group messages in toast notifications:", with "Participant name first" (the default, as before: "Gustavo in WinZapp | Developers and Testers") and "Group name first" (as in the official WhatsApp Desktop: "WinZapp | Developers and Testers, Gustavo"). The choice changes only the text of toast notifications; what the screen reader announces while the window is active stays the same.
-
-- Recording the computer's audio no longer stops with "audio device problem" when WinZapp stalls for a second or two (a busy or slow computer): the audio from that moment is skipped, the recording goes on, and the rest stays in sync.
-
-- Neonize: with read receipts turned off in Privacy, you no longer see the "read" status of the messages you send in one-to-one chats, just as you no longer send read receipts to others (as with WPPConnect). The setting now works in both directions.
-
-- ClickBus: verified business names now show in the conversation list, trip texts and interactive buttons are shown in full, and the option chosen in a carousel is sent with the card index.
-
-- Settings > Storage gains Storage manager: inspect logical sizes and coverage, choose media matching and protections, preview local-copy removal or recoverable holding, restore held files, and configure optional rules, notices and advisory targets. Automatic removal is restricted to verified regenerable compile cache; all scheduling starts off. Cleaned media can be requested individually without clearing automatic-download blocks.
-
-- Neonize calls: recover an answer or end that arrives before local call registration; group call failures now distinguish WhatsApp rate limiting and the supported member limits.
-
-- Neonize calls: the log now records the relay endpoints and the relay's answers, to find why an incoming call may carry no audio from the other person (issue #689). No change in behavior.
-
-- Neonize group calls: when a group member joins a group call you started, the call becomes active and the audio starts, instead of staying on "calling" with the microphone dropped. The end of the call is now recorded in the group and in your call history, not in a private chat with one of the members (issue #689).
-
-- Neonize group calls: when an invitation to a group call arrives without the group's name, the program asks the server which group it is, so the call in progress shows in the group's conversation for you to join (issue #689).
-
-- Neonize group calls: the log now records what the participant lists sent by the server hold (counts only, no names), to find why some people who join a call hear nobody (issue #689). No change in behavior.
-
-- Neonize group calls: a device that is connected to the call now keeps the identifier it received when it joined, instead of losing it on the server's next update. Someone answering through Neonize no longer hears only the person who started the call and now hears the other participants too (issue #689).
-
-- Neonize calls: calls you place, and calls you answer and hang up yourself, now appear in the conversation history and in the Calls section. They were not recorded at all before (issue #689).
-
-- Neonize calls: the log now counts, every 5 seconds, the packets of each kind the relay delivers (no names), to find out why the caller's audio stops in some received calls (issue #689). No change in behavior.
-
-- Group calls (Neonize): after you hang up a group call and go back into it from the calls panel (or join one that is already going on), you stopped hearing everyone. WinZapp was ignoring everyone who was already in the call before you came back; now it hears them again. The call log also counts repeated messages per call, so the diagnostic lines no longer vanish from a call after a few calls (issue #689).
-
-- Neonize: the first message to a new phone number typed in a new conversation (Ctrl+N) no longer ends as "not confirmed" when WhatsApp has the number registered in its other form (with or without the 9th digit of Brazilian mobiles): it is now sent to the address WhatsApp knows. A number typed in a new conversation now opens the chat under the address WhatsApp knows, so no duplicate chat is left behind.
-
-- Voice messages: the recording bitrate is back to 64 kbps, which sends quickly even past a minute (the change to 256 kbps had made sending slow). Settings > Audio gains "Voice message bitrate (kbps)", to choose from 32 to 256 kbps.
-- Voice messages: recordings in stereo (AAC) now go out at 128 kbps by default, because 64 kbps made them sound poor; mono recordings stay at 64 kbps. Settings > Audio gains "Stereo voice message bitrate (kbps)". Installs still on the old 64 kbps default move to 128 kbps for stereo; any other rate you had chosen is kept.
-
-- Settings > User Interface > Chats: new option "Number of new messages in the chat list", so the screen reader says the number of new messages before the chat name instead of after it. It applies to the chat list, the archived chats and the locked chats. (suggested by Michal Suchý)
-
-- New Channels window (Alt+9, also in the navigation list): it shows the channels you follow or searches WhatsApp's channel directory (with no text, the recommended channels). For the chosen channel you can open it and read its updates, follow or unfollow it, mute or unmute its notifications, copy its link and, for your own channels, edit or delete it. You can also follow a channel from its link and create a channel. Showing channels in the conversation list is still a separate setting. Works with WPPConnect and Neonize.
-- Channels, as on WhatsApp Web: in "Find channels", Category (business, entertainment, lifestyle, news, organizations, people, sports) and View (recommended, trending, popular, new) narrow the directory. In the channels you administer, the message field opens to post text updates, photos, videos and polls, your own can be edited from the message menu (Alt+E) within WhatsApp's edit window, an update can be pinned or unpinned from the message menu (Ctrl+Shift+P) and the pinned ones show in "Pinned messages"; the "Admins and followers..." button says how many admins the channel has and, for its owner, invites a contact to be an admin or cancels the invite. Works with WPPConnect and Neonize. That window lists the owner, the admins, the pending invites and the followers: the owner can make a follower an admin, cancel an invite, remove an admin or make an admin the owner, and an admin can stop being one.
-
-- Calls: you can now add people to the call in progress, with the "Add participants" button in the call's participant list. A group call offers the group's members who are not in it yet; a private call offers your contacts, and the call then has several people, as on WhatsApp. Someone already called who has not joined is rung again. Works with WPPConnect and Neonize.
-
-- The experimental Neonize engine was updated from 0.6.0 to 0.12.4. A chat deleted on the phone now disappears from WinZapp too, and marking a chat as read or unread on the phone updates the unread counter again. A contact's about now updates as soon as they change it.
-- Neonize: reactions given in community announcement groups, which arrive encrypted, now show up, and yours are sent encrypted in those groups. Comments on announcements are now opened and sent by the engine itself, with the previous method as a fallback.
-
-- WPPConnect Server updated to 2.10.78, which stops serving the private media cache over HTTP.
-
-- WPPConnect Server updated to 2.10.75, which fixes a Chatwoot webhook that accepted requests without authentication and patches a vulnerability in the glob and minimatch libraries.
-
-- WhatsApp settings > Privacy: new "Keep chats archived" option, WhatsApp's own, which decides whether an archived chat goes back to the list when a new message arrives. Works with WPPConnect and Neonize.
-
-- Neonize: with WhatsApp's "Keep chats archived" option off, an archived chat that gets a new message now goes back to the chat list, as on the phone; before, it stayed under Archived.
-
-- Voice messages: in Automatic, a recording whose left or right input is completely silent now goes out in mono, from the input with sound, so you are heard on both sides instead of only one. Mono and Stereo do exactly what they say.
-
-- Settings (Ctrl+,) now opens at once: only the General page is built when the window opens, and every other page or window is built the first time you go to it. Search works straight away: results keep arriving while the other pages load, you can keep typing, and the screen reader is not interrupted when the results list grows.
-
-- Neonize: reading a chat now marks it as read on the phone and on WhatsApp Web the way WhatsApp's own apps do. Before, after many chats read on Neonize, WhatsApp Web could keep showing messages you had already read as unread for several minutes.
-
-- Neonize: messages in private chats are no longer marked as read by themselves while the conversation is not open.
-
-- Neonize: channels in the chat list (when the option to show them is on) now show their name instead of a code.
-
-- Neonize: sending to large groups is faster: the group's encryption key now goes only to the devices that do not have it yet, instead of to every member's device with every message.
-
-- Neonize: messages to Meta AI work. WinZapp asks you to accept Meta AI's terms when the account has not accepted them yet, and Meta AI's replies are shown as text instead of an unknown message.
-
-- Neonize: posting a status (text, image, video or voice) no longer fails with "server returned error 400". It happened in disappearing-message chats and, on any account, after the phone synced a contact saved under WhatsApp's new identifier.
-
-- Neonize: WinZapp now asks the phone for a chat's older messages, as WhatsApp Web does when you click to see earlier messages. Before, a chat only had what came when the device was linked, and resyncing brought nothing more.
-
-- A message WinZapp already knows no longer turns into "Waiting for this message". After switching from Neonize to WPPConnect, a message you had just sent could show that way, even after F5 or reopening WinZapp.
-
-- Mentions: typing an emoji in the mention suggestion list no longer breaks the send. Before, the message could fail to go out with a server error.
-
-- Groups: in a group where only admins can send messages, the message field is now read-only for members on Neonize too; before, it stayed editable in most of these groups.
-
-- Keyboard shortcuts: the F1 list corrects action labels, removes repeated lines within a section, and separates mention suggestions while typing from mentions inside a message. In Spanish and European Portuguese, Alt+P focuses the message field, leaving Alt+E for editing messages.
-
-- Voice messages: Settings > Audio now offers Automatic, Mono and Stereo recording. Mono mixes both microphone inputs so a microphone connected only on the left or right is heard from both sides. There is still one record button; the choice applies from the next recording.
-
-- Fixed: the WPPConnect server no longer fails to start with "Cannot find module '@babel/runtime'" ("WinZapp API failed to start in time") after an update or fresh install.
-
-- Neonize: if the internet drops in the middle of a call, you can still hang up; before, the button failed with a "Disconnected" error.
-
-- WPPConnect Server 2.10.74 is now offered as an update without waiting for a new WinZapp version. It only updates documentation and a security dependency, and WinZapp's changes to the server are not affected.
-
-- Neonize: a file or message you forward now appears in the destination conversation right away, without having to refresh it manually.
-
-- Mac: checking for updates no longer fails with a secure connection error on Macs without python.org Python. Versions already installed need one manual install to get this fix.
-
-- Groups: when someone is typing, WinZapp now announces their name instead of just their phone number when you have seen a message from them, even if they are not in your contacts.
-
-- Mac: you can now record the microphone together with computer audio (Command+Shift+H) on macOS 14.4 and later. The first time, macOS asks for permission to record system audio.
-
-- Groups: WinZapp now recognizes you in groups that list you by your linked ID (@lid), so an admin no longer finds Add Member dimmed.
-
-- Neonize calls: a call you place that nobody answers now ends by itself after a minute, with the "not answered" outcome, instead of ringing in the call window for minutes after WhatsApp stopped ringing the other phone.
-- Mac: WinZapp now says when macOS is waiting for microphone permission or when it was denied, instead of the record button seeming to do nothing.
-
-- Voice messages: there is now a single record button. WinZapp records in stereo when the input device offers two channels and in mono otherwise, so the second record button, Ctrl+Shift+G and the stereo option are gone. A stereo recording is now a real voice message that plays on iPhone, and quality is up to 256 kbps. An attached stereo Opus file is now converted so it plays on iPhone too.
-
-- Attached contacts: a received contact no longer arrives empty and without a phone number. The contact card is now kept by both WPPConnect and Neonize, so you can see and copy the number and chat with the person.
-
-- Neonize: posts from channels you follow (ids starting with 120363) no longer show up as chats and messages; they were never meant to appear outside the channels area.
-
-- Pairing: fixed the app staying on the pairing screen after a successful link, while the phone already listed it as connected.
-
-- Neonize calls: added a disabled-by-default experimental 48 kHz PCM path for negotiated Opus calls, with format and call-instance checks. Normal calls retain the existing MLow fallback.
-
-- Marking read or unread, muting, archiving and pinning now have spoken confirmation. A repeated error fetching the chat list shows one box instead of one per attempt. On the Mac, WinZapp notices when the computer wakes and reconnects, and Home and End go to the start and end of lists. When a session cannot be resumed, pairing the same number again no longer deletes your history.
-
-- The README now starts with direct download links for Windows and Mac, so you no longer have to search the Releases page for the right file.
-
-- Arabic: voice message and audio transcription now uses "تفريغ" (transcription) instead of "تسجيل" (recording) in menus, settings and messages, so it no longer sounds like recording your voice.
-
-- When you accept an update, WinZapp now checks again which version is the latest before downloading, so it no longer installs an alpha older than the newest when alphas are published in quick succession.
-
-- Neonize calls: fixed a race that could leave an answered incoming call silent, preserved multi-frame received audio and reduced microphone aliasing. The negotiated codec is now used for audio, with bounded packet reordering and loss handling.
-
-- WPPConnect Server updated to 2.10.71, which adds a fix for a vulnerability in a library the browser layer uses (deepmerge) and loads it when the server starts.
-
-- Quick chats: Ctrl+Alt+Shift+F1–F10 assigns a chat, and Ctrl+Shift+the same function key opens it from anywhere in the window (F10 is slot 0). Assignments are per account, shortcuts can be changed in Settings, and existing bookmark shortcuts remain available.
-
-- Arabic is now available in Settings > General > Language, with Arabic text in the Windows installer and uninstaller.
-
-- WPPConnect Server updated to 2.10.70, which tightens its admin routes (listing and backing up sessions now need the secret key in a header instead of the address), the session folders it deletes on logout and the way contact lists are split. The existing session cleanup on shutdown with a custom API was adjusted to match.
-
-- A group call that rang and was not answered is now recorded in its group, and its ring names the group: it no longer appears as a private call from whoever started it.
-
-- New connection engine, experimental: Neonize connects to WhatsApp without a browser, through a local bridge. Choose it in Settings, Connection (or in the question on the first launch) and restart WinZapp; WPPConnect remains the default. Compiled builds already include the bridge and keep WPPConnect installed alongside it; from a repository checkout, set the bridge up with neonize_bridge/prepare.py (see the README in that folder). On the first launch after updating, an install still on WPPConnect gets a one-time notice offering the switch; each engine keeps its own connection, so switching and coming back does not lose either. With Neonize, custom chat lists, joining a community's groups (or asking to) and cancelling that request, deactivating a community, editing and deleting your channels, choosing who sees your status and removing a contact also work. Catalogs, carts and orders also work with Neonize (viewing a business's catalog, filling and sending a cart, and, on a Business account, answering orders and managing your own catalog), as do buttons, lists and Pix keys in messages. Forwarding locations and contact cards works with Neonize too. Video calls, turning a voice call into a video call and group calls also work with Neonize. A community also lists, with Neonize, the groups you are not in. Ongoing group calls can also be found and joined with Neonize, with the list of who is in them. Call buttons in chats, including joining an ongoing group call, follow the support reported by Neonize and refresh automatically when its reply arrives, without taking focus from another window or a hidden chat. Public profile names received during contact synchronization are also used for group participants without a private chat, while saved address-book names keep priority.
-
-- Use the Call participants button in the call window, or on a selected ongoing call in Calls, to see the connected people by name.
-
-- Mistral is available for online transcription, image descriptions and PDF text extraction. Audio uses the voice message model chosen in the provider window (Voxtral Mini Transcribe 3 by default, or Voxtral Small Transcribe 3; both in preview); photos, stickers and video frames use the selected vision model (Ministral 3 3B by default); PDFs use Mistral OCR. Get models lists only compatible vision models. Before media is sent to Mistral, WinZapp warns that its free plan may use requests for training.
-
-- While a call is available, group chats show "Join ongoing voice call" or "Join ongoing video call (camera off)" instead of the start-call buttons. Calls lists ongoing calls in All and Ongoing, including multiparty calls outside group chats. Video joins start with the camera off.
-
-- Many contact presence updates in a row (typing, online) no longer freeze WinZapp for seconds or slow the whole computer down on accounts with many chats.
-- Contact presence: learning new contact names no longer waits for a database write in the interface. Pending name updates keep the latest full snapshot, with ordered handling during shutdown and local data clearing.
-
-- Contact presence: reduced repeated interface work when many online or typing updates arrive. Unchanged window titles and archived-chat labels are no longer rewritten, while typing announcements keep their existing timing.
-
-- Chat lists (conversations, archived and locked chats) now use the full width of the list, so chat names and message previews are cut off much less when the window is wide.
-
-- Updating WinZapp or WPPConnect no longer freezes the whole computer half-way through. The installation and build steps now run at lower priority, so the screen reader keeps speaking smoothly.
-
-- WPPConnect Server updated to 2.10.63, with WPPConnect 2.3.6 and WA-JS 4.7.2. The browser WinZapp drives is now released more completely when a session closes or fails to start, a restored session is recognised as logged in sooner, and a phone disconnection is reported only after a real unpair.
-
-- Typing and voice-recording indicators in private chats remain available when WhatsApp reports the contact as offline. Activity is shown separately from online visibility and expires when it stops being refreshed. Activity belongs to the conversation where it occurs: groups and private chats are tracked separately. Missed last-seen refreshes are retried, and visibility restrictions also clear previously displayed online and last-seen information. If status data keeps waiting to become ready in an open chat, WinZapp makes a limited number of recovery attempts; hidden information does not trigger them. When status data is not yet ready, the first read waits for the subscription to finish; last-seen and visibility changes also update independently of activity changes. A single stalled status request no longer blocks later refreshes; replacement reads remain limited. Missing last-seen information is refreshed when returning to the window, while reading the current contact's information, and when typing or recording ends without a final update. Contact information opens without waiting for last-seen requests; late profile presence replies cannot restore information from a previous connection. Group typing and recording indicators no longer stay tied to an old connection. Visibility restrictions discovered during a status refresh also clear old information in chats and contact details.
-
-- Pinned messages: opening the pinned messages of a group whose pins are older than what WhatsApp Web keeps in memory no longer fails with "Could not load pinned messages", and the count on the button shows the right number.
-
-- WPPConnect Server updated to 2.10.62. Pairing a new account no longer loses the QR code when WhatsApp reports the phone as disconnected a moment after the session starts.
-
-- Calls: reinstalling WPPConnect preserves a newer compatible WhatsApp Web catalogue and checks its freshness. A rebuilt catalogue is checked without the previous six-hour wait. A confirmed non-retryable VoIP contract mismatch stops repeated initialization.
-
-- Group calls: a group with more than 32 participants cannot be called on WhatsApp, so the call buttons are replaced by a "Calling is not possible" button whose note says the group has more than 32 participants, and the call shortcuts say the same instead of starting a call.
-
-- Group calls: the voice and video call buttons now appear in a group conversation and start a call to the group, and an incoming group call rings, is announced by the group's name and can be answered, with the same Answer button and global answer key as a one-to-one call. Turning the camera on during a voice call works as it does in a one-to-one call, and call events from each participant stay with the group, so the call window keeps the group's name from the first ring to the end.
-
-- Video calls: WinZapp now finds the camera with the FFmpeg build it ships, which lists DirectShow devices without the "DirectShow video devices" heading. That build returned no camera at all, so a video call went out receive-only, with "No camera found" in the log.
-
-- Buttons in business messages can be answered: a reply button sends the answer the way WhatsApp Web does (reply buttons of plain messages, quick replies of interactive messages, template buttons and the rows of lists), a link button opens the link, a copy button copies the code and a call button says the number. The buttons appear under the message list when the message is selected.
-
-- WPPConnect Server 2.10.61 is now offered as an update without waiting for a new WinZapp version. It only updates dependencies, and WinZapp's changes to the server are not affected.
-
-- WPPConnect Server 2.10.63 is now offered as an update without waiting for a new WinZapp version. It only updates dependencies, and WinZapp's changes to the server are not affected.
-
-- macOS updates explain whether verification failed because of a connection, certificate, server or GitHub request-limit problem, and whether the verification file or the official release tag could not be checked. Temporary connection and server failures get one retry; request limits show a wait time and do not trigger repeated requests during that wait.
-
-- Updates: installation keeps ownership after WinZapp closes, and a downloaded package waiting to install is kept. Only a complete copy counts as success; a successful update clears an earlier failure warning. Automatic reopening waits for the installer to finish and does not proceed when its wait limit is reached. After an incomplete or unconfirmed copy, WinZapp stays closed and opens recovery instructions in Notepad.
-
-- Voice calls preserve timing across audio packets and use band-limited conversion when the microphone or speaker needs a different sample rate. Audio already at the call rate keeps the direct path.
-
-- The Settings window now has a search field and a list of categories: the arrow keys change category, Tab enters its options and, in the search, the down arrow goes to the results, where Enter or Space opens the option found, even when it is in the window of a button. Several categories were merged: Audio (devices, audio pasted with Ctrl+V, voice messages and silencing while recording), Event sounds (sound events and alert tones) and Storage (with the save folder). Spoken content, Audio playback, Profile backup, Keyboard shortcuts, Reactions, Notifications, Messages, Chats, Locked chats and Confirmations became buttons that open the window of each subject. "User Interface" is now called "Interface", and Connection moved to the end of the list.
-
-- WhatsApp settings (File menu) now opens Settings already on the WhatsApp settings category, with the Privacy and Profile buttons; the separate window is gone. WinZapp only asks WhatsApp when you open each button, and Ctrl+Shift+, still opens that category.
-
-- Communities: the "New chat" window has the new "Communities" button, which opens the list of the communities you are in. Choosing a community shows its description, its admins and the groups of it you have joined, with the announcement group and the general group identified; Enter or "Open group" goes to the selected group. If you are an admin of the community, the window also offers "Add groups", "Remove group from the community", "Promote to community admin", "Demote community admin" and "Deactivate community", and "New community" creates a community with a name, a description and the groups you choose. After each action WinZapp reads the communities again and only says it is done when WhatsApp shows the change; otherwise it says the request was sent but is not confirmed yet, or that it was refused.
-
-- Community announcement replies: open a message menu and choose "Community announcement replies" to read and send replies. Replies update by themselves while the window is open, the reply field is no longer read-only, and your text is kept when sending is not confirmed. In the chat list, the group's preview says "So-and-so replied to an announcement" when that is the latest activity. Announcements report the known reply count. Authors use saved or profile names, and your replies respect your self-reference setting.
-
-- Communities is now a row of the navigation list, after Calls, with its Alt+8 shortcut in the row's name, so it can be reached by arrowing through the list as well as with Alt+8.
-
-- Blocking a number that is not saved in your contacts no longer fails with "Could not block this contact": WinZapp now opens the chat WhatsApp requires before blocking.
-
-- A new conversation started with a Brazilian number typed with the extra 9 no longer shows up twice in the conversation list after you send the first message: WinZapp keeps the conversation under the number WhatsApp itself uses.
-
-- Video messages (the round videos sent instead of a voice message) are now shown as videos, instead of "Incompatible message", and are named "video message" in the list, with the same duration, playback and Save as as any video.
-
-- Echo cancellation in voice and video calls was rebuilt on the same engine Google Meet and WhatsApp itself use (WebRTC's echo canceller): talking through a laptop speaker or with a mixer's loopback turned on no longer makes the other person hear their own voice. The option is now on, also for people who already used WinZapp; to turn it off, uncheck "Enable echo cancellation" in "Call audio settings". Microphone noise reduction during calls now uses this engine too.
-
-- The call log (log.log) now shows, every 5 seconds, how much of the speaker's sound reaches the microphone before echo cancellation and how much is still left in what is sent, with that echo's delay. If someone still hears their own voice, the log tells whether the echo went through the canceller or arrived by another path.
-
-- Answering calls from any window: while a one-to-one call is ringing, Ctrl+Alt+Shift+Enter answers it, brings the call window in front of any program and puts the focus in it, and Ctrl+Alt+Shift+Backspace rejects it, as it does a ringing group call; with no call ringing, Ctrl+Alt+Shift+Backspace hangs up the call in progress. With several accounts open, a call ringing in any of them is rejected first. A video call is answered with the camera on, like its Answer button. Both keys can be changed in the Keyboard shortcuts of Settings, and belong to WinZapp only while they can act, so other programs keep them the rest of the time.
-
-- Settings: new Advanced category, with the log.log level (debug, information, warnings or errors only, applied at once), a fixed port for the local API, to run two copies of WinZapp or when another program already uses port 6300 (applies the next time WinZapp starts), and "Show every WPPConnect Server update", off by default, which also offers releases the maintainers have not checked yet, with a warning. In the Connection category, the Port field is now enabled only with the custom API.
-
-- Settings: every control in Settings and in the windows it opens has an Alt shortcut letter, never repeated within one window, in every language. To make the letters fit, Local transcription was split into windows (advanced options, saved transcriptions, statuses, folders, CUDA libraries and whisper.cpp) and the automatic options of online AI moved to the "Automatic transcription and description..." window.
-
-- Keyboard shortcuts: the list is now a tree by category (Right arrow opens a category, which is said only once) and has a search field; in the search, Down arrow goes to the results. Fixed the error that prevented changing a shortcut.
-
-- Draft per conversation, like WhatsApp Web: text typed and not sent stays with the conversation it was written in, mentions included, and comes back when you open it again; it used to follow you into the next conversation. Interface > Conversations lets you choose to keep it in the field for the next conversation (as before), keep it as that conversation's draft (default) or discard it.
-
-- When you switch conversations, the "Reactions" and "Read more" buttons of the message you were on no longer show up with Tab in the new conversation.
-
-- Deleting the last message of a conversation for everyone updates its preview in the chat list to "message deleted" right away.
-
-- Alt+A no longer opens the attach menu; its shortcut is still Ctrl+Shift+A.
-
-- Message list: three new options, off by default, take the online AI button (Transcribe or Describe; the message menu still offers it), the duration bar and the speed button out of the Tab order during playback. The speed and seeking shortcuts keep working.
-
-- Local transcription: with "transcribe without the progress window", asking for the inline transcription of another message while one is running queues the new one instead of refusing it; pressing the shortcut again on a waiting message takes it out of the queue.
-
-- Local transcription: automatic no longer says "No transcription model is ready" to someone who has a model downloaded: on a small graphics card that cannot hold the installed model, it runs on the processor instead of asking for another download; and the automatic engine follows the models already on the computer.
-
-- Enter and Space set to transcribe now also work on audio and video sent as a file, and the Media tab of the conversation details follows that option for videos.
-
-- Conversation details: automatic transcription is now two boxes, local (Whisper) and online, each showing what the conversation does now and able to turn it on or off for that conversation only.
-
-- Try sending again: in the menu of a message of yours that failed or was not confirmed, text or attachment, and for statuses that did not go out, which now stay in the Status tab right after My status; shortcut Ctrl+Shift+Y. Nothing is resent on its own.
-
-- Posting a status: one post at a time (pressing Post again does not duplicate the status), and a large video is no longer reported as failed while it is still uploading; a post that was not confirmed tells you to check My status before posting again.
-
-- My status: delete a status for everyone with the Delete key or the "Delete status" button, with WhatsApp's own confirmation.
-
-- Communities: Enter in the list goes to the community's groups, and a button opens the group with the most recent activity; a filter shows all groups, the ones you are in and the ones you are not; and you can join a group, ask to join and cancel the request, like WhatsApp Web.
-
-- Orders: Enter opens the details of an order a seller created for you, with items and subtotal; the buyer can confirm an order paid outside the app, like WhatsApp Web; and the dialog says which buyer response WinZapp does not offer yet.
-
-- WhatsApp settings: in Privacy, the status options "My contacts except" and "Only share with" offer only the contacts saved on the phone, the only ones WhatsApp lets see a status; in Profile, the Choose photo button says whether there is a current photo and which file was chosen, without object navigation.
-
-- Chat lists: with the "Esc clears the selection" option on, Esc unselects the selected chats in the main list, in Archived and in Locked chats.
-
-- Updating with several accounts open: the installer waits for every account to close before copying, and WinZapp no longer exits silently at startup when the account is already open or an update looks stuck: it says why and writes it to the log. During an update that is still running it only writes to the log and exits, with no box, because the installer opens it again when it is done.
-
-- Syncing large accounts: after large batches of messages, WinZapp asks WhatsApp Web to release memory it no longer uses, which lowers the memory used during sync.
-
-- Media tab of the conversation details: after Save as, the screen reader no longer announces the window as unavailable.
-
-- New chat: the button to join a group by link now has an Alt shortcut letter.
-
-- Echo cancellation now also works when the echo comes back very late, as with the loopback of some mixers, which could take more than half a second and reached the other person in full. WinZapp measures how long the other person's voice takes to come back through your microphone and adjusts the canceller to that delay, up to 1.5 seconds.
-
-- Neonize: the name of a saved contact is no longer replaced, once a minute, by the profile name the person chose in their own WhatsApp (or by the name the phone gave the conversation). The name you gave the contact stays; the profile name only shows for people you have not saved.
-
-- Neonize calls: WinZapp now plays the tones that WhatsApp Web used to play for you. While the other phone rings you hear the ringback with the pitch and rhythm of the country you called, and short beeps play while the call connects or reconnects. WinZapp makes them itself; with the WPPConnect engine nothing changes.
-
-- Neonize calls: when a call that was answered ends, WinZapp plays the call-ended sound of WhatsApp. It is a new Sound Event, "Call ended", so it follows the sound pack and can be turned off or replaced in the sound events. With the WPPConnect engine WhatsApp Web keeps playing its own.
-
-- Voice messages and audios that did not play: when the sound card was not available at the moment WinZapp opened the audio output (for example when the PC woke up), no voice message played until WinZapp was restarted, and nothing said why. WinZapp now tries to restore the audio output when a playback fails, and if it still cannot play, it says so through the screen reader.
-
-- Neonize: conversations that seemed to disappear. WhatsApp gives no activity date to most old conversations, and WinZapp took them for empty chats and did not keep them when the local data was cleared (F5 to resync, for example): an account with more than 160 conversations came back with 37. The bridge now dates each conversation by its newest message, so they all return.
-
-- Neonize: a community and its announcement group show the community's total member count, as WhatsApp does, not only the group's own participants.
-
-- Neonize: a saved contact who writes in a group shows with their address-book name, without the "~" of an unsaved contact. Channels no longer appear in the chat list as chats without a name. A group member whose number is hidden shows with their profile name, no longer as "+55∙∙∙∙∙∙∙∙76".
-
-- Channels in the chat list: a new option, "Show channels in the chat list", in Settings, Interface, Chats, off by default, keeps channels out of the conversation list. Turn it on to see them there again.
-
-- Switching between WPPConnect and Neonize: both engines use port 6300, and the program mistook the engine you had just left, still closing, for the one you chose. Choosing WPPConnect then gave "no pairing code was received", and switching to Neonize showed connecting and then offline until the next restart. WinZapp now makes room first (it stops the Neonize bridge, or waits for the WPPConnect server to close), and a second WinZapp folder no longer joins the first one's bridge.
-
-- The pairing window now has a "Connection engine" list before the country, so someone who has not paired yet can choose between WPPConnect and Neonize without reaching Settings. Choosing one asks for confirmation and restarts WinZapp on it.
-
-- The program no longer ships with Node.js, since Neonize does not need it. If you choose WPPConnect (on first start, in the pairing window or in Settings), WinZapp downloads a checksum-verified Node.js and sets up WPPConnect before connecting. The download is smaller.
-
-- Neonize: if the bridge goes away while WinZapp is open (for example, a previous run that was still closing stops it right after this one accepted it, which happened when switching to Neonize from the startup notice), WinZapp now starts it again by itself instead of staying on "connecting" and then offline until the next restart.
-
-- Neonize: when the last WinZapp leaves, the bridge is now asked to close its WhatsApp connections and databases and exit on its own; it is only forced to stop if it does not do so within 10 seconds. Before, it was always killed on the spot, which could cut off a write.
-
-- Neonize: the pairing QR code is no longer cut off in the connection window. It is now shown whole, at a size the phone camera can read.
-
-- Settings > Advanced has a new "Export this account's logs..." button. It saves a .zip with the current account's logs (and the Neonize bridge's) in the background, announcing the result.
-
-- Settings > Shortcuts: a new field captures the keys you press and instantly lists the matching commands in every category, announcing how many were found, with a button to clear the search. The shortcut tree no longer announces unwanted selections while you type, it is built only once when Settings opens, Esc closes the window without errors and, after applying changes, focus goes to the OK button.
-
-- Automatic transcription of a chat is now a single choice in the chat or group data window: None, Online with AI or Local with Whisper. The same message is never transcribed twice and inconsistent settings are rejected.
-
-- WinZapp starts and opens Settings faster: only contacts that really changed are rewritten to the database, the database's per-query debug log (hundreds of MB) is silenced and incomplete Chrome folders left by interrupted downloads are cleaned up.
-
-- F5 no longer duplicates conversations in the list for a while: the link between the @lid address and the phone number is kept during the reload of the same account.
-
-- Reactions received through the @lid address now reach the conversation stored under the phone number (and the other way around), so they show correctly in the preview, in the list and in live notifications.
-
-- "Replies to the community announcement" now appears only in community announcement groups, not in ordinary groups.
-
-- WPPConnect: starring a message and liking a status work again.
-
-- Neonize: app state sync no longer causes conflicts that corrupted the chat read state; marking a chat as read no longer holds up sending messages; messages sent to a disappearing chat carry its timer; read receipts respect WhatsApp's privacy option (silent receipts when turned off); and pairing by phone number in Brazil tries the number with and without the 9th digit.
-
-- Neonize: voice messages are now delivered to contacts on Android; before, they stayed on a single grey tick because the message lacked the waveform that WhatsApp expects.
-
-- Neonize: voice messages, photos and documents are no longer lost when the computer's file-type library (libmagic) fails to load; the type is now recognized from the file itself.
-
-- Voice messages: mono and stereo recordings are sent at up to 256 kbps. Neonize also writes one line per media message sent and the ids of the delivery receipts in the log, to find out why some voice messages are not delivered.
-
-- Neonize: stereo voice messages now go out labelled audio/mp4, the type WhatsApp expects, so they are delivered to contacts on Android.
-
-- The microphone noise reduction for voice notes can now use a neural model: with "Enable microphone noise reduction" checked in Settings, Audio, the same page offers to download the model; the download happens once, over the internet, and recordings are still processed on this computer. Without the model, or if it cannot be used for a recording, WinZapp uses the basic noise gate as before and says so. If noise reduction cannot be applied at all, the message is sent unprocessed and WinZapp says so too.
-
-- Spanish: the label for a played voice message now reads "Reproducido" instead of "Reproducida", matching "Enviado", "Entregado" and "Leído".
-
-- Typing notifications: optionally repeat a sound while someone types, use only the screen reader, use both, or turn both off. Choose your own sound in Settings, Sound Events. Existing spoken-content choices are preserved and typing sounds are off by default in both connection engines. Typing sounds are muted during voice-message recording and calls by default. To allow them, clear the checkbox “Silence typing sounds during voice recording and calls” in Sound Events. This changes only typing sounds; screen reader speech and other sounds retain their existing settings.
-
-- Spanish: the translation now says "chat/chats" consistently instead of mixing it with "conversación/conversaciones", and the gender and number agreement is fixed in the related texts, including the user guide.
-
-- WPPConnect: while WhatsApp Web is still syncing a long history, WinZapp now says "syncing with WhatsApp..." instead of showing the account as disconnected, and plays no disconnection sound.
-
-- WPPConnect: an incomplete WhatsApp Web version catalogue is repaired when the server starts, and a Node that stops at start-up is reported at once instead of after five minutes.
-
-- Arabic: the usage guide (Help > Usage guide) is now complete in Arabic.
-
-- Neonize: a chat with a verified business now shows the business's verified name when it is not in your address book.
-
-- New language: Italian. Choose it in Settings > General > Language, in the installer and in the uninstaller. The program is fully translated; the user guide and these release notes are still in English for now.
-
-- Forwarding a message with a link now keeps its link preview. The forward dialog has a new "Keep link preview" box, ticked by default, shown when a selected message has a preview; Settings > User interface > Messages has "Keep link previews by default when forwarding messages" to choose how it starts. Works with WPPConnect and Neonize. Note: with WPPConnect a message forwarded with its preview is sent as a new message and does not carry the "Forwarded" label; with Neonize it does.
-
-- When you write a message with a link, the screen reader now says "Loading link preview..." while the preview is fetched, "Link preview added." when it is attached, or "Could not load the link preview: reason." when it fails. In Settings > Accessibility > Spoken content, the new option "Announce link preview loading and adding" turns all three messages on or off; it is on by default.
-
-- Neonize: quoting a voice note now shows its duration (for example 0:15) in the quote bubble on the other person's WhatsApp, as with WPPConnect (issue #707).
-
-- Status: location, poll, contact-list and other types of contact statuses that showed as "Incompatible message" now appear with their proper label.
-
-- Calls: the "Call participants" button in the call window now has the Ctrl+Shift+P shortcut (Ctrl+P is still the switch to video). The screen reader announces this shortcut key on the button, and it is listed with the call window shortcuts.
-
-- Neonize: "Add yours", question and animated sticker statuses no longer show as "Incompatible message"; the bridge log now records the type of messages it has no mapping for.
-
-- Typing: the typing indicator no longer reappears a few seconds after the person sent their message (issue #743).
-
-- What's New window: the Esc key now closes it, both from Help > What's New and from Help > "What's New Since You Last Looked". Before, Esc did nothing and you had to go to the close button.
-
-- Updating with several accounts open: WinZapp now waits for the other accounts to finish closing before it installs the update. Before, the install could fail with a warning that other accounts were open, and only went ahead after you answered Yes to try again.
-
-- The default Google Gemini model for online AI is now Gemini 3.5 Flash-Lite, which tends to run into fewer high-demand errors. Anyone who already picked another fixed model keeps it; anyone using the model WinZapp recommends moves to the new one.
-
-- Groups: the conversations-list preview and the screen reader announcement now show everyone who is typing or recording audio at the same time, with the right singular and plural ("Ana and Bia are typing...", "Ana is typing and Bia is recording audio..."), not only the last one. The screen reader announces the whole list on every change, including when someone stops and others carry on, and says nothing once nobody is active. With a single person, the preview now reads "Ana is typing...", without the colon. Alt+T uses the list too, and the options to announce typing and recording apply to the spoken announcements. The "Consider activity from multiple participants when announcing a group's status" option, in Settings > Accessibility > Spoken content, is on by default; turned off, groups go back to the old behavior.
-
-- Message field: inserting an emoji no longer raises a "surrogates not allowed" error while the writing help button is being enabled. Reported by UlisesMilani (#797).
-
-- New options in Settings > Notifications to leave archived and muted chats out of the unread count shown in the tray icon and the window title. Both are on by default: archived chats were already left out and can now be counted again; muted chats are now left out, which changes the previous behavior. Clear an option to count those chats again.
-
-- Long chats: refreshing the history of an open chat with thousands of messages no longer freezes the window for tens of seconds when the message list shows each message's position ("N of M").
-
-- Fixed: with neural voice noise cancellation on, voice messages are now sent in the order they were recorded, even when one finishes processing before another.
-
-- Messages shown when opening a chat: the setting now accepts at most 1,000. Values of tens of thousands froze the window for over a minute when many messages arrived at once or while you were typing; a higher saved value is treated as 1,000 and Settings > Messages asks for a number from 1 to 1,000.
-
-- Calls: placing a call from a WhatsApp Business account (WPPConnect) no longer hangs for 75 seconds without ringing. WinZapp now answers by itself the "About this call" notice that WhatsApp shows on the first call from such accounts.
-
-- Pasting a text file saved as UTF-16 (such as a Windows System Information report from msinfo32) into the message field no longer sends it as audio: it stays a document. Reported by UlisesMilani (#838).
-
-- Settings, Messages: new option "Stop new messages in the open chat from joining the unread separator; mark them as read on arrival", off by default. Off, messages that arrive while you read the open chat keep adding to the unread separator, so you can follow what came in later. On, they are read on arrival, with no separator.
-
-- With Neonize, "Add contact" in the conversation details now really saves the contact in the WhatsApp address book and on the phone. Before, the contact was written under the internal identifier (LID) instead of the phone number, and the iPhone dropped it seconds later, even though WinZapp said the synchronization had been requested.
-
-- Neonize: when the connection bridge fails to start, WinZapp now says so out loud right away, instead of the notice being lost when the program crashed while showing it, and writes the end of the bridge's own output and the computer's processor architecture to the log, so the cause can be found.
-
-- Neonize on Windows on ARM: the connection bridge no longer fails to start (and pairing by QR code no longer stays stuck) because it asked for the ARM version of its library, which the program cannot load; it now uses the one for the architecture it really runs as.
-
-- Fixed: with install-on-exit turned on, after WinZapp announced that the update was downloaded, Help > Install downloaded update stayed unavailable. The item is now available and installs the update right away, then starts WinZapp again; exiting still installs without restarting.
-
-- Neonize: when the connection bridge takes too long to start, the program log now says whether it is still running and shows the last lines of its output, and the bridge writes each step of its start to its own log as it goes, so a bridge that stops half-way shows where.
-
-- Fixed: after switching the audio device, notification (toast) sounds stopped playing while chat audio and the other WinZapp sounds kept working. The switch left the already loaded notification sounds unusable; they are now reloaded together with the other sounds.
-
-- With Neonize, a contact saved with a first and last name no longer loses the last name in the conversation a few seconds later: the full name is stored in the right order, so the conversation keeps showing, for example, "Nuno Soares" instead of just "Nuno".
-
-- Neonize: when the connection bridge gets stuck while starting, it now writes to its own log where it is stuck after 25 seconds.
-
-- Neonize on Windows on ARM: the connection bridge no longer closes by itself right after starting (with the message that it could not be started), which prevented pairing.
-
-- Mac: the Neonize engine now comes with WinZapp for Mac too, on Apple Silicon and Intel, and connects straight to WhatsApp, without a browser. Choose it in the "Connection engine" list of the connection window or in Settings > Connection.
-
-- New option in Settings > General > Notifications: "Consider me away after a period without using WinZapp: show me offline and stop marking messages as read", on by default, with the time in minutes (2 by default). After that long without a key press or a click in WinZapp, even with the window in front, you show as offline and messages arriving in the open conversation are no longer marked as read; they stay unread until you use WinZapp again, and then the open conversation is marked as read. A call, a recording or audio playing counts as being present. Turned off, none of this happens.
+- Global hotkey: with a WinZapp window waiting for an answer, the hotkey brings that window to the front, and AI image descriptions say when the provider's credit ran out. The account log no longer records the WPPConnect session's access code.
 
 V2.1.0.0
 
