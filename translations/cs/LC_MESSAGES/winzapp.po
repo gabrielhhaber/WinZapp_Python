@@ -23033,7 +23033,7 @@ msgid ""
 msgstr ""
 "Vaší současné instalaci WPPConnect možná chybí nejnovější funkce, například "
 "hlasové hovory a videohovory. Chcete WPPConnect přeinstalovat teď? Pokud si "
-"to rozmyslíte, tuto volbu najdete kdykoli v nabídce Nápověda (Alt+N)."
+"to rozmyslíte, tuto volbu najdete kdykoli v nabídce Nápověda (Alt+P)."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/settings.py
 msgctxt "wpp_reinstall_notice_title"
