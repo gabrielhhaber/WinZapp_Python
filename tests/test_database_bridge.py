@@ -12,6 +12,7 @@ background-thread bridge (not mocked) against a temporary on-disk database.
 import asyncio
 import inspect
 import threading
+from types import SimpleNamespace
 import time
 
 import pytest
@@ -21,6 +22,7 @@ from core.database_bridge import (
     DatabaseBridge,
     DatabaseBridgeClosed,
     DatabaseBridgeTimeout,
+    _BULK_CALL_TIMEOUT,
 )
 
 
@@ -268,3 +270,22 @@ class TestCloseDoesNotRaceANewCall:
         outcomes = {kind for kind, _ in results}
         assert outcomes <= {"ok", "closed"}, f"unexpected outcomes: {results}"
         assert len(results) == 30
+
+
+class TestContactsBatchTimeout:
+    def test_a_contacts_batch_waits_as_long_as_a_bulk_write(self):
+        """A batch can be the whole address book, so the plain 20s bound that
+        crashed a startup does not apply to it."""
+        seen = {}
+
+        class _Db:
+            async def upsert_contacts_batch(self, contacts):
+                return None
+
+        def _call(coro, timeout=None):
+            coro.close()
+            seen["timeout"] = timeout
+
+        stub = SimpleNamespace(_db=_Db(), _call=_call)
+        DatabaseBridge.upsert_contacts_batch(stub, {"a@s.whatsapp.net": {}})
+        assert seen["timeout"] == _BULK_CALL_TIMEOUT
