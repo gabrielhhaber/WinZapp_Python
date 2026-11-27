@@ -1,6 +1,6 @@
 V3.0.0.0
 
-Bu sürüm, WinZapp'in WhatsApp'a nasıl bağlanacağını seçmenizi sağlar: tarayıcı gerektirmeyen yeni Neonize motoruyla veya eskisi gibi WPPConnect ile. Ayrıca topluluklar, kanallar, bir kişiler listesi, grup aramaları ve arama bağlantıları, yapay zekâ özetleri, yazma yardımı ve mesaj çevirisi, yeniden düzenlenmiş bir ayarlar penceresi ve üç yeni dil getirir.
+Bu sürümün öne çıkanları, WhatsApp'a tarayıcı olmadan bağlanan, daha hızlı ve daha hafif yeni Neonize motoru (WPPConnect alternatif olarak kullanılabilir durumda kalır), grup aramaları ve arama bağlantıları ve yapay zekâ iyileştirmeleridir: özetler, yazma yardımı, mesaj çevirisi (çevrimiçi veya çevrimdışı) ile daha iyi yazıya dökmeler ve betimlemeler. Ayrıca topluluklar, kanallar, bir kişiler listesi, yeniden düzenlenmiş bir ayarlar penceresi ve üç yeni dil getirir.
 
 YENİLİKLER
 
@@ -54,7 +54,7 @@ YENİLİKLER
 
 - Sesler: Ses olayları'na "Mesajınızdaki düzenleme kaydedildi" ve "Başkası tarafından düzenlenen mesaj" eklendi; bunların sohbet başına kendi sesli seçenekleri vardır. Ayrıca isteğe bağlı yinelenen sesli yazıyor bildirimleri (varsayılan olarak kapalı, kayıt sırasında ve aramalarda susturulur), açık sohbet ve diğerleri için bir "yeni mesaj" sesi seçimi eklendi ve "sistem varsayılanı" olarak ayarlanan sesler ve aramalar Windows'un varsayılan oynatma aygıtını izler. Yükleyicide bir "Yüklenecek sesler" grubu, güncelleme penceresinde ise yalnızca özgün WhatsApp seslerini tutmak için "Ek ayarlar" (Alt+A) vardır; bu sesler artık WhatsApp'ın kayıt, gönderme ve mesaj alma sırasında çaldığı sesleri de içerir. İçe aktarılan paketlere ve kendi seslerinize asla dokunulmaz.
 
-- Sabitlenen mesajlar: sohbetin sabitlenen mesajlar düğmesi, mesaj listesinin bağlam menüsü ve kısayollarıyla bir "Sabitlenen mesajlar" penceresi açar. "Seçilenlerin sabitlemesini kaldır", seçili mesajların sabitlemesini tek seferde kaldırır (toplu kısayollar açıkken Ctrl+Shift+P bunları sabitler veya sabitlemesini kaldırır) ve Ayarlar > Erişilebilirlik > Konuşulan içerik içindeki bir seçenek, bir sohbet açılırken WinZapp'in kaç mesajın sabitlendiğini söylemesini durdurur.
+- Sabitlenen mesajlar: "Sabitlenen mesajlar" penceresi artık mesaj listesinin bağlam menüsüne ve kısayollarına sahiptir. "Seçilenlerin sabitlemesini kaldır", seçili mesajların sabitlemesini tek seferde kaldırır (toplu kısayollar açıkken Ctrl+Shift+P bunları sabitler veya sabitlemesini kaldırır) ve Ayarlar > Erişilebilirlik > Konuşulan içerik içindeki bir seçenek, bir sohbet açılırken WinZapp'in kaç mesajın sabitlendiğini söylemesini durdurur.
 
 - Mesajlar: seçili mesajları kopyalamak belgelerini, seslerini, resimlerini ve videolarını da kopyalar; bunlar özgün adlarıyla birlikte yapıştırılabilir; Ortam sekmesinde bir dosyada Ctrl+C dosyayı kopyalar; yalnızca açıklamayı kopyalamak "Açıklama kopyalandı" der; "Mesaj metni" (Alt+C) penceresinde "Uzun satırları kaydır" vardır; Aç düğmesi dosyaları gerçek adlarıyla açar. "Yeniden göndermeyi dene" (Ctrl+Shift+Y) başarısız olan veya onaylanmayan bir mesajı ya da durumu yeniden gönderir; hiçbir şey kendiliğinden yeniden gönderilmez. Yuvarlak video mesajları video olarak gösterilir ve bağlantılı bir mesaj iletildiğinde bağlantı önizlemesini korur; ekran okuyucu bir önizlemenin yüklendiğini, eklendiğini veya kullanılamadığını söyler.
 
@@ -66,7 +66,7 @@ YENİLİKLER
 
 - WhatsApp bağlantıları: bir wa.me veya api.whatsapp.com bağlantısı, kişi olmasa bile o numarayla sohbeti açar ve bağlantıdaki mesaj mesaj alanında hazır bekler. Yüklü sürüm ilk açılışında bu bağlantılar için kendini kaydeder; taşınabilir sürümde bu seçenek Ayarlar > Genel içindedir.
 
-- Güncellemeler: Ayarlar > Genel içindeki "Çıkışta güncelle" güncellemeleri kendiliğinden indirir ve çıkarken yükler (Yardım > İndirilen güncellemeyi yükle hemen yükler). Taşınabilir sürüm, ilk başlangıcında başka bir cihaz bağlamak yerine bilgisayara yüklü WinZapp'in hesaplarının bir kopyasını kullanmayı önerir ve hesap yöneticisindeki "WinZapp başladığında tüm hesaplara bağlan" eşleştirilmiş her hesabı arka planda açar.
+- Güncellemeler: Ayarlar > Genel içindeki yeni bir seçenek güncellemeleri sormadan kendiliğinden indirir ve çıkarken yükler (Yardım > İndirilen güncellemeyi yükle hemen yükler). Taşınabilir sürüm, ilk başlangıcında başka bir cihaz bağlamak yerine bilgisayara yüklü WinZapp'in hesaplarının bir kopyasını kullanmayı önerir ve hesap yöneticisindeki "WinZapp başladığında tüm hesaplara bağlan" eşleştirilmiş her hesabı arka planda açar.
 
 - Yerel yazıya dökme: otomatik yazıya dökme açıkken "Geç gelenleri de yazıya dök" alınan mesajları ne kadar eski olursa olsun yazıya döker, bilgisayar uykudayken birlikte gelen sesli mesajlar artık atlanmaz, bir sohbet otomatik yazıya dökmeme, çevrimiçi veya yerel arasında seçim yapar ve Windows ARM64'te whisper.cpp yerel sürümü, isteğe bağlı bir CUDA 13 sürümüyle kullanır. "İlerleme penceresi olmadan yazıya dök" başka bir mesajı reddetmek yerine sıraya alır ve aynı anda yalnızca bir model yüklenir, böylece hesap değiştirmek artık belleği doldurmaz.
 
@@ -100,13 +100,13 @@ YENİLİKLER
 
 DÜZELTMELER
 
-- Bağlanma: Dosya > Bağlantıyı kes sonrasında "WinZapp uygulamasına bağlan" penceresi ana pencerenin üstünde açılır, böylece QR kodu görünür. En yeni WhatsApp Web sürümlerinde, zaten bağlı olan bir hesabın oturumu artık WinZapp her başladığında kapatılmaz, kayıtlı tarayıcı profilini geri yüklemek önceki tarayıcının kapanmasını bekler ve başarısız olursa orijinali yerine koyar, ayrıca eşleştirme koduyla bağlanmak telefon kabul ettikten sonra artık başarısız olmaz. WhatsApp bir numara için eşleştirme kodlarını geçici olarak reddettiğinde WinZapp bunu söyler ve QR kodunu önerir.
+- Bağlanma: Dosya > Bağlantıyı kes sonrasında "WinZapp uygulamasına bağlan" penceresi ana pencerenin üstünde açılır, böylece QR kodu görünür. En yeni WhatsApp Web sürümlerinde, zaten bağlı olan bir hesabın oturumu artık WinZapp her başladığında kapatılmaz ve kayıtlı tarayıcı profilini geri yüklemek önceki tarayıcının kapanmasını bekler ve başarısız olursa orijinali yerine koyar. WhatsApp bir numara için eşleştirme kodlarını geçici olarak reddettiğinde WinZapp bunu söyler ve QR kodunu önerir.
 
-- Mesajlar ve sohbetler: okunmamış sohbetler artık bir güncelleme veya yeniden başlatmadan sonra Okunmamış filtresinden kaybolmaz, sabitlemeleri eski olan bir grubun sabitlenen mesajları yüklenir, kayıtlı olmayan bir numarayı engellemek çalışır ve son mesajı herkesten silmek liste önizlemesini günceller. Sohbet değiştirdiğinizde önceki mesajın düğmeleri artık Tab ile gelmez ve "Topluluk duyurusunun yanıtları..." öğesi yalnızca duyuru gruplarında görünür.
+- Mesajlar ve sohbetler: okunmamış sohbetler artık bir güncelleme veya yeniden başlatmadan sonra Okunmamış filtresinden kaybolmaz, sabitlemeleri eski olan bir grubun sabitlenen mesajları yüklenir, kayıtlı olmayan bir numarayı engellemek çalışır ve son mesajı herkesten silmek liste önizlemesini günceller. Sohbet değiştirdiğinizde önceki mesajın düğmeleri artık Tab ile gelmez.
 
 - Klavye: Brezilya (ABNT2) klavyesinde, mesaj listesinde yazılan "/" ve "ç" artık mesaj alanına "Á" ve "º" yazmaz, bir kısayol değişikliği geçtiğiniz hesaba hemen ulaşır ve Esc Yenilikler penceresini kapatır. Alt+A artık ekle menüsünü açmaz (Ctrl+Shift+A hâlâ açar), birkaç pencerede aynı Alt harfine sahip iki denetim vardı ve alınan bir JSON dosyasında Farklı kaydet dosyayı kaydeder.
 
-- UTF-16 olarak kaydedilmiş bir metin dosyasını mesaj alanına yapıştırmak artık onu ses olarak göndermez, yazma yardımı düğmesi etkinken bir emoji eklemek artık hata vermez ve sinir ağı gürültü azaltmayla sesli mesajlar kaydedildikleri sırayla gönderilir.
+- UTF-16 olarak kaydedilmiş bir metin dosyasını mesaj alanına yapıştırmak artık onu ses olarak göndermez: belge olarak kalır.
 
 - Genel kısayol: cevap bekleyen bir WinZapp penceresi varken kısayol o pencereyi öne getirir ve yapay zekâ görsel betimlemeleri sağlayıcının kredisi bittiğinde bunu söyler. Hesap günlüğü artık WPPConnect oturumunun erişim kodunu kaydetmez.
 

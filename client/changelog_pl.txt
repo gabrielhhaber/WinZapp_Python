@@ -1,6 +1,6 @@
 V3.0.0.0
 
-W tej wersji możesz wybrać, jak WinZapp łączy się z WhatsAppem: za pomocą nowego silnika Neonize, który nie potrzebuje przeglądarki, albo jak dotychczas za pomocą WPPConnect. Pojawiają się też społeczności, kanały, lista kontaktów, połączenia grupowe i linki do połączeń, podsumowania AI, pomoc w pisaniu i tłumaczenie wiadomości, zreorganizowane okno ustawień oraz trzy nowe języki.
+Najważniejsze w tej wersji to nowy silnik Neonize, szybszy i lżejszy, który łączy się z WhatsAppem bez przeglądarki (WPPConnect pozostaje dostępny jako alternatywa), połączenia grupowe i linki do połączeń oraz ulepszenia AI: podsumowania, pomoc w pisaniu, tłumaczenie wiadomości (online lub offline) oraz lepsze transkrypcje i opisy. Pojawiają się też społeczności, kanały, lista kontaktów, zreorganizowane okno ustawień oraz trzy nowe języki.
 
 NOWOŚCI
 
@@ -54,7 +54,7 @@ NOWOŚCI
 
 - Dźwięki: Zdarzenia dźwiękowe zyskują „Zapisano zmiany w Twojej wiadomości” i „Wiadomość edytowana przez inną osobę” z własnymi opcjami mówienia dla każdego czatu, powiadomienia o pisaniu z opcjonalnym powtarzanym dźwiękiem (domyślnie wyłączone, wyciszane podczas nagrywania i w połączeniach), wybór dźwięku „nowa wiadomość” dla otwartego czatu i dla pozostałych, a dźwięki i połączenia ustawione na „domyślne systemowe” korzystają z domyślnego urządzenia odtwarzającego Windows. Instalator ma grupę „Dźwięki do zainstalowania”, a okno aktualizacji ma „Dodatkowe ustawienia” (Alt+A), aby zachować tylko oryginalne dźwięki WhatsApp, co obejmuje teraz dźwięki, które WhatsApp odtwarza przy nagrywaniu, wysyłaniu i odbieraniu wiadomości. Zaimportowane pakiety i Twoje własne dźwięki nigdy nie są ruszane.
 
-- Przypięte wiadomości: przycisk przypiętych wiadomości czatu otwiera okno „Przypięte wiadomości” z menu kontekstowym i skrótami listy wiadomości. „Odepnij zaznaczone” odpina zaznaczone wiadomości naraz (Ctrl+Shift+P przypina je lub odpina przy włączonych skrótach akcji masowych), a opcja w Ustawienia > Dostępność > Zawartość mówiona sprawia, że WinZapp nie mówi, ile wiadomości jest przypiętych, gdy otwierasz czat.
+- Przypięte wiadomości: okno „Przypięte wiadomości” ma teraz menu kontekstowe i skróty listy wiadomości. „Odepnij zaznaczone” odpina zaznaczone wiadomości naraz (Ctrl+Shift+P przypina je lub odpina przy włączonych skrótach akcji masowych), a opcja w Ustawienia > Dostępność > Zawartość mówiona sprawia, że WinZapp nie mówi, ile wiadomości jest przypiętych, gdy otwierasz czat.
 
 - Wiadomości: kopiowanie zaznaczonych wiadomości kopiuje też ich dokumenty, audio, obrazy i filmy, które można wkleić razem pod ich oryginalnymi nazwami; Ctrl+C na pliku na karcie Media kopiuje plik; skopiowanie samego podpisu mówi „Podpis skopiowany”; „Tekst wiadomości” (Alt+C) ma „Zawijaj długie wiersze”; a przycisk Otwórz otwiera pliki pod ich prawdziwą nazwą. „Spróbuj wysłać ponownie” (Ctrl+Shift+Y) wysyła ponownie wiadomość lub status, który się nie powiódł albo nie został potwierdzony; nic nie jest wysyłane ponownie samo. Okrągłe wiadomości wideo są pokazywane jako filmy, a wiadomość z linkiem zachowuje podgląd linku po przekazaniu, a czytnik ekranu mówi, gdy podgląd się wczytuje, został dodany albo jest niedostępny.
 
@@ -66,7 +66,7 @@ NOWOŚCI
 
 - Linki WhatsApp: link wa.me lub api.whatsapp.com otwiera czat z tym numerem, nawet gdy nie jest kontaktem, z wiadomością z linku gotową w polu wiadomości. Wersja zainstalowana rejestruje się dla tych linków przy pierwszym uruchomieniu, a w przenośnej opcja jest w Ustawienia > Ogólne.
 
-- Aktualizacje: „Pobieraj aktualizacje automatycznie i instaluj je bez pytania po zakończeniu pracy z WinZappem” w Ustawienia > Ogólne pobiera aktualizacje samo i instaluje je po zakończeniu pracy z programem (Pomoc > Zainstaluj pobraną aktualizację instaluje od razu). Wersja przenośna przy pierwszym uruchomieniu proponuje użycie kopii kont zainstalowanego na komputerze WinZapp zamiast łączenia kolejnego urządzenia, a „Połącz wszystkie konta przy uruchomieniu WinZappa” w menedżerze kont otwiera w tle każde sparowane konto.
+- Aktualizacje: nowa opcja w Ustawienia > Ogólne pobiera aktualizacje samo, bez pytania, i instaluje je po zakończeniu pracy z programem (Pomoc > Zainstaluj pobraną aktualizację instaluje od razu). Wersja przenośna przy pierwszym uruchomieniu proponuje użycie kopii kont zainstalowanego na komputerze WinZapp zamiast łączenia kolejnego urządzenia, a „Połącz wszystkie konta przy uruchomieniu WinZappa” w menedżerze kont otwiera w tle każde sparowane konto.
 
 - Transkrypcja lokalna: przy włączonej automatycznej transkrypcji „Transkrybuj także wiadomości głosowe, które dotrą z opóźnieniem” transkrybuje odebrane wiadomości niezależnie od ich wieku, wiadomości głosowe, które docierają razem po uśpieniu komputera, nie są już pomijane, czat wybiera między brakiem automatycznej transkrypcji, online lub lokalną, a w Windows ARM64 whisper.cpp używa kompilacji natywnej, z opcjonalną kompilacją CUDA 13. „Transkrybuj bez okna postępu” ustawia kolejną wiadomość w kolejce zamiast ją odrzucać, a ładowany jest tylko jeden model naraz, więc przełączanie kont nie zapełnia już pamięci.
 
@@ -100,13 +100,13 @@ ULEPSZENIA
 
 POPRAWKI
 
-- Łączenie: po Plik > Rozłącz okno „Połącz z WinZapp” otwiera się nad oknem głównym, więc kod QR jest widoczny. W najnowszych wersjach WhatsApp Web konto, które było już połączone, nie jest już wylogowywane przy każdym uruchomieniu WinZapp, przywracanie zapisanego profilu przeglądarki czeka na zamknięcie poprzedniej przeglądarki i przywraca oryginał, jeśli się nie powiedzie, a łączenie kodem nie kończy się już niepowodzeniem po zaakceptowaniu go na telefonie. Gdy WhatsApp tymczasowo odmawia kodów dla numeru, WinZapp o tym mówi i proponuje kod QR.
+- Łączenie: po Plik > Rozłącz okno „Połącz z WinZapp” otwiera się nad oknem głównym, więc kod QR jest widoczny. W najnowszych wersjach WhatsApp Web konto, które było już połączone, nie jest już wylogowywane przy każdym uruchomieniu WinZapp, a przywracanie zapisanego profilu przeglądarki czeka na zamknięcie poprzedniej przeglądarki i przywraca oryginał, jeśli się nie powiedzie. Gdy WhatsApp tymczasowo odmawia kodów dla numeru, WinZapp o tym mówi i proponuje kod QR.
 
-- Wiadomości i czaty: nieprzeczytane czaty nie znikają już z filtra Nieprzeczytane po aktualizacji lub ponownym uruchomieniu, ładują się przypięte wiadomości grupy ze starymi przypięciami, blokowanie numeru, który nie jest zapisany, działa, a usunięcie ostatniej wiadomości u wszystkich aktualizuje podgląd na liście. Po przełączeniu czatu przyciski poprzedniej wiadomości nie pojawiają się już po naciśnięciu Tab, a pozycja „Odpowiedzi na ogłoszenie społeczności” pojawia się tylko w grupach z ogłoszeniami.
+- Wiadomości i czaty: nieprzeczytane czaty nie znikają już z filtra Nieprzeczytane po aktualizacji lub ponownym uruchomieniu, ładują się przypięte wiadomości grupy ze starymi przypięciami, blokowanie numeru, który nie jest zapisany, działa, a usunięcie ostatniej wiadomości u wszystkich aktualizuje podgląd na liście. Po przełączeniu czatu przyciski poprzedniej wiadomości nie pojawiają się już po naciśnięciu Tab.
 
 - Klawiatura: na klawiaturze brazylijskiej (ABNT2) „/” i „ç” wpisane na liście wiadomości nie wpisują już „Á” i „º” w polu wiadomości, zmiana skrótu od razu trafia na konto, na które się przełączasz, a Esc zamyka okno Co nowego. Alt+A nie otwiera już menu załączników (Ctrl+Shift+A nadal je otwiera), kilka okien miało dwie kontrolki z tą samą literą Alt, a „Zapisz jako” dla odebranego pliku JSON zapisuje go.
 
-- Wklejenie do pola wiadomości pliku tekstowego zapisanego jako UTF-16 nie wysyła go już jako audio, wstawienie emoji nie zgłasza już błędu, gdy przycisk pomocy w pisaniu jest włączony, a przy neuronowej redukcji szumów wiadomości głosowe są wysyłane w kolejności, w jakiej je nagrano.
+- Wklejenie do pola wiadomości pliku tekstowego zapisanego jako UTF-16 nie wysyła go już jako audio: zostaje dokumentem.
 
 - Globalny skrót: gdy okno WinZapp czeka na odpowiedź, skrót wysuwa to okno na wierzch, a opisy obrazów przez AI mówią, gdy skończył się kredyt dostawcy. Log konta nie zapisuje już kodu dostępu sesji WPPConnect.
 

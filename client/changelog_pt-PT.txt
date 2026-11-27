@@ -1,6 +1,6 @@
 V3.0.0.0
 
-Esta versão permite escolher como o WinZapp se liga ao WhatsApp: com o novo motor Neonize, que não precisa de navegador, ou com o WPPConnect, como até agora. Traz também comunidades, canais, uma lista de contactos, chamadas de grupo e ligações de chamada, resumos com IA, ajuda de escrita e tradução de mensagens, uma janela de definições reorganizada e três novos idiomas.
+Os destaques desta versão são o novo motor Neonize, mais rápido e leve, que se liga ao WhatsApp sem navegador (o WPPConnect continua disponível como alternativa), as chamadas de grupo e as ligações de chamada, e as melhorias de IA: resumos, ajuda de escrita, tradução de mensagens (online ou offline), e melhores transcrições e descrições. Traz também comunidades, canais, uma lista de contactos, uma janela de definições reorganizada e três novos idiomas.
 
 NOVIDADES
 
@@ -54,7 +54,7 @@ NOVIDADES
 
 - Sons: Eventos de som ganha "Edição da sua mensagem guardada" e "Mensagem editada por outra pessoa", com opções faladas próprias por conversa, notificações de escrita com um som repetido opcional (desativado por predefinição, silenciado durante a gravação e nas chamadas), uma escolha de som de "nova mensagem" para a conversa aberta e para as outras, e os sons e as chamadas definidos como "predefinição do sistema" seguem o dispositivo de reprodução predefinido do Windows. O instalador tem um grupo "Sons a instalar" e a janela de atualização tem "Definições adicionais" (Alt+A) para manter só os sons originais do WhatsApp, que passam a incluir os sons que o WhatsApp toca ao gravar, enviar e receber mensagens. Os pacotes importados e os seus próprios sons nunca são alterados.
 
-- Mensagens afixadas: o botão de mensagens afixadas da conversa abre uma janela "Mensagens afixadas" com o menu de contexto e os atalhos da lista de mensagens. "Desafixar selecionadas" desafixa de uma só vez as mensagens selecionadas (Ctrl+Shift+P afixa-as ou desafixa-as com os atalhos em massa ativados), e uma opção em Definições > Acessibilidade > Conteúdo falado impede o WinZapp de dizer quantas mensagens estão afixadas ao abrir uma conversa.
+- Mensagens afixadas: a janela "Mensagens afixadas" passa a ter o menu de contexto e os atalhos da lista de mensagens. "Desafixar selecionadas" desafixa de uma só vez as mensagens selecionadas (Ctrl+Shift+P afixa-as ou desafixa-as com os atalhos em massa ativados), e uma opção em Definições > Acessibilidade > Conteúdo falado impede o WinZapp de dizer quantas mensagens estão afixadas ao abrir uma conversa.
 
 - Mensagens: copiar as mensagens selecionadas copia também os seus documentos, áudios, imagens e vídeos, que podem ser colados juntos com o nome original; Ctrl+C num ficheiro do separador Ficheiros multimédia copia o ficheiro; copiar só a legenda diz "Legenda copiada"; "Texto da mensagem" (Alt+C) tem "Quebrar linhas longas"; e o botão Abrir abre os ficheiros com o nome verdadeiro. "Tentar enviar de novo" (Ctrl+Shift+Y) reenvia uma mensagem ou estado que falhou ou não foi confirmado; nada é reenviado sozinho. As mensagens de vídeo redondas aparecem como vídeos, e uma mensagem com uma ligação mantém a pré-visualização da ligação quando reencaminhada, com o leitor de ecrã a dizer quando uma pré-visualização está a carregar, foi adicionada ou não está disponível.
 
@@ -66,7 +66,7 @@ NOVIDADES
 
 - Ligações do WhatsApp: uma ligação wa.me ou api.whatsapp.com abre a conversa com esse número, mesmo que não seja um contacto, com a mensagem da ligação pronta no campo de mensagem. A versão instalada regista-se para estas ligações no primeiro arranque; a portátil tem a opção em Definições > Geral.
 
-- Atualizações: "Atualizar ao sair" em Definições > Geral descarrega as atualizações sozinho e instala-as quando sai (Ajuda > Instalar atualização transferida instala de imediato). A versão portátil oferece, no primeiro arranque, usar uma cópia das contas do WinZapp instalado no computador em vez de associar outro dispositivo, e "Ligar todas as contas ao iniciar o WinZapp" no gestor de contas abre todas as contas emparelhadas em segundo plano.
+- Atualizações: uma nova opção em Definições > Geral descarrega as atualizações sozinha, sem perguntar, e instala-as quando sai (Ajuda > Instalar atualização transferida instala de imediato). A versão portátil oferece, no primeiro arranque, usar uma cópia das contas do WinZapp instalado no computador em vez de associar outro dispositivo, e "Ligar todas as contas ao iniciar o WinZapp" no gestor de contas abre todas as contas emparelhadas em segundo plano.
 
 - Transcrição local: com a transcrição automática ativada, "Transcrever também as que chegarem atrasadas" transcreve as mensagens recebidas independentemente da idade, as mensagens de voz que chegam juntas depois de o computador ter adormecido deixam de ser ignoradas, uma conversa escolhe entre nenhuma transcrição automática, online ou local, e no Windows ARM64 o whisper.cpp usa a versão nativa, com uma versão opcional CUDA 13. "Transcrever sem a janela de progresso" põe outra mensagem em fila em vez de a recusar, e só um modelo é carregado de cada vez, por isso trocar de conta já não enche a memória.
 
@@ -100,13 +100,13 @@ MELHORIAS
 
 CORREÇÕES
 
-- Ligação: depois de Ficheiro > Desconectar, a janela "Ligar ao WinZapp" abre acima da janela principal, para o código QR estar visível. Com as versões mais recentes do WhatsApp Web, uma conta já associada deixa de ter a sessão terminada sempre que o WinZapp arranca, restaurar o perfil do navegador guardado espera que o navegador anterior feche e repõe o original se falhar, e associar com um código de emparelhamento deixa de falhar depois de o telemóvel o aceitar. Quando o WhatsApp recusa temporariamente códigos de emparelhamento para um número, o WinZapp di-lo e sugere o código QR.
+- Ligação: depois de Ficheiro > Desconectar, a janela "Ligar ao WinZapp" abre acima da janela principal, para o código QR estar visível. Com as versões mais recentes do WhatsApp Web, uma conta já associada deixa de ter a sessão terminada sempre que o WinZapp arranca e restaurar o perfil do navegador guardado espera que o navegador anterior feche e repõe o original se falhar. Quando o WhatsApp recusa temporariamente códigos de emparelhamento para um número, o WinZapp di-lo e sugere o código QR.
 
-- Mensagens e conversas: as conversas não lidas deixam de desaparecer do filtro Não lidas depois de uma atualização ou reinício, as mensagens afixadas de um grupo cujas afixações são antigas carregam, bloquear um número que não está guardado funciona, e eliminar a última mensagem para todos atualiza a pré-visualização da lista. Ao mudar de conversa, os botões da mensagem anterior deixam de aparecer com o Tab, e o item "Respostas ao aviso da comunidade" aparece só nos grupos de avisos.
+- Mensagens e conversas: as conversas não lidas deixam de desaparecer do filtro Não lidas depois de uma atualização ou reinício, as mensagens afixadas de um grupo cujas afixações são antigas carregam, bloquear um número que não está guardado funciona, e eliminar a última mensagem para todos atualiza a pré-visualização da lista. Ao mudar de conversa, os botões da mensagem anterior deixam de aparecer com o Tab.
 
 - Teclado: num teclado brasileiro (ABNT2), "/" e "ç" escritos na lista de mensagens deixam de escrever "Á" e "º" no campo de mensagem, uma alteração de atalho chega de imediato à conta para que passa, e o Esc fecha a janela O que há de novo. Alt+A deixa de abrir o menu de anexar (Ctrl+Shift+A continua a abrir), várias janelas tinham dois controlos com a mesma letra Alt, e Guardar como num ficheiro JSON recebido guarda-o.
 
-- Colar um ficheiro de texto guardado em UTF-16 no campo de mensagem deixa de o enviar como áudio, inserir um emoji deixa de provocar um erro enquanto o botão de ajuda de escrita está ativado, e com a redução de ruído neuronal as mensagens de voz são enviadas pela ordem em que foram gravadas.
+- Colar um ficheiro de texto guardado em UTF-16 no campo de mensagem deixa de o enviar como áudio: continua a ser um documento.
 
 - Tecla de atalho global: com uma janela do WinZapp à espera de uma resposta, a tecla de atalho traz essa janela para a frente, e as descrições de imagens por IA dizem quando o crédito do fornecedor acabou. O registo da conta deixa de guardar o código de acesso da sessão do WPPConnect.
 
