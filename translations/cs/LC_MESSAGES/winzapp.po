@@ -10018,7 +10018,7 @@ msgstr "Zkontrolovat &aktualizace"
 #: client/main_window/window_chrome.py
 msgctxt "menu_help"
 msgid "&Help"
-msgstr "&Nápověda"
+msgstr "Ná&pověda"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -10084,7 +10084,7 @@ msgstr "Klávesové zkratky"
 #: client/main_window/window_chrome.py
 msgctxt "menu_sync"
 msgid "S&ync"
-msgstr "S&ynchronizace"
+msgstr "Synchr&onizace"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -10176,7 +10176,7 @@ msgstr "hlasová zpráva"
 #: client/ui/conversation_panel/archived_panel.py client/ui/conversations.py
 msgctxt "messages"
 msgid "&Messages"
-msgstr "Zp&rávy"
+msgstr "Zpráv&y"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/bulk_messages.py
