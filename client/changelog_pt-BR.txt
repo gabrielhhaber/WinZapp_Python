@@ -4,6 +4,7 @@ Esta versão traz as comunidades e uma janela de configurações reorganizada, a
 
 NOVIDADES
 
+- Sons, opção "Somente os sons originais do WhatsApp" (instalador e atualizações): agora ela também mantém os sons que o WhatsApp toca ao iniciar, pausar, cancelar e enviar uma mensagem de voz, ao enviar uma mensagem e quando chega uma mensagem em uma conversa do aplicativo que não é a aberta, além das notificações, da nova mensagem na conversa aberta, da transição entre mensagens de voz, das chamadas e do fim da chamada. Atualizar restaura os que uma versão anterior da opção tinha removido. Pacotes importados e seus próprios sons não são alterados.
 - WPPConnect: o Chromium usado pelo WPPConnect não coloca mais o botão "Pesquisar com o Chromium" na área de notificação do Windows. O recurso de busca flutuante do Chromium, que cria esse botão, agora fica desligado no navegador interno.
 - Mensagens enviadas: no motor Neonize, as mensagens que você enviava podiam sumir da conversa ao reabrir o WinZapp, porque nenhuma cópia delas era guardada. Agora cada mensagem enviada é guardada assim que o envio é confirmado.
 - WPPConnect, conectar com QR-CODE ou pelo número de telefone: depois que o celular aceita o pareamento, o WinZapp não diz mais que a conexão falhou enquanto o WhatsApp Web ainda está abrindo as conversas. A verificação feita 4 minutos depois do pareamento não conseguia ler o estado da conexão nas versões recentes do WhatsApp Web e dava como falha uma conexão que estava funcionando.

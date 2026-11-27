@@ -11,9 +11,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def test_whatsapp_keeps_its_own_sounds_the_alerts_and_every_non_sound():
     for name in ("call_incoming.ogg", "MESSAGE_CURRENT.OGG", "alerts/Alert-01.ogg",
-                 r"alerts\Alert-10.ogg", "default.pack.json", "typing.SOURCE.md"):
+                 r"alerts\Alert-10.ogg", "default.pack.json", "typing.SOURCE.md",
+                 "message_sent.ogg", "voicemsg_startrecording.ogg", "voicemsg_pauserecording.ogg",
+                 "voicemsg_discard.ogg", "voicemsg_send.ogg", "message_foreground.ogg"):
         assert sel.is_whatsapp_original(name), name
-    for name in ("message_sent.ogg", "startup.ogg", "typing.wav", "other/Alert-01.ogg"):
+    for name in ("startup.ogg", "typing.ogg", "reaction_received.ogg", "typing.wav", "other/Alert-01.ogg"):
         assert not sel.is_whatsapp_original(name), name
 
 

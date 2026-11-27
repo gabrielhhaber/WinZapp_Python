@@ -4,6 +4,7 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Sounds, "Only the original WhatsApp sounds" option (installer and updates): it now also keeps the sounds WhatsApp plays when you start, pause, cancel and send a voice message, when you send a message and when a message arrives in a chat of the app that is not the open one, besides the notifications, the new message in the open chat, the transition between voice messages, calls and the end of a call. Updating restores the ones an earlier version of the option had removed. Imported packs and your own sounds stay untouched.
 - WPPConnect: the Chromium used by WPPConnect no longer adds a "Search with Chromium" button to the Windows notification area. Chromium's floating search feature, which creates that button, is now turned off in the internal browser.
 - Sent messages: with the Neonize engine, messages you sent could disappear from the conversation when WinZapp was reopened, because no copy of them was stored. Each sent message is now stored as soon as its delivery is confirmed.
 - WPPConnect, connecting with a QR code or a phone number: after the phone accepts the pairing, WinZapp no longer says the connection failed while WhatsApp Web is still opening the chats. The check made 4 minutes after pairing could not read the connection state on recent WhatsApp Web versions and reported a working connection as failed.

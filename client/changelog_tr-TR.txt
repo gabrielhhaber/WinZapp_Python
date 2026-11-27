@@ -4,6 +4,7 @@ Bu sürüm, 2.1.0.0 sürümündeki her şeye ek olarak toplulukları ve yeniden 
 
 YENİLİKLER
 
+- Sesler, "Yalnızca özgün WhatsApp sesleri" seçeneği (yükleyici ve güncellemeler): artık bildirimlere, açık sohbetteki yeni mesaja, sesli mesajlar arasındaki geçişe, aramalara ve arama sonuna ek olarak WhatsApp'ın sesli mesaj başlatırken, duraklatırken, iptal ederken ve gönderirken, mesaj gönderirken ve uygulamada açık olmayan bir sohbete mesaj geldiğinde çaldığı sesleri de koruyor. Güncelleme, seçeneğin önceki bir sürümünün kaldırdığı sesleri geri yükler. İçe aktarılan paketler ve kendi sesleriniz değişmez.
 - WPPConnect: WPPConnect'in kullandığı Chromium artık Windows bildirim alanına "Chromium ile ara" düğmesi eklemiyor. Bu düğmeyi oluşturan Chromium'un kayan arama özelliği, dahili tarayıcıda artık kapalı.
 - Gönderilen mesajlar: Neonize motorunda, gönderdiğiniz mesajlar WinZapp yeniden açıldığında konuşmadan kaybolabiliyordu, çünkü bir kopyaları saklanmıyordu. Gönderilen her mesaj artık gönderimi onaylanır onaylanmaz saklanıyor.
 - WPPConnect, QR kodu veya telefon numarasıyla bağlanma: telefon eşleştirmeyi kabul ettikten sonra WhatsApp Web sohbetleri hâlâ açarken WinZapp artık bağlantının başarısız olduğunu söylemiyor. Eşleştirmeden 4 dakika sonra yapılan kontrol, WhatsApp Web'in yeni sürümlerinde bağlantı durumunu okuyamıyor ve çalışan bir bağlantıyı başarısız sayıyordu.
