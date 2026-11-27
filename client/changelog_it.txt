@@ -4,6 +4,8 @@ This release brings communities and a reorganized settings window, on top of eve
 
 WHAT'S NEW
 
+- Collegare WinZapp (codice QR o numero di telefono): dopo File > Disconnetti, l'elenco delle conversazioni poteva restare davanti alla finestra "Collega WinZapp" mentre la tastiera e lo screen reader erano già su di essa, quindi il codice QR restava nascosto e il telefono non riusciva a leggerlo. Ora la finestra si apre sopra la finestra principale.
+
 - Suoni, opzione "Solo i suoni originali di WhatsApp" (installer e aggiornamenti): ora mantiene anche i suoni che WhatsApp riproduce quando si avvia, mette in pausa, annulla e invia un messaggio vocale, quando si invia un messaggio e quando arriva un messaggio in una chat dell'app che non è quella aperta, oltre alle notifiche, al nuovo messaggio nella chat aperta, alla transizione tra messaggi vocali, alle chiamate e alla fine della chiamata. L'aggiornamento ripristina quelli che una versione precedente dell'opzione aveva rimosso. I pacchetti importati e i tuoi suoni non vengono modificati.
 - WPPConnect: il Chromium usato da WPPConnect non aggiunge più il pulsante "Cerca con Chromium" all'area di notifica di Windows. La ricerca flottante di Chromium, che crea quel pulsante, ora è disattivata nel browser interno.
 - Messaggi inviati: con il motore Neonize, i messaggi che inviavi potevano sparire dalla conversazione alla riapertura di WinZapp, perché non ne veniva salvata alcuna copia. Ora ogni messaggio inviato viene salvato non appena l’invio è confermato.

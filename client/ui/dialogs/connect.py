@@ -19,6 +19,7 @@ from countries import get_countries, get_default_country_index
 from core.combo_search import bind_incremental_search
 from core import app_restart, connection_engine, neonize_bridge_process
 from ui.dialogs import connect_engine, connect_history
+from ui.dialogs.connect_dialog_placement import bring_to_front, connection_dialog_parent
 from core import qr_geometry
 import logging
 
@@ -567,7 +568,13 @@ class Connect:
         # official WhatsApp Web/Desktop layout) — users coming from there are
         # used to finding the QR-CODE on the right, with instructions on the
         # left, rather than centered below the text.
-        self.connection_dial = wx.Dialog(None, title=self.i18n.t("connect_phone").format(app_name=self.main_window.app_name), size=(640, 480))
+        # Owned by the main window when that is on screen, so it cannot stay
+        # behind it after File > Disconnect (connect_dialog_placement.py).
+        self.connection_dial = wx.Dialog(
+            connection_dialog_parent(self.main_window),
+            title=self.i18n.t("connect_phone").format(app_name=self.main_window.app_name),
+            size=(640, 480),
+        )
 
         # QR-CODE Panel
         self.qrcode_panel = wx.Panel(self.connection_dial)
@@ -716,6 +723,7 @@ class Connect:
         # against the same userDataDir the halt's close-session is tearing
         # down. tests/test_unattended_qr_halt.py asserts the adjacency.
         self.main_window._reset_unattended_qr_guards()
+        wx.CallAfter(bring_to_front, self.connection_dial)
         self.connection_dial.ShowModal()
         logging.info("[show_connection_dial] connection_dial modal loop returned.")
         try:
