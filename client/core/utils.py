@@ -1224,6 +1224,8 @@ DEFAULT_SETTINGS = {
         # is left: one draft per conversation, like WhatsApp Web
         # (core/message_drafts.py MODES).
         "message_draft_mode": "per_conversation",
+        # Those drafts also survive a restart, sealed with the install's key.
+        "persist_message_drafts": True,
         "preserve_typed_text_as_attachment_caption": True,
         "bulk_action_shortcuts": True,
         "confirm_mark_all_read": True,

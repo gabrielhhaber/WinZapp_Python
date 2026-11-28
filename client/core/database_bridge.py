@@ -36,6 +36,7 @@ from typing import Any
 from core.database import DatabaseManager
 from core.latest_metadata import LatestMetadataWrite
 from core.event_writes import EventWritesMixin
+from core.message_drafts import METADATA_KEY
 
 log = logging.getLogger(__name__)
 
@@ -134,6 +135,10 @@ class DatabaseBridge(EventWritesMixin):
         )
         self._presence_names = LatestMetadataWrite(
             lambda value: self._db.set_metadata_json("presence_pushname_map", value))
+        # Unsent message drafts (core/message_drafts.py): one sealed token,
+        # written the same way, so typing never waits for SQLite.
+        self._drafts = LatestMetadataWrite(
+            lambda value: self._db.set_metadata(METADATA_KEY, value["token"]))
         self._init_event_writes()
 
     # ── Loop management ──────────────────────────────────────────────────────
@@ -261,6 +266,7 @@ class DatabaseBridge(EventWritesMixin):
         # connection ahead of an accepted name snapshot that is still running.
         await self._event_writes.flush()
         await self._presence_names.flush()
+        await self._drafts.flush()
         await self._db.close()
 
     # ── Full-state save (replacement for save_data) ───────────────────────────
@@ -282,14 +288,20 @@ class DatabaseBridge(EventWritesMixin):
         """
         def operation():
             return self._db.import_from_dict(data, clear_first=clear_first, clear_metadata=clear_metadata)
-        reset_operation = (lambda: self._presence_names.reset(operation)) if clear_metadata else operation
+        reset_operation = (lambda: self._reset_metadata_writers(operation)) if clear_metadata else operation
         coro = self._event_writes.reset(reset_operation) if clear_first else operation()
         self._call(coro, timeout=_BULK_CALL_TIMEOUT)
 
     def clear_all(self) -> None:
         """Delete all records from every table."""
         self._call(self._event_writes.reset(
-            lambda: self._presence_names.reset(self._db.clear_all)), timeout=_BULK_CALL_TIMEOUT)
+            lambda: self._reset_metadata_writers(self._db.clear_all)), timeout=_BULK_CALL_TIMEOUT)
+
+    def _reset_metadata_writers(self, operation):
+        """Run a wipe of system_metadata behind both queued writers, so neither
+        a push-name snapshot nor a draft token accepted earlier lands after it
+        and brings the previous account's data back."""
+        return self._presence_names.reset(lambda: self._drafts.reset(operation))
 
     # ── Delegated read methods ────────────────────────────────────────────────
 
@@ -529,6 +541,35 @@ class DatabaseBridge(EventWritesMixin):
     async def _write_presence_names(self, lease):
         try:
             await self._presence_names.run(lease)
+        finally:
+            self._presence_write_finished()
+
+    def queue_message_drafts(self, token: str) -> None:
+        """Admit the sealed drafts token ("" = none) without waiting for
+        SQLite; the latest one wins. Same admission and close accounting as
+        queue_presence_names()."""
+        with self._state_lock:
+            if self._closing:
+                raise DatabaseBridgeClosed("DatabaseBridge is closing")
+            if not self._thread.is_alive():
+                raise DatabaseBridgeTimeout("db-asyncio thread is not running")
+            lease = self._drafts.offer({"token": token})
+            if lease is None:
+                return
+            self._inflight += 1
+            self._inflight_drained.clear()
+        coro = self._write_message_drafts(lease)
+        try:
+            asyncio.run_coroutine_threadsafe(coro, self._loop)
+        except Exception:
+            coro.close()
+            self._drafts.abort_start(lease)
+            self._presence_write_finished()
+            raise
+
+    async def _write_message_drafts(self, lease):
+        try:
+            await self._drafts.run(lease)
         finally:
             self._presence_write_finished()
 

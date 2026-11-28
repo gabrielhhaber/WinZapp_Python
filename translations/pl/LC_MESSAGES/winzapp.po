@@ -22319,6 +22319,13 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_persist_message_drafts"
+msgid "Keep unsent te&xt as encrypted drafts after restarting WinZapp"
+msgstr ""
+"Zac&howaj zaszyfrowane wersje robocze po ponownym uruchomieniu WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Zac&howaj wpisaną wiadomość jako podpis przy załączaniu"

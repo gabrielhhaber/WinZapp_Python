@@ -109,6 +109,7 @@
         "message_draft_mode": "per_conversation",
         "message_reading_profile": "default",
         "font_scale_percent": 100,
+        "persist_message_drafts": true,
         "preserve_typed_text_as_attachment_caption": true,
         "bulk_action_shortcuts": true,
         "confirm_mark_all_read": true,

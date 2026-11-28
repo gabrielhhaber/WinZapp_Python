@@ -21606,6 +21606,12 @@ msgstr "رسائل للقفز إلى الأمام/الخلف باستخدام Pa
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_persist_message_drafts"
+msgid "Keep unsent te&xt as encrypted drafts after restarting WinZapp"
+msgstr "الاحتفاظ بالمسودات المشفرة بعد إ&غلاق WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "الإبقاء &على النص المكتوب كتوضيح عند الإرفاق"

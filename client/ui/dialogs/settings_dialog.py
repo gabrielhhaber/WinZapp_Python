@@ -1955,6 +1955,13 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         )
         chats_sizer.Add(self._message_draft_radio, 0, wx.EXPAND | wx.ALL, 8)
 
+        # Keep the per-conversation drafts, encrypted, across restarts
+        # (core/message_drafts.py persist_enabled()).
+        self._persist_message_drafts_cb = wx.CheckBox(
+            self._chats_page, label=i18n.t("ui_persist_message_drafts")
+        )
+        chats_sizer.Add(self._persist_message_drafts_cb, 0, wx.LEFT | wx.RIGHT | wx.BOTTOM, 8)
+
         self._bulk_action_shortcuts_cb = wx.CheckBox(
             self._chats_page, label=i18n.t("ui_bulk_action_shortcuts")
         )
@@ -2753,6 +2760,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
 
             self._message_draft_radio.SetSelection(
                 message_drafts.MODES.index(message_drafts.mode(self.main_window.settings)))
+            self._persist_message_drafts_cb.SetValue(
+                self.main_window.settings.get("user_interface", {}).get(
+                    message_drafts.PERSIST_SETTING, True) is not False)
 
         preserve_typed_caption = self.main_window.settings.get("user_interface", {}).get(
             "preserve_typed_text_as_attachment_caption", True
@@ -4368,6 +4378,15 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 message_drafts.SETTING
             ] = message_drafts.MODES[max(self._message_draft_radio.GetSelection(), 0)]
+            self.main_window.settings["user_interface"][
+                message_drafts.PERSIST_SETTING
+            ] = self._persist_message_drafts_cb.GetValue()
+            # At once: turned off, what is on disk goes now, not at next start.
+            flush_drafts = getattr(
+                getattr(self.main_window, "conversations_panel", None),
+                "flush_message_drafts", None)
+            if callable(flush_drafts):
+                flush_drafts()
         if ready(self, "messages"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "preserve_typed_text_as_attachment_caption"
@@ -5213,6 +5232,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                                        "ui_message_draft_per_conversation",
                                        "ui_message_draft_discard")):
                 self._message_draft_radio.SetItemLabel(_i, i18n.t(_key))
+            self._persist_message_drafts_cb.SetLabel(i18n.t("ui_persist_message_drafts"))
         if ready(self, "messages"):
             self._show_link_previews_cb.SetLabel(i18n.t("ui_show_link_previews_label"))
             self._show_yesterday_label_cb.SetLabel(i18n.t("ui_show_yesterday_label"))
@@ -5261,6 +5281,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         if ready(self, "messages"):
             self._preserve_typed_caption_cb.SetLabel(i18n.t("ui_preserve_typed_text_as_caption"))
         if ready(self, "chats"):
+            self._persist_message_drafts_cb.SetLabel(i18n.t("ui_persist_message_drafts"))
             self._bulk_action_shortcuts_cb.SetLabel(i18n.t("ui_bulk_action_shortcuts"))
         if ready(self, "confirmations"):
             self._confirm_mark_all_read_cb.SetLabel(i18n.t("ui_confirm_mark_all_read"))

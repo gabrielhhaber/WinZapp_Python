@@ -22130,6 +22130,12 @@ msgstr ""
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_persist_message_drafts"
+msgid "Keep unsent te&xt as encrypted drafts after restarting WinZapp"
+msgstr "Păstrează ciornele criptate după închiderea aplica&ției WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "&Păstrați mesajul tastat ca legendă la atașare"
