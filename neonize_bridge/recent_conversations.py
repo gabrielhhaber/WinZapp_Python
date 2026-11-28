@@ -200,7 +200,7 @@ def peer_response_line(message, from_me):
     """The log line for a peer answer of the phone that no other module reads
     (anything but a block retry), or None. The phone's answer to the request
     for more conversations, if it sends one besides the history block, lands
-    here: its type, how many results, which of them are set, and the bytes."""
+    here: its type, how many results, which of them are set, and the size."""
     if not from_me or message is None or not message.HasField("protocolMessage"):
         return None
     protocol = message.protocolMessage
@@ -213,15 +213,20 @@ def peer_response_line(message, from_me):
     results = response.peerDataOperationResult
     fields = sorted({f.name for r in results for f, _v in r.ListFields()})
     raw = response.SerializeToString()
-    return ("peer answer: request type %d, %d result(s), fields=%s, %d bytes: %s"
-            % (kind, len(results), ",".join(fields) or "-", len(raw), raw[:64].hex()))
+    # Only names and sizes: the bytes can hold JIDs and media keys (log-pii.md).
+    return ("peer answer: request type %d, %d result(s), fields=%s, %d bytes"
+            % (kind, len(results), ",".join(fields) or "-", len(raw)))
 
 
 def received(s, message, from_me):
-    """Logs a peer answer to the requests above; never consumes the message."""
-    line = peer_response_line(message, from_me)
-    if line:
-        log.info("recent conversations: %s", line)
+    """Logs a peer answer to the requests above; never consumes the message and
+    never lets a failure of the log reach the chat handling."""
+    try:
+        line = peer_response_line(message, from_me)
+        if line:
+            log.info("recent conversations: %s", line)
+    except Exception:
+        log.exception("recent conversations: peer answer")
     return False
 
 

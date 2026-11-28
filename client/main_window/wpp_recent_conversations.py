@@ -56,6 +56,14 @@ def gained(before, after):
     return before is not None and after is not None and after - before >= GAIN_TO_STOP
 
 
+def _safe_store_chats(read, main_window):
+    try:
+        return read(main_window)
+    except Exception as exc:
+        logging.info("[recent-conversations] store count unreadable: %s", exc)
+        return None
+
+
 def ask_once(main_window, post=api_post, sleep=time.sleep, chats_in_store=store_chats):
     """Sends the requests when `should_ask`, one variant at a time while the
     store does not grow; returns how many went out."""
@@ -70,7 +78,7 @@ def ask_once(main_window, post=api_post, sleep=time.sleep, chats_in_store=store_
            f"/api/{main_window.token}/request-recent-conversations")
     sent = 0
     for number, (count, per_chat) in enumerate(VARIANTS, 1):
-        before = chats_in_store(main_window)
+        before = _safe_store_chats(chats_in_store, main_window)
         try:
             response = post(
                 url,
@@ -99,7 +107,7 @@ def ask_once(main_window, post=api_post, sleep=time.sleep, chats_in_store=store_
             break               # refused (the phone does not answer it) or unreachable
         sent += 1
         sleep(WAIT_EACH)
-        after = chats_in_store(main_window)
+        after = _safe_store_chats(chats_in_store, main_window)
         logging.info("[recent-conversations] store chats %s -> %s after attempt %d",
                      before, after, number)
         if gained(before, after):

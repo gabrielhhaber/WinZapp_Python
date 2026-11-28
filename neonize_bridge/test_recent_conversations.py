@@ -319,3 +319,9 @@ def test_the_hold_has_a_deadline_even_when_nobody_asked():
     assert t.pending(0)
     assert t.pending(rc.GIVE_UP - 1)
     assert not t.pending(rc.GIVE_UP)
+
+
+def test_the_peer_answer_line_carries_no_bytes_and_a_failure_never_escapes():
+    line = rc.peer_response_line(_peer_answer(rc.PEER_OPERATION), True)
+    assert line.endswith("bytes") and ":" not in line.split("bytes")[-1]
+    assert rc.received(object(), "not a message", True) is False
