@@ -89,7 +89,7 @@ class PinnedMessagesDialog(wx.Dialog):
 
     def _row_text(self, message):
         try:
-            return self._panel._render_message_line(self._current(message), pin_marker=False)
+            return self._panel._render_message_line(self._current(message), standalone=True, pin_marker=False)
         except Exception:
             logging.exception("[pinned-messages] row text")
             return ""

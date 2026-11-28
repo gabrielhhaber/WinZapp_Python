@@ -254,6 +254,19 @@ class AcceleratorsMixin:
         self.ID_ALT_SHIFT_DELETE = wx.NewIdRef()
         self.ID_BULK_DELETE_TRANSCRIPTIONS = wx.NewIdRef()
         self.ID_BULK_DELETE     = wx.NewIdRef()  # delete selected         (Ctrl+Shift+Delete)
+        # Next / previous message of a kind (semantic_jump.py): unplayed voice,
+        # image/video/sticker, document, poll, link. Alt+F5..F9 go forward and
+        # Alt+Shift+F5..F9 back, like F3 / Shift+F3 in the search.
+        self.ID_JUMP_AUDIO_NEXT = wx.NewIdRef()
+        self.ID_JUMP_AUDIO_PREV = wx.NewIdRef()
+        self.ID_JUMP_MEDIA_NEXT = wx.NewIdRef()
+        self.ID_JUMP_MEDIA_PREV = wx.NewIdRef()
+        self.ID_JUMP_DOCUMENT_NEXT = wx.NewIdRef()
+        self.ID_JUMP_DOCUMENT_PREV = wx.NewIdRef()
+        self.ID_JUMP_POLL_NEXT = wx.NewIdRef()
+        self.ID_JUMP_POLL_PREV = wx.NewIdRef()
+        self.ID_JUMP_LINK_NEXT = wx.NewIdRef()
+        self.ID_JUMP_LINK_PREV = wx.NewIdRef()
         # ── Audio speed ──────────────────────────────────────────────────────
         self.ID_ALT_COMMA       = wx.NewIdRef()  # decrease audio speed    (Alt+,)
         self.ID_ALT_PERIOD      = wx.NewIdRef()  # increase audio speed    (Alt+.)
@@ -361,6 +374,16 @@ class AcceleratorsMixin:
             (CAS,              ord("N"),           self.ID_BULK_TRANSCRIBE_INLINE),
             (CAS,              wx.WXK_DELETE,      self.ID_BULK_DELETE_TRANSCRIPTIONS),
             (CS,               wx.WXK_DELETE,      self.ID_BULK_DELETE),
+            (wx.ACCEL_ALT,     wx.WXK_F5,      self.ID_JUMP_AUDIO_NEXT),
+            (AS,               wx.WXK_F5,      self.ID_JUMP_AUDIO_PREV),
+            (wx.ACCEL_ALT,     wx.WXK_F6,      self.ID_JUMP_MEDIA_NEXT),
+            (AS,               wx.WXK_F6,      self.ID_JUMP_MEDIA_PREV),
+            (wx.ACCEL_ALT,     wx.WXK_F7,      self.ID_JUMP_DOCUMENT_NEXT),
+            (AS,               wx.WXK_F7,      self.ID_JUMP_DOCUMENT_PREV),
+            (wx.ACCEL_ALT,     wx.WXK_F8,      self.ID_JUMP_POLL_NEXT),
+            (AS,               wx.WXK_F8,      self.ID_JUMP_POLL_PREV),
+            (wx.ACCEL_ALT,     wx.WXK_F9,      self.ID_JUMP_LINK_NEXT),
+            (AS,               wx.WXK_F9,      self.ID_JUMP_LINK_PREV),
         ] + [
             # No default key (mod 0, key 0): the entry only ties the command to
             # its catalogue row; the user's own binding is what registers.
@@ -452,6 +475,15 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete_transcriptions,
                   id=self.ID_BULK_DELETE_TRANSCRIPTIONS)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete,          id=self.ID_BULK_DELETE)
+        for _kind, _next_id, _prev_id in (
+            ("audio", self.ID_JUMP_AUDIO_NEXT, self.ID_JUMP_AUDIO_PREV),
+            ("media", self.ID_JUMP_MEDIA_NEXT, self.ID_JUMP_MEDIA_PREV),
+            ("document", self.ID_JUMP_DOCUMENT_NEXT, self.ID_JUMP_DOCUMENT_PREV),
+            ("poll", self.ID_JUMP_POLL_NEXT, self.ID_JUMP_POLL_PREV),
+            ("link", self.ID_JUMP_LINK_NEXT, self.ID_JUMP_LINK_PREV),
+        ):
+            self.Bind(wx.EVT_MENU, lambda e, k=_kind: self._on_accel_semantic_jump(k, True), id=_next_id)
+            self.Bind(wx.EVT_MENU, lambda e, k=_kind: self._on_accel_semantic_jump(k, False), id=_prev_id)
         for _d in range(10):
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_review_message(d), id=self.ID_REVIEW[_d])
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_quick_reaction(d), id=self.ID_QUICK_REACTION[_d])

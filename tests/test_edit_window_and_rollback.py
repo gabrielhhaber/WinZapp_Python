@@ -176,7 +176,7 @@ class _Panel:
     def _build_mention_payload(self, text):
         return text, None
 
-    def _render_message_line(self, msg, index=None, total=None, include_quoted_preview=True):
+    def _render_message_line(self, msg, index=None, total=None, include_quoted_preview=True, **_kw):
         body = msg.get("message") or {}
         return body.get("conversation") or (body.get("extendedTextMessage") or {}).get("text", "")
 

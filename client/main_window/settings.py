@@ -1470,6 +1470,7 @@ class SettingsMixin:
         _step("global hotkey", _apply_hotkey)
         from ui.shortcut_bindings import refresh_shortcuts
         _step("keyboard shortcuts", lambda: refresh_shortcuts(self))
+        _step("font size", self.apply_font_scale)
 
         def _apply_calls():
             if not self.settings.get("calls", {}).get("alerts_enabled", True):

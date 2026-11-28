@@ -91,6 +91,9 @@ class _Stub:
     def load_sounds(self):
         self.steps.append("sounds")
 
+    def apply_font_scale(self):
+        self.steps.append("font size")
+
     def apply_language_changes(self):
         self.steps.append("language")
 

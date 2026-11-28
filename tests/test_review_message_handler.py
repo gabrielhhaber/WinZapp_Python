@@ -28,7 +28,7 @@ class _Panel:
             Focus=lambda i: self.said.append("<focus moved>"),
         )
 
-    def _render_message_line(self, msg, index=None, total=None):
+    def _render_message_line(self, msg, index=None, total=None, **_kw):
         return f"line {msg['key']['id']} {index}/{total}"
 
     def _on_menu_copy_message(self, msg):

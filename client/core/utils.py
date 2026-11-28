@@ -1188,6 +1188,7 @@ DEFAULT_SETTINGS = {
     "user_interface": {
         "messages_page_size": 200,
         "page_jump_size": 15,
+        "font_scale_percent": 100,
         "focus_on_open": "message_field",
         "message_list_open_position": "unread_or_last",
         "remove_bookmarks_after_use": False,
@@ -1264,6 +1265,9 @@ DEFAULT_SETTINGS = {
         "show_link_previews": True,
         "forwarded_prefix_enabled": False,
         "starred_prefix_enabled": False,
+        # How a message row is ordered and trimmed: "default", "content_first"
+        # or "concise" (ui/conversation_panel/row_reading.py).
+        "message_reading_profile": "default",
         # The message text window (Alt+C) wraps long lines at ~100 characters
         # (core/wrapped_text.py). Off: only the message's own breaks (#923).
         "message_viewer_word_wrap": True,

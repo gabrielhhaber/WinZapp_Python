@@ -43,7 +43,11 @@ from core.utils import (
     video_seconds,
 )
 from core.transcription import stored as stored_transcription
-from ui.conversation_panel.own_sender import row_lead, should_hide_sender
+from ui.conversation_panel.own_sender import should_hide_sender
+from ui.conversation_panel.row_reading import (
+    CLASSIC_ROW_LIMIT, CONCISE, compose_row_line, reading_profile, same_sender,
+    selected_reserve,
+)
 
 
 def _with_inline_text(main_window, msg, line: str, i18n) -> str:
@@ -1187,13 +1191,40 @@ class MessageRenderingMixin:
         self.main_window.output(self.main_window.i18n.t(key))
         return True
 
+    def _repeats_previous_row(self, msg, index, time_str: str, system_event: bool):
+        """(same sender, same time) as the message row above, for the concise
+        reading profile. The row above is the one before *msg* in
+        ``_sorted_messages``; a message not in it yet (a send still pending) is
+        the next one after the last. A separator or placeholder above counts
+        as nothing, so the first message after "N unread" keeps its sender."""
+        rows = getattr(self, "_sorted_messages", None) or []
+        if index is None:
+            # By identity: list.index() compares dicts, which is linear in
+            # the size of every message and quadratic over a refresh.
+            index = next((i for i, row in enumerate(rows) if row is msg), len(rows))
+        previous = rows[index - 1] if 0 < index <= len(rows) else None
+        if not isinstance(previous, dict) or previous.get("_type"):
+            return False, False
+        same_time = False
+        if time_str:
+            prev_ts = self._extract_timestamp(previous)
+            same_time = bool(prev_ts) and self._format_date(prev_ts) == time_str
+        previous_system = self._is_system_event(previous) and not is_call_log(previous)
+        same = (not system_event and not previous_system and same_sender(previous, msg))
+        return same, same_time
+
     def _render_message_line(self, msg, index: int | None = None, total: int | None = None,
                              include_quoted_preview: bool = True,
+                             standalone: bool = False,
                              pin_marker: bool = True) -> str:
         """Produce the full display string for a single message row.
 
         include_quoted_preview=False drops the ", mensagem citada: ..." clause.
         Only link detection passes it — see _message_own_links().
+        standalone=True is a row read or shown outside the message list
+        (Alt+digit review, pinned dialog, a quoted row, link detection): it
+        never drops the sender or the time as the concise profile does, since
+        the row above it in the list is not what the listener just heard.
         pin_marker=False drops the "📌 Pinned" lead, which the pinned
         messages window, where every row is pinned, would read on each one.
         """
@@ -1250,79 +1281,51 @@ class MessageRenderingMixin:
         # A call record is the exception: "Ligação de voz efetuada" alone left
         # the user unsure who had called whom (reported on the test build), so
         # it reads "Eu: Ligação de voz efetuada" like any other message.
-        if self._is_system_event(msg) and not is_call_log(msg):
-            # System events ("Carlos saiu do grupo", "Ana alterou o nome do
-            # grupo") already name whoever acted, inside the sentence. Prefixing
-            # them with the sender produced "Carlos: Carlos saiu do grupo",
-            # which a screen reader reads out twice.
-            pieces = [body]
-        else:
+        # System events ("Carlos saiu do grupo", "Ana alterou o nome do
+        # grupo") already name whoever acted, inside the sentence. Prefixing
+        # them with the sender produced "Carlos: Carlos saiu do grupo",
+        # which a screen reader reads out twice.
+        system_event = self._is_system_event(msg) and not is_call_log(msg)
+        replying_to = ""
+        hide_sender = False
+        if not system_event:
             replying_to = i18n.t('replying_to').format(name=quoted_sender) if quoted_sender else ""
-            pieces = [row_lead(sender, replying_to, body,
-                               should_hide_sender(msg, self.main_window.settings)
-                               or (not sender and hide_unnamed_sender_numbers_enabled(
-                                   self.main_window.settings)))]
+            hide_sender = (should_hide_sender(msg, self.main_window.settings)
+                           or (not sender and hide_unnamed_sender_numbers_enabled(
+                               self.main_window.settings)))
         is_forwarded = not self._is_system_event(msg) and self._is_message_forwarded(msg)
-        if msg.get("pinInChat") and pin_marker:
-            pieces[0] = f"📌 {i18n.t('message_pinned')}, {pieces[0]}"
+        ui_settings = self.main_window.settings.get("user_interface", {})
         # Settings > User interface > "Announce 'Starred' at the start of the
-        # message" (default off): off keeps the word as a trailing clause
-        # below, like "Edited". On moves it to the front, before the sender.
-        # Done ahead of the forwarded block so "Forwarded" still comes first.
+        # message" (default off): off keeps the word as a trailing clause,
+        # like "Edited". On moves it to the front, before the sender.
         is_starred = bool(msg.get("starred"))
-        if is_starred and self.main_window.settings.get("user_interface", {}).get(
-            "starred_prefix_enabled", False
-        ):
-            pieces[0] = f"{i18n.t('status_starred')}, {pieces[0]}"
-            is_starred = False  # already announced; don't also append the suffix below
+        starred_prefix = is_starred and ui_settings.get("starred_prefix_enabled", False)
         # Settings > Interface do usuário > "Anunciar 'Encaminhada' no início
-        # da mensagem" (default off). Off keeps the long-standing behavior of
-        # a trailing ", Encaminhada" clause below, same position as "Editada"
-        # and the delivery status. On moves it to the very front — ahead of
-        # the sender, and even ahead of the starred word and pin marker above — so a
-        # screen reader user arrowing quickly through a busy forwarded chat
-        # (a forward chain, a viral message) hears it's forwarded before
-        # anything else, instead of only after the sender and full body.
-        if is_forwarded and self.main_window.settings.get("user_interface", {}).get(
-            "forwarded_prefix_enabled", False
-        ):
-            pieces[0] = f"{i18n.t('status_forwarded')}, {pieces[0]}"
-            is_forwarded = False  # already announced; don't also append the suffix below
+        # da mensagem" (default off). Off keeps the long-standing trailing
+        # ", Encaminhada" clause, same position as "Editada" and the delivery
+        # status. On moves it to the very front — ahead of the sender, the
+        # starred word and the pin marker — so a screen reader user arrowing
+        # quickly through a busy forwarded chat hears it first.
+        forwarded_prefix = is_forwarded and ui_settings.get("forwarded_prefix_enabled", False)
         replies = comment_count(msg.get("replyCount"))
-        if replies:
-            pieces[0] += f", {i18n.t('community_comments_count').format(count=replies)}"
-        if time_str:
-            pieces.append(f", {time_str}")
-        if status:
-            pieces[-1] += f", {status}"
-        if msg.get("_edited") and not self._is_system_event(msg):
-            pieces[-1] += f", {i18n.t('status_edited')}"
-        if is_forwarded:
-            pieces[-1] += f", {i18n.t('status_forwarded')}"
-        # A starred message ends with the word "Starred", like "Edited" and
-        # "Forwarded" (or opens with it, see above). It used to open with a
-        # star glyph, which screen readers skip or read differently depending
-        # on the symbol level.
-        if is_starred:
-            pieces[-1] += f", {i18n.t('status_starred')}"
 
         # Append quoted message preview (if this is a reply)
+        quoted = ""
         if ctx and include_quoted_preview:
             quoted_msg_obj = ctx.get("quotedMessage") or {}
             quoted_preview = self._get_quoted_preview(quoted_msg_obj)
             if quoted_preview:
-                pieces.append(
-                    f", {i18n.t('quoted_message_label')}: {quoted_preview}"
-                )
+                quoted = f", {i18n.t('quoted_message_label')}: {quoted_preview}"
 
         # Append reactions if any
         msg_id    = msg.get("key", {}).get("id", "")
         reactions = self._reaction_counts(msg_id)
+        reactions_clause = ""
         if reactions:
             r_parts = []
             for emoji, count in reactions.items():
                 r_parts.append(f"{emoji}, {count} {i18n.t('total_label')}")
-            pieces.append(f". {i18n.t('reactions_label')} {', '.join(r_parts)}.")
+            reactions_clause = f". {i18n.t('reactions_label')} {', '.join(r_parts)}."
 
         # In listbox mode, native Win32 LISTBOX controls don't announce item position
         # (e.g. "1 de 200") to screen readers. Append position info ONLY when
@@ -1333,6 +1336,7 @@ class MessageRenderingMixin:
                 "show_listbox_item_count", False
             )
 
+        position_clause = ""
         if show_count and getattr(self, "_message_list_mode", "classic") == "listbox":
             if index is None and hasattr(self, "_sorted_messages"):
                 try:
@@ -1343,23 +1347,55 @@ class MessageRenderingMixin:
                 total = len(self._sorted_messages)
 
             if index is not None and total is not None and total > 0:
-                pieces.append(f", {index + 1} {i18n.t('of')} {total}")
+                position_clause = f", {index + 1} {i18n.t('of')} {total}"
 
+        upload_clause = ""
         local_id = str(msg.get("_local_id") or "")
         if local_id and (msg.get("_local_pending") or msg.get("_awaiting_sent_ack")):
             pct = max(0, min(100, round(
                 self._media_upload_progress.get(local_id, 0.0) * 100
             )))
-            pieces.append(
-                f", {i18n.t('uploading_progress').format(pct=pct)}"
-            )
+            upload_clause = f", {i18n.t('uploading_progress').format(pct=pct)}"
 
-        line = " ".join(pieces)
+        # A starred message ends with the word "Starred", like "Edited" and
+        # "Forwarded" (or opens with it, see above). It used to open with a
+        # star glyph, which screen readers skip or read differently depending
+        # on the symbol level.
+        parts = {
+            "body": body, "sender": sender, "replying_to": replying_to,
+            "hide_sender": hide_sender, "system": system_event,
+            "pinned": f"📌 {i18n.t('message_pinned')}" if msg.get("pinInChat") and pin_marker else "",
+            "starred_prefix": i18n.t('status_starred') if starred_prefix else "",
+            "forwarded_prefix": i18n.t('status_forwarded') if forwarded_prefix else "",
+            "comments": i18n.t('community_comments_count').format(count=replies) if replies else "",
+            "time": time_str, "status": status,
+            "edited": (i18n.t('status_edited')
+                       if msg.get("_edited") and not self._is_system_event(msg) else ""),
+            "forwarded_suffix": (i18n.t('status_forwarded')
+                                 if is_forwarded and not forwarded_prefix else ""),
+            "starred_suffix": i18n.t('status_starred') if is_starred and not starred_prefix else "",
+            "quoted": quoted, "reactions": reactions_clause,
+            "position": position_clause, "upload": upload_clause,
+        }
+        profile = reading_profile(self.main_window.settings)
+        repeat_sender = repeat_time = False
+        if profile == CONCISE and not standalone:
+            repeat_sender, repeat_time = self._repeats_previous_row(
+                msg, index, time_str, system_event)
+        classic = getattr(self, "_message_list_mode", "classic") != "listbox"
         is_selected = bool(msg_id) and msg_id in getattr(self, "selected_messages", ())
         position = self.main_window.settings.get("user_interface", {}).get(
             "selected_announcement_position", "end"
         )
-        return append_selected_marker(line, i18n.t("selected_suffix"), position, is_selected)
+        marker = i18n.t("selected_suffix")
+        # The "selected" marker is added after the row is composed, so the
+        # limit must leave room for it (and its separator) or a row that just
+        # fits would lose its time and status to the 511-unit cut.
+        line = compose_row_line(
+            parts, profile, repeat_sender=repeat_sender, repeat_time=repeat_time,
+            max_units=(CLASSIC_ROW_LIMIT - selected_reserve(marker, position, is_selected)
+                       if classic else None))
+        return append_selected_marker(line, marker, position, is_selected)
 
     def _get_participant_name(
         self,

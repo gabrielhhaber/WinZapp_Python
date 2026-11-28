@@ -5346,6 +5346,7 @@ msgstr "Seçili sohbetleri temizle"
 #: client/ui/dialogs/call_participants.py
 #: client/ui/dialogs/channel_insights_dialog.py
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
+#: client/ui/dialogs/history_search.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/new_conversation.py
@@ -8042,6 +8043,12 @@ msgctxt "filters_cleared"
 msgid "Filters cleared"
 msgstr "Filtreler temizlendi"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/font_scale.py
+#, python-brace-format
+msgctxt "font_scale_announce"
+msgid "Font {percent}%"
+msgstr "Yazı tipi {percent}%"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -9060,6 +9067,89 @@ msgid "The usage guide could not be opened."
 msgstr "Kullanım kılavuzu açılamadı."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_button"
+msgid "Searc&h"
+msgstr "A&ra"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_empty_query"
+msgid "Type what to search for."
+msgstr "Aranacak şeyi yazın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_failed"
+msgid "The search could not be completed."
+msgstr "Arama tamamlanamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_found"
+msgid "Results: {count}"
+msgstr "Sonuçlar: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_found_limit"
+msgid "Results: {count}. This is the limit; narrow the search to see others."
+msgstr ""
+"Sonuçlar: {count}. Bu sınırdır; diğerlerini görmek için aramayı daraltın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_label"
+msgid "&Search text"
+msgstr "Aranacak &metin"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_none"
+msgid "No messages found."
+msgstr "Mesaj bulunamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_results"
+msgid "&Results"
+msgstr "&Sonuçlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_row"
+msgid "{chat} — {sender} — {date} — {text}"
+msgstr "{chat} — {sender} — {date} — {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_searching"
+msgid "Searching..."
+msgstr "Aranıyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_stop"
+msgid "Sto&p"
+msgstr "&Durdur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_stopped"
+msgid "Search stopped. Results so far: {count}."
+msgstr "Arama durduruldu. Şimdiye kadarki sonuçlar: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_title"
+msgid "Search all conversations"
+msgstr "Tüm sohbetlerde ara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "history_transfer_done"
 msgid "The phone has finished sending the message history."
 msgstr "Telefon ileti geçmişini göndermeyi bitirdi."
@@ -10064,6 +10154,12 @@ msgstr "&Yardım"
 msgctxt "menu_help_guide"
 msgid "Usage guide"
 msgstr "Kullanım kılavuzu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
+msgctxt "menu_history_search"
+msgid "Search all conversations"
+msgstr "Tüm sohbetlerde ara"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -13383,6 +13479,57 @@ msgctxt "self_chat_name"
 msgid "Me (messages to myself)"
 msgstr "Kendim (kendime mesajlar)"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/semantic_jump.py
+#, python-brace-format
+msgctxt "semantic_jump_found"
+msgid "{kind}: {position} of {total}."
+msgstr "{kind}: {position} / {total}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "semantic_jump_no_next"
+msgid "No more after this one: {kind}."
+msgstr "Bundan sonra başka yok: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "semantic_jump_no_previous"
+msgid "None before this one: {kind}."
+msgstr "Bundan önce başka yok: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/semantic_jump.py
+#, python-brace-format
+msgctxt "semantic_jump_none"
+msgid "Nothing found in this conversation: {kind}."
+msgstr "Bu sohbette bulunamadı: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_audio"
+msgid "Unplayed voice message"
+msgstr "Oynatılmamış sesli mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_document"
+msgid "Document"
+msgstr "Belge"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_link"
+msgid "Link"
+msgstr "Bağlantı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_media"
+msgid "Photo, video or sticker"
+msgstr "Fotoğraf, video veya çıkartma"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_poll"
+msgid "Poll"
+msgstr "Anket"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/attach_contact_dialog.py
 #: client/ui/dialogs/new_poll_dialog.py
@@ -14405,9 +14552,90 @@ msgid "Alt+Shift+U: show unread chats"
 msgstr "Alt+Shift+U: okunmamış sohbetleri göster"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_bigger_label"
+msgid "Ctrl+=: increase the font size"
+msgstr "Ctrl+=: yazı tipi boyutunu büyüt"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_reset_label"
+msgid "Ctrl+Shift+Z: restore the default font size"
+msgstr "Ctrl+Shift+Z: yazı tipi boyutunu varsayılana döndür"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_smaller_label"
+msgid "Ctrl+-: decrease the font size"
+msgstr "Ctrl+-: yazı tipi boyutunu küçült"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_history_search_label"
+msgid "Ctrl+Shift+G: search all conversations"
+msgstr "Ctrl+Shift+G: tüm sohbetlerde ara"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_insert_mention"
 msgid "Insert the selected mention"
 msgstr "Seçilen bahsetmeyi ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_audio_next_label"
+msgid "Alt+F5: jump to the next message: unplayed voice"
+msgstr "Alt+F5: sonraki mesaja git: oynatılmamış sesli mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_audio_prev_label"
+msgid "Alt+Shift+F5: jump to the previous message: unplayed voice"
+msgstr "Alt+Shift+F5: önceki mesaja git: oynatılmamış sesli mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_document_next_label"
+msgid "Alt+F7: jump to the next message: document"
+msgstr "Alt+F7: sonraki mesaja git: belge"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_document_prev_label"
+msgid "Alt+Shift+F7: jump to the previous message: document"
+msgstr "Alt+Shift+F7: önceki mesaja git: belge"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_link_next_label"
+msgid "Alt+F9: jump to the next message: link"
+msgstr "Alt+F9: sonraki mesaja git: bağlantı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_link_prev_label"
+msgid "Alt+Shift+F9: jump to the previous message: link"
+msgstr "Alt+Shift+F9: önceki mesaja git: bağlantı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_media_next_label"
+msgid "Alt+F6: jump to the next message: photo, video or sticker"
+msgstr "Alt+F6: sonraki mesaja git: fotoğraf, video veya çıkartma"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_media_prev_label"
+msgid "Alt+Shift+F6: jump to the previous message: photo, video or sticker"
+msgstr "Alt+Shift+F6: önceki mesaja git: fotoğraf, video veya çıkartma"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_poll_next_label"
+msgid "Alt+F8: jump to the next message: poll"
+msgstr "Alt+F8: sonraki mesaja git: anket"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_poll_prev_label"
+msgid "Alt+Shift+F8: jump to the previous message: poll"
+msgstr "Alt+Shift+F8: önceki mesaja git: anket"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_alt"
@@ -15601,6 +15829,7 @@ msgid "No starred message matches the search."
 msgstr "Aramayla eşleşen yıldızlı mesaj yok."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/starred_list.py
+#: client/ui/dialogs/history_search.py
 msgctxt "starred_no_text"
 msgid "(no text)"
 msgstr "(metin yok)"
@@ -15612,7 +15841,7 @@ msgstr "Yıldızlı mesaj yok."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_starred_tab.py
-#: client/ui/dialogs/starred_messages.py
+#: client/ui/dialogs/history_search.py client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
 msgstr "Sohbette a&ç"
@@ -21191,6 +21420,18 @@ msgid "Unread &message indicator or last message"
 msgstr "&Okunmamış mesaj göstergesi veya son mesaj"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/font_scale_options.py
+msgctxt "ui_font_scale_default"
+msgid "Default"
+msgstr "Varsayılan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/font_scale_options.py
+msgctxt "ui_font_scale_label"
+msgid "Font si&ze:"
+msgstr "&Yazı tipi boyutu:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_keep_link_preview_label"
 msgid "Keep link pre&views by default when forwarding messages"
@@ -21340,6 +21581,29 @@ msgstr ""
 msgctxt "ui_message_list_open_position_unread_or_last"
 msgid "Unread separator or last message"
 msgstr "Okunmamış ayırıcısı veya son mesaj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_concise"
+msgid ""
+"Concise: leave out the sender and the time when they repeat the previous "
+"message's"
+msgstr "Kısa: gönderen ve saat önceki mesajla aynıysa söyleme"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_content_first"
+msgid "Content first: the message, then sender, time and status"
+msgstr "Önce içerik: mesaj, sonra gönderen, saat ve durum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_default"
+msgid "Default: sender, message, time and status"
+msgstr "Varsayılan: gönderen, mesaj, saat ve durum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/message_reading_options.py
+msgctxt "ui_message_reading_profile_label"
+msgid "Customi&ze how each message row is read"
+msgstr "Mesaj okuma &profili"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

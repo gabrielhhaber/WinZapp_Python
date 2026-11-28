@@ -4,6 +4,14 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Profily čtení zpráv: v Nastavení > Uživatelské rozhraní > Zprávy volba „Přizpůsobit způsob čtení jednotlivých zpráv“ určuje pořadí, v jakém odečítač obrazovky zprávu čte. „Výchozí“ je řádek, jak ho znáte. „Nejprve obsah“ přečte zprávu před odesílatelem, časem a stavem. „Stručné“ vynechá odesílatele a čas, když se opakují z předchozí zprávy. Hledání v konverzaci nadále nachází zprávy podle obsahu i podle jména.
+
+- Skok podle typu zprávy: Alt+F5 / Alt+Shift+F5 přejde na další / předchozí dosud nepřehranou hlasovou zprávu, Alt+F6 na fotku, video nebo nálepku, Alt+F7 na dokument, Alt+F8 na anketu a Alt+F9 na odkaz (Alt+Shift přidává předchozí). Odečítač oznámí typ a pozici („Dokument: 2 z 5“) a za poslední či před první zprávou oznámí, že další už není, místo aby začínal znovu. Klávesy lze změnit v Nastavení > Klávesové zkratky.
+
+- Prohledat všechny konverzace: Ctrl+Shift+G nebo „Prohledat všechny konverzace“ v nabídce Soubor prohledá text všech chatů uložených v tomto počítači: zprávy, popisky, názvy souborů, ankety, karty kontaktů, přepisy a popisy AI uložené u hlasových zpráv, fotek a videí a jména odesílatelů a chatů. Výsledky čtou „chat — odesílatel — datum — úryvek“; Enter otevře chat na dané zprávě, Esc běžící hledání zastaví. Šifrovaná historie se čte na pozadí bez zamrznutí okna, vypíše se až 200 výsledků a uzamčené chaty zůstávají mimo výsledky, dokud je trezor zavřený.
+
+- Slabozrací: Nastavení > Rozhraní > Velikost písma zvětší text seznamů, polí zpráv a oken (110 % až 200 %) a Ctrl+= (nebo Ctrl++), Ctrl+- a Ctrl+Shift+Z ho zvětší, zmenší a vrátí na výchozí hodnotu s oznámením nové velikosti. Ve výchozím stavu je volba vypnutá, dokud velikost nezvolíte. WinZapp nenastavuje vlastní barvy, takže motiv vysokého kontrastu Windows platí dál.
+
 - WPPConnect: Chromium používaný WPPConnectem už nepřidává do oznamovací oblasti Windows tlačítko „Hledat pomocí Chromium“. Plovoucí vyhledávání Chromium, které toto tlačítko vytváří, je ve vestavěném prohlížeči nyní vypnuté.
 - Odeslané zprávy: u enginu Neonize mohly vámi odeslané zprávy po novém otevření WinZapp z konverzace zmizet, protože se neukládala žádná jejich kopie. Každá odeslaná zpráva se nyní uloží, jakmile je odeslání potvrzeno.
 - WPPConnect, připojení kódem QR nebo telefonním číslem: když telefon spárování přijme, WinZapp už neříká, že se připojení nezdařilo, zatímco WhatsApp Web ještě otevírá chaty. Kontrola prováděná 4 minuty po spárování nedokázala v nových verzích WhatsApp Webu přečíst stav připojení a funkční připojení vyhodnotila jako neúspěšné.

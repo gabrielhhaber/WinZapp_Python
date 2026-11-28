@@ -120,7 +120,7 @@ class _ChainStub:
     def _is_voice_message(self, msg):
         return True
 
-    def _render_message_line(self, msg):
+    def _render_message_line(self, msg, **_kw):
         msg_id = msg["key"]["id"]
         return f"{msg_id} reproduzido" if msg_id in self._played else msg_id
 
