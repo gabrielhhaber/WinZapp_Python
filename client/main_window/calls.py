@@ -14,6 +14,7 @@ from main_window.typing_feedback import stop_typing_for_capture
 from ui.conversation_panel.call_capabilities import refresh_call_controls
 from main_window.call_desktop_audio import call_desktop_share_settings, stop_call_desktop_audio
 from main_window.call_translation import stop_call_translation
+from main_window.call_captions import stop_call_captions
 from urllib.parse import quote as _url_quote
 from core.call_logic import (
     active_call_label_key,
@@ -159,7 +160,8 @@ class CallsMixin:
                 continue
             if (getattr(panel, "_is_recording", False)
                     or getattr(panel, "_recording_starting", False)
-                    or getattr(panel, "_recording_system_audio", False)):
+                    or getattr(panel, "_recording_system_audio", False)
+                    or getattr(panel, "_dictation_listening", False)):
                 return True
         return False
 
@@ -576,6 +578,8 @@ class CallsMixin:
                 unfollow()
         if stop_call_translation(self) and keep_call:
             wx.CallAfter(self.output, self.i18n.t("call_translation_stopped"))
+        if not keep_call:
+            stop_call_captions(self)
         stop_call_desktop_audio(self)
         session = getattr(self, "_call_audio_session", None)
         if session is None:
@@ -1865,6 +1869,9 @@ class CallsMixin:
         sync_translation = getattr(self, "_sync_live_translation_button", None)
         if sync_translation is not None:
             sync_translation(active)
+        sync_captions = getattr(self, "_sync_call_captions_button", None)
+        if sync_captions is not None:
+            sync_captions(active)
         participants_button = getattr(self, "voice_call_window_participants_button", None)
         if participants_button is not None:
             # show_call_participants() refuses a locked chat, so the button

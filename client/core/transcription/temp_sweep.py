@@ -23,7 +23,9 @@ PREFIXES = ("winzapp-audio-", "winzapp-transcribe-", "winzapp-whisper-",
             # The download of a status being transcribed (statuses.TEMP_PREFIX).
             "winzapp-status-",
             # The folder an external-viewer open stages a file in (core.external_open).
-            "winzapp-open-")
+            "winzapp-open-",
+            # The WAV of a dictation (dictation_run.TEMP_PREFIX).
+            "winzapp-dictation-")
 
 MAX_AGE_SECONDS = 24 * 3600
 

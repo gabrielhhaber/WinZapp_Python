@@ -68,7 +68,8 @@
         "alerts_enabled": true,
         "popup_enabled": true,
         "announce_participant_joined": true,
-        "announce_participant_left": true
+        "announce_participant_left": true,
+        "captions_speak": false
     },
     "profile_backup": {
         "snapshots_disabled": false,

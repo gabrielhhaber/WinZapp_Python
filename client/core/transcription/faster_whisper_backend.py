@@ -409,11 +409,15 @@ class FasterWhisperBackend(TranscriptionBackend):
         audio = audio_prep.read_waveform(request.audio_path)
         if audio is None:
             audio = request.audio_path
+        # Only named when set: the user's vocabulary (vocabulary.py), which is
+        # in memory here and in no log line.
+        extra = {"initial_prompt": request.initial_prompt} if request.initial_prompt else {}
         try:
             segments, info = model.transcribe(
                 audio,
                 language=request.language,
                 vad_filter=request.vad_filter,
+                **extra,
             )
             return segments, info, bool(request.vad_filter)
         except errors.TranscriptionError:
@@ -428,7 +432,7 @@ class FasterWhisperBackend(TranscriptionBackend):
             )
         try:
             segments, info = model.transcribe(
-                audio, language=request.language, vad_filter=False
+                audio, language=request.language, vad_filter=False, **extra
             )
             return segments, info, False
         except Exception as exc:

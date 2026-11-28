@@ -725,6 +725,14 @@ YENİLİKLER
 
 - Ayarlar > Genel > Bildirimler içinde yeni seçenek: "WinZapp kullanılmadan belirli bir süre geçtikten sonra beni uzakta say: çevrimdışı görün ve mesajları okundu olarak işaretlemeyi bırak", varsayılan olarak açık, süre dakika olarak ayarlanır (varsayılan 2). WinZapp'ta bu süre boyunca hiçbir tuşa basılmaz ya da tıklanmazsa, pencere öndeyken bile çevrimdışı görünürsünüz ve açık sohbete gelen mesajlar artık okundu olarak işaretlenmez; WinZapp'ı yeniden kullanana kadar okunmamış kalır, ardından açık sohbet okundu olarak işaretlenir. Bir arama, bir kayıt ya da çalan bir ses de varlık sayılır. Kapalıyken bunların hiçbiri olmaz.
 
+- Uzun kayıtların yerel dökümü (2 dakikadan uzun): sonuç penceresinde artık bir bölümler listesi de var; her satır süresiyle başlar, örneğin "[01:05] ...". "Buradan dinle" (veya Enter), o mesaj çalıyorsa sesli mesajı o saniyeye götürür; "Sürelerle kopyala" satırları kopyalar. Üstteki metin ile pencerenin Kopyala ve Kaydet düğmeleri sürelerden arınmış kalır. Mesajdan yeniden açılan bir döküm yalnızca metni içerir, bu liste olmaz.
+
+- Yerel döküm kelime listesi: Ayarlar, Yerel döküm, Gelişmiş seçenekler içindeki "Kelime listesi" alanı, Whisper'ın doğru yazması için beklemesi gereken adları, kısaltmaları ve terimleri (her satırda bir tane) alır. Liste bu bilgisayarda kalır, günlüğe asla yazılmaz ve internete gitmez; whisper.cpp yalnızca aksansız terimleri kullanır. Zaten kaydedilmiş bir döküm, liste değişince yeniden yapılmaz.
+
+- Mesaj alanında dikte: Ctrl+Shift+J mikrofonu dinlemeye başlar, aynı tuş durdurur. Konuşma bu bilgisayarda, daha önce kurduğunuz yerel Whisper ile metne dönüştürülür; metin mesajdaki imleç konumuna girer (varsa seçili metnin yerine geçer) ve sesli okunur. Mesaj kendiliğinden asla gönderilmez, ses asla kaydedilmez ya da bir yere gönderilmez; hazır bir model yoksa WinZapp bir model indirmek yerine nedenini söyler. Sesli mesaj kaydederken veya aramadayken dikte açık bir cümleyle reddedilir. Tuş Ayarlar > Klavye kısayolları bölümünden değiştirilebilir.
+
+- Aramalarda canlı altyazı: arama sırasında "Canlı altyazı" (Ctrl+Shift+X veya arama penceresindeki düğmesi), arama denetimlerinin odağını almadan, karşı tarafın söylediklerini bu bilgisayarda yerel Whisper modeliyle metne dönüştürülmüş tam cümleler olarak listeleyen bir pencere açar; komuta tekrar basmak pencereye geçirir. "Kopyala" ve "Kaydet..." yalnızca bastığınızda çalışır, hiçbir şey kendiliğinden kaydedilmez ve "Altyazıları sesli oku" varsayılan olarak kapalıdır. Model bir mesajın yazıya dökümü veya dikte için kullanılırken canlı altyazı reddedilir ve arama sesi bozulmaya başlarsa kendiliğinden kapanır.
+
 V2.1.0.0
 
 Bu sürüm, hiçbir yere bir şey gönderilmeden sesli mesajların kendi bilgisayarınızda yazıya dökülmesini ve sesli mesajların, görsellerin, videoların, çıkartmaların ve PDF'lerin çevrimiçi yapay zekâ ile yazıya dökülmesini ve betimlenmesini getiriyor.

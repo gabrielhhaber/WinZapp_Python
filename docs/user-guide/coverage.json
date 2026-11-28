@@ -370,6 +370,10 @@
     "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio",
     "4fe66311d2af": "Neonize no Windows em ARM: a bridge de conexão não fecha mais sozinha logo ao in",
     "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In",
-    "9bedd1e6fa02": "Nova opção em Configurações > Geral > Notificações: \"Considerar-me ausente depoi"
+    "9bedd1e6fa02": "Nova opção em Configurações > Geral > Notificações: \"Considerar-me ausente depoi",
+    "abec24586f74": "Transcrição local de gravações longas (mais de 2 minutos): a janela do resultado",
+    "123b6a6aa75e": "Vocabulário da transcrição local: em Configurações, Transcrição local, Opções av",
+    "7e53bc61de52": "Ditado no campo de mensagem: Ctrl+Shift+J começa a ouvir o microfone e a mesma t",
+    "07f5dcb2b377": "Legendas ao vivo nas ligações: durante uma ligação, \"Legendas ao vivo\" (Ctrl+Shi"
   }
 }

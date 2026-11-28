@@ -4,6 +4,14 @@ Toto vydání přináší komunity a přepracované okno nastavení, navíc ke v
 
 NOVINKY
 
+- Místní přepis dlouhých nahrávek (přes 2 minuty): okno výsledku nyní obsahuje také seznam okamžiků, kde každý řádek začíná časem, například „[01:05] ...“. „Poslechnout odsud“ (nebo Enter) posune hlasovou zprávu na danou sekundu, pokud právě hraje, a „Kopírovat s časy“ zkopíruje řádky; text výše a tlačítka Kopírovat a Uložit zůstávají bez časů. Přepis znovu otevřený ze zprávy obsahuje jen text bez tohoto seznamu.
+
+- Slovník místního přepisu: v Nastavení, Místní přepis, Pokročilé možnosti pole „Slovník“ přijímá jména, zkratky a pojmy (jeden na řádek), které má Whisper očekávat, aby je zapsal správně. Seznam zůstává v tomto počítači, nikdy se nezapisuje do protokolu a nikdy nejde na internet; whisper.cpp používá pojmy pouze bez diakritiky. Již uložený přepis se při změně seznamu znovu nespouští.
+
+- Diktování do pole zprávy: Ctrl+Shift+J začne poslouchat mikrofon a stejná klávesa diktování zastaví. Řeč se přepíše v tomto počítači pomocí místního modelu Whisper, který už máte nastavený, text se vloží na pozici kurzoru ve zprávě (případně nahradí výběr) a přečte se nahlas. Zpráva se sama nikdy neodešle, zvuk se nikam neukládá ani neodesílá, a pokud není připraven žádný model, WinZapp řekne proč, místo aby ho stahoval. Během nahrávání hlasové zprávy nebo hovoru je diktování srozumitelnou větou odmítnuto. Klávesu lze změnit v Nastavení > Klávesové zkratky.
+
+- Živé titulky při hovorech: během hovoru „Živé titulky“ (Ctrl+Shift+X nebo tlačítko v okně hovoru) otevřou okno, aniž by vzaly fokus ovládacím prvkům hovoru, které vypisuje v celých větách, co říká druhá osoba, přepsané v tomto počítači místním modelem Whisper; opakovaným stisknutím příkazu do okna přejdete. „Kopírovat“ a „Uložit...“ jednají jen při stisknutí, nic se neukládá samo a „Číst titulky nahlas“ je ve výchozím stavu vypnuté. Živé titulky jsou odmítnuty, dokud model používá přepis zprávy nebo diktování, a samy se vypnou, pokud začne trpět zvuk hovoru.
+
 - WPPConnect: Chromium používaný WPPConnectem už nepřidává do oznamovací oblasti Windows tlačítko „Hledat pomocí Chromium“. Plovoucí vyhledávání Chromium, které toto tlačítko vytváří, je ve vestavěném prohlížeči nyní vypnuté.
 - Odeslané zprávy: u enginu Neonize mohly vámi odeslané zprávy po novém otevření WinZapp z konverzace zmizet, protože se neukládala žádná jejich kopie. Každá odeslaná zpráva se nyní uloží, jakmile je odeslání potvrzeno.
 - WPPConnect, připojení kódem QR nebo telefonním číslem: když telefon spárování přijme, WinZapp už neříká, že se připojení nezdařilo, zatímco WhatsApp Web ještě otevírá chaty. Kontrola prováděná 4 minuty po spárování nedokázala v nových verzích WhatsApp Webu přečíst stav připojení a funkční připojení vyhodnotila jako neúspěšné.
