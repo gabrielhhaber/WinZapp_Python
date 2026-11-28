@@ -2816,6 +2816,99 @@ msgid "Global hotkey to answer an incoming call from any window"
 msgstr "Atalho global para atender uma ligação recebida em qualquer janela"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_busy"
+msgid ""
+"The local transcription is busy with a message or a dictation. Try again in "
+"a moment."
+msgstr ""
+"A transcrição local está ocupada com uma mensagem ou um ditado. Tente de "
+"novo em instantes."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_button"
+msgid "Live &captions"
+msgstr "&Legendas ao vivo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_empty"
+msgid "There are no captions yet."
+msgstr "Ainda não há legendas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_failed"
+msgid "Live captions stopped because the transcription failed."
+msgstr "As legendas ao vivo pararam porque a transcrição falhou."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_list_label"
+msgid "Cap&tions"
+msgstr "&Legendas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_no_call"
+msgid "Live captions are only available during a call."
+msgstr "As legendas ao vivo só estão disponíveis durante uma ligação."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_protected"
+msgid "Live captions turned themselves off to protect the call audio."
+msgstr ""
+"As legendas ao vivo se desligaram sozinhas para proteger o áudio da ligação."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_speak"
+msgid "Speak the captions a&loud"
+msgstr "Falar as legendas em voz &alta"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_started"
+msgid ""
+"Live captions on. Press the Live captions command again to move to them."
+msgstr ""
+"Legendas ao vivo ligadas. Pressione o comando de legendas ao vivo de novo "
+"para ir até elas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+#, python-brace-format
+msgctxt "call_captions_status_dropped"
+msgid "{count} phrases were skipped to keep up with the call."
+msgstr "{count} frases foram puladas para acompanhar a ligação."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_status_ended"
+msgid "The call ended. The captions stay here until you close this window."
+msgstr ""
+"A ligação terminou. As legendas ficam aqui até você fechar esta janela."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_status_listening"
+msgid "Listening to the call. Each phrase appears here when it is complete."
+msgstr "Ouvindo a ligação. Cada frase aparece aqui quando está completa."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_status_stopped"
+msgid ""
+"Live captions are off. The captions stay here until you close this window."
+msgstr ""
+"As legendas ao vivo estão desligadas. As legendas ficam aqui até você fechar"
+" esta janela."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_stopped"
+msgid "Live captions off."
+msgstr "Legendas ao vivo desligadas."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_title"
+msgid "Live captions"
+msgstr "Legendas ao vivo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_failed"
 msgid ""
@@ -5369,6 +5462,7 @@ msgstr "Limpar conversas selecionadas"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main.py client/main_window/window_chrome.py client/status_panel.py
 #: client/status_tab/status_composer.py client/status_tab/status_dialogs.py
+#: client/ui/call_captions_window.py
 #: client/ui/conversation_panel/message_data.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/dialogs/call_participants.py
@@ -7353,6 +7447,80 @@ msgid ""
 msgstr ""
 "Seu dispositivo foi desconectado da conta do WhatsApp. Por favor, conecte "
 "novamente."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_cancelled"
+msgid "Dictation cancelled."
+msgstr "Ditado cancelado."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/dictation.py
+#, python-brace-format
+msgctxt "dictation_inserted"
+msgid "Dictated: {text}"
+msgstr "Ditado: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/dictation.py
+#, python-brace-format
+msgctxt "dictation_inserted_long"
+msgid "Dictated, {count} characters, starting with: {text}"
+msgstr "Ditado, {count} caracteres, começando com: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_menu_start"
+msgid "Dictate message"
+msgstr "Ditar mensagem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_menu_stop"
+msgid "Stop dictation"
+msgstr "Parar ditado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_no_speech"
+msgid "No speech was heard, so nothing was inserted."
+msgstr "Nenhuma fala foi ouvida, então nada foi inserido."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_not_inserted"
+msgid ""
+"The dictated text was not inserted, because the conversation changed or its "
+"field cannot take text."
+msgstr ""
+"O texto ditado não foi inserido, porque a conversa mudou ou o campo dela não"
+" aceita texto."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_call"
+msgid ""
+"Dictation is not available during a call, because the call is using the "
+"microphone."
+msgstr ""
+"O ditado não está disponível durante uma ligação, porque a ligação está "
+"usando o microfone."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_recording"
+msgid ""
+"Dictation is not available while a recording is in progress. Finish or "
+"discard the recording first."
+msgstr ""
+"O ditado não está disponível enquanto há uma gravação em andamento. Termine "
+"ou descarte a gravação primeiro."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_voice_recording"
+msgid ""
+"A recording cannot start while you are dictating. Stop the dictation first."
+msgstr ""
+"Não é possível começar uma gravação enquanto você dita. Pare o ditado "
+"primeiro."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_transcribing"
+msgid "Transcribing the dictation on this computer..."
+msgstr "Transcrevendo o ditado neste computador..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_voice.py client/ui/conversations.py
@@ -14178,6 +14346,13 @@ msgid "Ctrl+Alt+Shift+U: mark the selected chats as unread"
 msgstr "Ctrl+Alt+Shift+U: marcar as conversas selecionadas como não lidas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_call_captions_label"
+msgid "Ctrl+Shift+X: live captions of the call (press again to move to them)"
+msgstr ""
+"Ctrl+Shift+X: legendas ao vivo da ligação (pressione de novo para ir até "
+"elas)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_call_ctrl_c_label"
 msgid "Ctrl+C: call settings"
@@ -14608,6 +14783,16 @@ msgid ""
 msgstr ""
 "Alt+Shift+Delete: apagar a transcrição local salva da mensagem (ou de todas "
 "as selecionadas, quando os atalhos são substituídos por ações em massa)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_dictate_label"
+msgid ""
+"Ctrl+Shift+J: dictate into the message field (press to start, press again to"
+" stop and insert the text)"
+msgstr ""
+"Ctrl+Shift+J: ditar no campo de mensagem (pressione para começar, pressione "
+"de novo para parar e inserir o texto)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -20415,7 +20600,7 @@ msgctxt "transcription_result_copied"
 msgid "Transcription copied."
 msgstr "Transcrição copiada."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_copy"
 msgid "C&opy"
@@ -20443,13 +20628,13 @@ msgctxt "transcription_result_notes_label"
 msgid "&Warnings"
 msgstr "A&visos"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_save"
 msgid "&Save..."
 msgstr "&Salvar..."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_saved"
 msgid "Transcription saved."
@@ -20641,13 +20826,13 @@ msgctxt "transcription_save_default_name"
 msgid "Transcription - {name}"
 msgstr "Transcrição - {name}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_save_title"
 msgid "Save transcription"
 msgstr "Salvar transcrição"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_save_wildcard"
 msgid "Text files (*.txt)|*.txt"
@@ -20684,6 +20869,44 @@ msgstr "Transcrição salva, feita em {when}."
 msgctxt "transcription_saved_opened_no_model_backend"
 msgid "Saved transcription, made on {when} with {backend}."
 msgstr "Transcrição salva, feita em {when} com o {backend}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_segments_copied"
+msgid "Copied with times."
+msgstr "Copiado com tempos."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_copy"
+msgid "Copy with times"
+msgstr "Copiar com tempos"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_label"
+msgid "Moments of the recording (time and text)"
+msgstr "Momentos da gravação (tempo e texto)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_listen"
+msgid "Listen from here"
+msgstr "Ouvir daqui"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_segments_play_first"
+msgid ""
+"To jump to a moment, first play this voice message, then choose Listen from "
+"here."
+msgstr ""
+"Para pular para um momento, primeiro reproduza esta mensagem de voz e depois"
+" escolha Ouvir daqui."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "transcription_segments_playing"
+msgid "Playing from {time}."
+msgstr "Reproduzindo a partir de {time}."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_size_accurate"
@@ -20845,6 +21068,16 @@ msgstr ""
 msgctxt "transcription_view"
 msgid "View transcription"
 msgstr "Ver transcrição"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_vocabulary_label"
+msgid ""
+"&Vocabulary: names and terms to expect, one per line (stays on this "
+"computer):"
+msgstr ""
+"&Vocabulário: nomes e termos esperados, um por linha (fica neste "
+"computador):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_actions_group"

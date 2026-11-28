@@ -59,6 +59,7 @@ Where to look (and where new code goes):
     group_invitation_links  invitation, chat and call links handed over by Windows, whatsapp: association
     status_transcription    saved transcriptions of statuses, their media and automatic runs
     calls               voice/video calls, call bar, call-log watcher
+    call_captions       live captions of a call (ACC-04): command, window, engine glue
     call_participants   explicit connected-participant views for active/joinable calls
     call_links          call links: create, join (also from a message or Windows), the link call's waiting room
     call_hotkeys        answer/decline a ringing call from any window (global keys, only while it rings)

@@ -1166,7 +1166,9 @@ DEFAULT_SETTINGS = {
         "popup_enabled": True,
         # say who joins or leaves a group call held here (call_participants.py)
         "announce_participant_joined": True,
-        "announce_participant_left": True
+        "announce_participant_left": True,
+        # speak the live captions of a call aloud (call_captions_window.py)
+        "captions_speak": False
     },
     "profile_backup": {
         # Settings > Cópia de segurança: keep no restore point at all

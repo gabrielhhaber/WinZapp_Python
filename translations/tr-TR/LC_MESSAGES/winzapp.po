@@ -2796,6 +2796,96 @@ msgstr ""
 "Gelen aramayı herhangi bir pencerede yanıtlamak için genel kısayol tuşu"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_busy"
+msgid ""
+"The local transcription is busy with a message or a dictation. Try again in "
+"a moment."
+msgstr ""
+"Yerel metne dönüştürme bir mesajla veya dikteyle meşgul. Biraz sonra tekrar "
+"deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_button"
+msgid "Live &captions"
+msgstr "&Canlı altyazı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_empty"
+msgid "There are no captions yet."
+msgstr "Henüz altyazı yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_failed"
+msgid "Live captions stopped because the transcription failed."
+msgstr "Metne dönüştürme başarısız olduğu için canlı altyazı durdu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_list_label"
+msgid "Cap&tions"
+msgstr "&Altyazılar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_no_call"
+msgid "Live captions are only available during a call."
+msgstr "Canlı altyazı yalnızca arama sırasında kullanılabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_protected"
+msgid "Live captions turned themselves off to protect the call audio."
+msgstr "Aramanın sesini korumak için canlı altyazı kendiliğinden kapandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_speak"
+msgid "Speak the captions a&loud"
+msgstr "Altyazıları &sesli oku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_started"
+msgid ""
+"Live captions on. Press the Live captions command again to move to them."
+msgstr ""
+"Canlı altyazı açıldı. Altyazılara geçmek için canlı altyazı komutuna tekrar "
+"basın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+#, python-brace-format
+msgctxt "call_captions_status_dropped"
+msgid "{count} phrases were skipped to keep up with the call."
+msgstr "Aramaya yetişmek için {count} cümle atlandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_status_ended"
+msgid "The call ended. The captions stay here until you close this window."
+msgstr "Arama sona erdi. Altyazılar bu pencereyi kapatana kadar burada kalır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_status_listening"
+msgid "Listening to the call. Each phrase appears here when it is complete."
+msgstr "Arama dinleniyor. Her cümle tamamlandığında burada görünür."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "call_captions_status_stopped"
+msgid ""
+"Live captions are off. The captions stay here until you close this window."
+msgstr ""
+"Canlı altyazı kapalı. Altyazılar bu pencereyi kapatana kadar burada kalır."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/call_captions.py
+msgctxt "call_captions_stopped"
+msgid "Live captions off."
+msgstr "Canlı altyazı kapatıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
+msgctxt "call_captions_title"
+msgid "Live captions"
+msgstr "Canlı altyazı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/call_desktop_audio.py
 msgctxt "call_desktop_failed"
 msgid ""
@@ -5341,6 +5431,7 @@ msgstr "Seçili sohbetleri temizle"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/account_ui.py
 #: client/main.py client/main_window/window_chrome.py client/status_panel.py
 #: client/status_tab/status_composer.py client/status_tab/status_dialogs.py
+#: client/ui/call_captions_window.py
 #: client/ui/conversation_panel/message_data.py
 #: client/ui/conversation_panel/message_menu.py
 #: client/ui/dialogs/call_participants.py
@@ -7314,6 +7405,74 @@ msgid ""
 "again."
 msgstr ""
 "Cihazınızın WhatsApp hesabıyla bağlantısı kesildi. Lütfen tekrar bağlanın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_cancelled"
+msgid "Dictation cancelled."
+msgstr "Dikte iptal edildi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/dictation.py
+#, python-brace-format
+msgctxt "dictation_inserted"
+msgid "Dictated: {text}"
+msgstr "Dikte edildi: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/dictation.py
+#, python-brace-format
+msgctxt "dictation_inserted_long"
+msgid "Dictated, {count} characters, starting with: {text}"
+msgstr "Dikte edildi, {count} karakter, şununla başlıyor: {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_menu_start"
+msgid "Dictate message"
+msgstr "Mesaj dikte et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_menu_stop"
+msgid "Stop dictation"
+msgstr "Dikteyi durdur"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_no_speech"
+msgid "No speech was heard, so nothing was inserted."
+msgstr "Konuşma duyulmadı, bu yüzden hiçbir şey eklenmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_not_inserted"
+msgid ""
+"The dictated text was not inserted, because the conversation changed or its "
+"field cannot take text."
+msgstr ""
+"Dikte edilen metin eklenmedi, çünkü sohbet değişti veya alanı metin kabul "
+"etmiyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_call"
+msgid ""
+"Dictation is not available during a call, because the call is using the "
+"microphone."
+msgstr "Arama sırasında dikte kullanılamaz, çünkü arama mikrofonu kullanıyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_recording"
+msgid ""
+"Dictation is not available while a recording is in progress. Finish or "
+"discard the recording first."
+msgstr "Bir kayıt sürerken dikte kullanılamaz. Önce kaydı bitirin veya silin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_refused_voice_recording"
+msgid ""
+"A recording cannot start while you are dictating. Stop the dictation first."
+msgstr "Dikte ederken kayıt başlatılamaz. Önce dikteyi durdurun."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "dictation_transcribing"
+msgid "Transcribing the dictation on this computer..."
+msgstr "Dikte bu bilgisayarda metne dönüştürülüyor..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/status_panel.py
 #: client/status_tab/status_voice.py client/ui/conversations.py
@@ -14074,6 +14233,13 @@ msgid "Ctrl+Alt+Shift+U: mark the selected chats as unread"
 msgstr "Ctrl+Alt+Shift+U: seçili sohbetleri okunmadı olarak işaretle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_call_captions_label"
+msgid "Ctrl+Shift+X: live captions of the call (press again to move to them)"
+msgstr ""
+"Ctrl+Shift+X: aramanın canlı altyazısı (altyazılara geçmek için tekrar "
+"basın)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
 msgctxt "shortcut_call_ctrl_c_label"
 msgid "Ctrl+C: call settings"
@@ -14502,6 +14668,16 @@ msgid ""
 msgstr ""
 "Alt+Shift+Delete: mesajın kaydedilmiş yerel dökümünü sil (kısayollar toplu "
 "işlemlerle değiştirildiğinde seçili tüm mesajların dökümlerini)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_dictate_label"
+msgid ""
+"Ctrl+Shift+J: dictate into the message field (press to start, press again to"
+" stop and insert the text)"
+msgstr ""
+"Ctrl+Shift+J: mesaj alanına dikte et (başlatmak için basın, durdurup metni "
+"eklemek için tekrar basın)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/shortcuts_dialog.py
@@ -20217,7 +20393,7 @@ msgctxt "transcription_result_copied"
 msgid "Transcription copied."
 msgstr "Döküm kopyalandı."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_copy"
 msgid "C&opy"
@@ -20245,13 +20421,13 @@ msgctxt "transcription_result_notes_label"
 msgid "&Warnings"
 msgstr "&Uyarılar"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_save"
 msgid "&Save..."
 msgstr "Kay&det..."
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_result_saved"
 msgid "Transcription saved."
@@ -20438,13 +20614,13 @@ msgctxt "transcription_save_default_name"
 msgid "Transcription - {name}"
 msgstr "Yazıya döküm - {name}"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_save_title"
 msgid "Save transcription"
 msgstr "Dökümü kaydet"
 
-#: translations/en-US/LC_MESSAGES/winzapp.po
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/call_captions_window.py
 #: client/ui/dialogs/transcription_result.py
 msgctxt "transcription_save_wildcard"
 msgid "Text files (*.txt)|*.txt"
@@ -20481,6 +20657,44 @@ msgstr "Kayıtlı döküm, {when} tarihinde oluşturuldu."
 msgctxt "transcription_saved_opened_no_model_backend"
 msgid "Saved transcription, made on {when} with {backend}."
 msgstr "Kayıtlı döküm, {when} tarihinde {backend} ile oluşturuldu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_segments_copied"
+msgid "Copied with times."
+msgstr "Sürelerle kopyalandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_copy"
+msgid "Copy with times"
+msgstr "Sürelerle kopyala"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_label"
+msgid "Moments of the recording (time and text)"
+msgstr "Kaydın bölümleri (süre ve metin)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_segments.py
+msgctxt "transcription_segments_listen"
+msgid "Listen from here"
+msgstr "Buradan dinle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "transcription_segments_play_first"
+msgid ""
+"To jump to a moment, first play this voice message, then choose Listen from "
+"here."
+msgstr ""
+"Bir bölüme atlamak için önce bu sesli mesajı oynatın, sonra Buradan dinle'yi"
+" seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "transcription_segments_playing"
+msgid "Playing from {time}."
+msgstr "{time} noktasından oynatılıyor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_size_accurate"
@@ -20641,6 +20855,16 @@ msgstr ""
 msgctxt "transcription_view"
 msgid "View transcription"
 msgstr "Dökümü göster"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/transcription_options.py
+msgctxt "transcription_vocabulary_label"
+msgid ""
+"&Vocabulary: names and terms to expect, one per line (stays on this "
+"computer):"
+msgstr ""
+"&Kelime listesi: beklenen adlar ve terimler, her satırda bir tane (bu "
+"bilgisayarda kalır):"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "transcription_whisper_cpp_actions_group"

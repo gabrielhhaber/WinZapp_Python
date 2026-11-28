@@ -162,6 +162,7 @@ from ui.conversation_panel.message_actions import MessageActionsMixin
 from ui.conversation_panel.message_stars import StarActionsMixin
 from ui.conversation_panel.message_accels import MessageAccelsMixin
 from ui.conversation_panel.semantic_jump import SemanticJumpMixin
+from ui.conversation_panel.dictation import DictationMixin
 from ui.conversation_panel.bookmarks import BookmarksMixin
 from ui.conversation_panel.reading_position import ReadingPositionMixin
 from ui.conversation_panel.message_search import MessageSearchMixin
@@ -228,6 +229,7 @@ class ConversationsPanel(
     StarActionsMixin,
     MessageAccelsMixin,
     SemanticJumpMixin,
+    DictationMixin,
     BookmarksMixin,
     ReadingPositionMixin,
     MessageSearchMixin,

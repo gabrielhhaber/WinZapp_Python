@@ -380,6 +380,9 @@ class ShortcutsMixin:
         if not self.settings.get("speech_content", {}).get("silence_while_recording", False):
             return False
         cp = getattr(self, "conversations_panel", None)
+        if cp is not None and getattr(cp, "_dictation_listening", False):
+            # The microphone is open for a dictation: a voice would be heard by it.
+            return True
         # Mixed capture intentionally includes screen-reader speech and must
         # also announce device failures while the partial take stays open.
         return bool(cp is not None and getattr(cp, "_is_recording", False)

@@ -98,6 +98,9 @@ class TranscriptionRequest:
     # CUDA build can run at all depends on it (no sm_120 kernels — see
     # whisper_cpp_builds.cuda_build_supported()).
     compute_capability: tuple | None = None
+    # The user's own terms as one short text (vocabulary.py), or "". Never
+    # logged: it holds names.
+    initial_prompt: str = ""
 
 
 @dataclass(frozen=True)

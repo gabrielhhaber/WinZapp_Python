@@ -15,6 +15,7 @@ attribute set in ConversationsPanel.__init__/init_UI is available here.
 
 import threading
 import wx
+from core import dictation
 from main_window.typing_feedback import stop_typing_for_capture
 from core.system_audio_capture import SystemAudioRecorder
 from ui.accessible import AccessibleRecordingVolumeSlider
@@ -32,6 +33,9 @@ class SystemAudioRecordingMixin:
     def _on_record_system_audio(self, event):
         """Record both sources for one message; never turn this shortcut into Send."""
         if self._is_recording or self._recording_starting or self.conversation is None:
+            return
+        if dictation.is_active(self):
+            self._dictation_say(dictation.REFUSED_BY_DICTATION_I18N_KEY)
             return
         button = getattr(self, "_record_voice_system_btn", None)
         if button is not None and not button.IsEnabled():

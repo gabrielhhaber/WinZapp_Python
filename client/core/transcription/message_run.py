@@ -79,6 +79,7 @@ from core.transcription import (
     message_audio,
     preferences,
     stored,
+    vocabulary,
     whisper_cpp_builds,
     whisper_cpp_runtime,
 )
@@ -503,8 +504,12 @@ class MessageTranscription:
             outcome["result"] = result
             outcome["error"] = error
 
+        # Only named when there is one, so a job built without a vocabulary is
+        # called exactly as it always was. Never logged (vocabulary.py).
+        prompt = vocabulary.prompt_from_settings(self._settings)
         created = self._make_job(
             audio_path, self.ffmpeg, self.models_root, resolution.model_id,
+            **({"initial_prompt": prompt} if prompt else {}),
             language=resolution.language,
             device_preference=device_preference,
             backend_id=resolution.backend_id,
