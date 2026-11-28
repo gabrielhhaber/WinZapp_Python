@@ -149,8 +149,9 @@ class ComposerMixin:
         if checker is not None and self._spell_check_enabled():
             result = checker.suggestions_at(text, _value_index(text, position))
         writing_offered = self._writing_help_offered(text)
+        quick_writing = self._writing_quick_actions(text) if hasattr(self, "_writing_quick_actions") else ()
         dictation_offered = self._dictation_menu_offered() if hasattr(self, "_dictation_menu_offered") else False
-        if result is None and not writing_offered and not dictation_offered:
+        if result is None and not writing_offered and not quick_writing and not dictation_offered:
             event.Skip()
             return
         t = self.main_window.i18n.t
@@ -168,10 +169,20 @@ class ComposerMixin:
         if dictation_offered:
             dictate_item = menu.Append(wx.ID_ANY, self._dictation_menu_label())
             menu.Bind(wx.EVT_MENU, lambda e: self._on_dictation_shortcut(), dictate_item)
+        if quick_writing:
+            quick_menu = wx.Menu()
+            for action, label_key in quick_writing:
+                quick_item = quick_menu.Append(wx.ID_ANY, t(label_key))
+                menu.Bind(
+                    wx.EVT_MENU,
+                    lambda e, a=action: self._on_writing_help(initial_action=a, auto_run=True),
+                    quick_item,
+                )
+            menu.AppendSubMenu(quick_menu, t("writing_quick_menu"))
         if writing_offered:
             writing_item = menu.Append(wx.ID_ANY, self._writing_menu_label())
             menu.Bind(wx.EVT_MENU, lambda e: self._on_writing_help(), writing_item)
-        if dictation_offered or writing_offered:
+        if dictation_offered or quick_writing or writing_offered:
             menu.AppendSeparator()
         # Keep the standard edit commands next to the suggestions. The labels
         # come from the locale files: wx stock labels would be English, as the

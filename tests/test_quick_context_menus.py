@@ -209,3 +209,13 @@ def test_ai_quick_menu_items_by_media_kind(monkeypatch, tmp_path, offered_kind, 
     assert [item.label for item in menu.items] == expected_labels
     sub = next((item.submenu for item in menu.items if item.submenu is not None), None)
     assert ([it.label for it in sub.items] if sub else []) == expected_sublabels
+
+
+def test_composer_context_menu_wires_dictation_and_quick_writing():
+    tree = ast.parse((ROOT / "client/ui/conversation_panel/composer.py").read_text(encoding="utf-8"))
+    owner = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "ComposerMixin")
+    fn = next(n for n in owner.body if isinstance(n, ast.FunctionDef) and n.name == "_on_message_field_context_menu")
+    attrs = {n.attr for n in ast.walk(fn) if isinstance(n, ast.Attribute)}
+    strings = {n.value for n in ast.walk(fn) if isinstance(n, ast.Constant) and isinstance(n.value, str)}
+    assert {"_dictation_menu_offered", "_writing_quick_actions", "_writing_help_offered"} <= attrs
+    assert "writing_quick_menu" in strings
