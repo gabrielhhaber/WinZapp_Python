@@ -241,7 +241,15 @@ class ContactsMixin:
             if not contact.get("name") and not contact.get("pushName"):
                 contact["name"] = ""
         if changed and hasattr(self, "db"):
-            self.db.upsert_contacts_batch(changed)
+            # The cleaned names are already in self.contacts. A slow disk must
+            # not stop the window from opening (a DatabaseBridgeTimeout here
+            # was a startup crash): the next sync cleans and saves them again.
+            try:
+                self.db.upsert_contacts_batch(changed)
+            except Exception as exc:
+                logging.warning(
+                    "[_clean_contacts_cached] could not save %d cleaned contact(s): %s",
+                    len(changed), exc)
 
     def get_remote_contacts(self):
         context = capture_sync_context(self)

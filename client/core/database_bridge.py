@@ -444,7 +444,10 @@ class DatabaseBridge(EventWritesMixin):
         return self._call(self._db.upsert_contact(jid, data))
 
     def upsert_contacts_batch(self, contacts: dict[str, dict]) -> None:
-        return self._call(self._db.upsert_contacts_batch(contacts))
+        # A batch can be the whole address book (thousands of rows, one
+        # statement each), so it gets the bulk bound, like upsert_chats_batch.
+        return self._call(self._db.upsert_contacts_batch(contacts),
+                          timeout=_BULK_CALL_TIMEOUT)
 
     def set_lid_mapping(self, lid_jid: str, phone_jid: str) -> None:
         return self._call(self._db.set_lid_mapping(lid_jid, phone_jid))

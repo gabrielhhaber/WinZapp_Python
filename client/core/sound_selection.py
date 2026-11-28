@@ -22,6 +22,12 @@ WHATSAPP_SOUNDS = (
     "call_incoming.ogg",
     "message_background.ogg",
     "message_current.ogg",
+    "message_foreground.ogg",
+    "message_sent.ogg",
+    "voicemsg_discard.ogg",
+    "voicemsg_pauserecording.ogg",
+    "voicemsg_send.ogg",
+    "voicemsg_startrecording.ogg",
 )
 WHATSAPP_SOUND_FOLDERS = ("alerts",)
 #: In the install folder; holds "whatsapp" when only WhatsApp's sounds were installed.

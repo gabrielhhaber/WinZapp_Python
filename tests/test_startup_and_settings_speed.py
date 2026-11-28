@@ -107,3 +107,17 @@ def test_the_shortcuts_tree_is_built_once_when_settings_open(monkeypatch):
     tab = SimpleNamespace(_loading_values=True)
     ShortcutsTabMixin._shortcut_hotkey_changed(tab, SimpleNamespace(Skip=lambda: None))
     assert later == []
+
+
+def test_a_database_that_times_out_does_not_stop_the_startup_cleanup():
+    from core.database_bridge import DatabaseBridgeTimeout
+
+    def _slow(_changed):
+        raise DatabaseBridgeTimeout("Database call timed out after 20s")
+
+    window = SimpleNamespace(
+        contacts={"a@lid": {"name": "BAD"}},
+        _is_bad_contact_name=lambda value: value == "BAD",
+        db=SimpleNamespace(upsert_contacts_batch=_slow))
+    ContactsMixin._clean_contacts_cached(window)
+    assert window.contacts == {"a@lid": {"name": ""}}

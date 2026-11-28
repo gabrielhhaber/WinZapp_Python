@@ -825,6 +825,23 @@ ORIGINAL_GET_QR_CODE = (
 )
 
 
+# wppconnect 2.4.7 (wa-js 4.8.5) rewrote getQrCode() to read the QR "WhatsApp
+# painted" from the page's [data-ref] canvas through WPP.conn.getQRCode(). That
+# is the page element this patch exists to avoid: WhatsApp Web also puts a
+# wa.me data-ref on the download banner, and the canvas is not the login code.
+# The upstream text is kept as a source this patch replaces, so a 2.4.7 tree is
+# not reported as DID NOT MATCH and still emits WPP.conn.getAuthCode()'s code.
+V247_ORIGINAL_GET_QR_CODE = (
+    "    async getQrCode() {\n"
+    "        // wa-js reads the QR WhatsApp painted, so the image matches the code\n"
+    "        const qr = await (0, helpers_1.evaluateAndReturn)(this.page, () => WPP.conn.getQRCode()).catch(() => null);\n"
+    "        if (!qr)\n"
+    "            return undefined;\n"
+    "        return { urlCode: qr.fullCode, base64Image: qr.base64Image };\n"
+    "    }\n"
+)
+
+
 # The first cut of the wa-js rewrite, before it logged the "no auth code yet"
 # case. Kept only so a machine patched from this branch mid-investigation is
 # upgraded rather than reported as DID NOT MATCH.
@@ -2005,6 +2022,13 @@ def _patch_qr_reads(content: str, notes: list) -> str:
         notes.append(
             "getQrCode: upgraded — a missing auth code is now logged instead "
             "of returning silently."
+        )
+    elif V247_ORIGINAL_GET_QR_CODE in content:
+        content = content.replace(V247_ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE, 1)
+        notes.append(
+            "getQrCode: patched — wppconnect 2.4.7 reads the page's [data-ref] "
+            "canvas through WPP.conn.getQRCode(); this keeps reading "
+            "WPP.conn.getAuthCode(), the real 2@... login code."
         )
     elif ORIGINAL_GET_QR_CODE in content:
         content = content.replace(ORIGINAL_GET_QR_CODE, PATCHED_GET_QR_CODE, 1)

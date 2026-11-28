@@ -19,6 +19,7 @@ from countries import get_countries, get_default_country_index
 from core.combo_search import bind_incremental_search
 from core import app_restart, connection_engine, neonize_bridge_process
 from ui.dialogs import connect_engine, connect_history
+from ui.dialogs.connect_dialog_placement import bring_to_front, connection_dialog_parent
 from core import qr_geometry
 import logging
 
@@ -567,7 +568,13 @@ class Connect:
         # official WhatsApp Web/Desktop layout) — users coming from there are
         # used to finding the QR-CODE on the right, with instructions on the
         # left, rather than centered below the text.
-        self.connection_dial = wx.Dialog(None, title=self.i18n.t("connect_phone").format(app_name=self.main_window.app_name), size=(640, 480))
+        # Owned by the main window when that is on screen, so it cannot stay
+        # behind it after File > Disconnect (connect_dialog_placement.py).
+        self.connection_dial = wx.Dialog(
+            connection_dialog_parent(self.main_window),
+            title=self.i18n.t("connect_phone").format(app_name=self.main_window.app_name),
+            size=(640, 480),
+        )
 
         # QR-CODE Panel
         self.qrcode_panel = wx.Panel(self.connection_dial)
@@ -698,6 +705,8 @@ class Connect:
         # screen's top-left corner — instead of where the user is looking,
         # which is part of why the QR-code was reported as hard to find/scan.
         self.connection_dial.CentreOnScreen()
+        # Runs inside the modal loop, once the dialog is up.
+        wx.CallAfter(bring_to_front, self.connection_dial)
 
         logging.info("[show_connection_dial] Entering connection_dial modal loop.")
         if hasattr(self.main_window, "play_startup_sound"):

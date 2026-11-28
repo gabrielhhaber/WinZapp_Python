@@ -23,15 +23,15 @@ def test_current_consumer_contract_creates_first_list_with_native_id_and_null_co
     assert result["calls"] == [["nativeCreate", "Synthetic", None]]
 
 
-@pytest.mark.parametrize("version", ["4.7.1", "4.7.2", "4.8.0", "4.8.1", "4.8.2"])
+@pytest.mark.parametrize("version", ["4.7.1", "4.7.2", "4.8.0", "4.8.1", "4.8.2", "4.8.5"])
 def test_wa_js_4_7_x_and_4_8_0_use_the_same_native_contract_as_4_6_1(version):
     """4.7.x tolerates a missing legacy gate for its own calls, but WinZapp's
     writes go through the verified native actions on every listed version.
     4.8.0 changed nothing under src/lists, src/labels or the loader's
     loadModule/loaderType (the calls, newsletter and LID-migration areas
     moved), and 4.8.1/4.8.2 left src/lists, src/labels and the loader byte-identical
-    (dist compared with 4.8.0), so the contract carries over; it was not
-    measured on a live page."""
+    (dist compared with 4.8.0), so the contract carries over; 4.8.5 left src/lists and src/labels
+    unchanged and only added code to the loader. None was measured on a live page."""
     result = modern([{"action": "read"}, {"action": "create", "name": "Synthetic"}],
                     lists=[], chats=[], version=version)
     assert result["results"][0]["value"]["canEdit"] is True
