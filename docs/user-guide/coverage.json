@@ -370,6 +370,7 @@
     "1c5c14fd2d2e": "Neonize: quando a bridge de conexão trava ao iniciar, ela agora grava no próprio",
     "4fe66311d2af": "Neonize no Windows em ARM: a bridge de conexão não fecha mais sozinha logo ao in",
     "7c1725c319d4": "Mac: o motor Neonize agora também vem no WinZapp para Mac, em Apple Silicon e In",
-    "9bedd1e6fa02": "Nova opção em Configurações > Geral > Notificações: \"Considerar-me ausente depoi"
+    "9bedd1e6fa02": "Nova opção em Configurações > Geral > Notificações: \"Considerar-me ausente depoi",
+    "65c11f8757f6": "Rascunhos: o que você digitou e não enviou agora sobrevive ao fechamento do WinZ"
   }
 }

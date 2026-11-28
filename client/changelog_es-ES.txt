@@ -725,6 +725,8 @@ NOVEDADES
 
 - Nueva opción en Configuración > General > Notificaciones: "Considerarme ausente tras un tiempo sin usar WinZapp: aparecer sin conexión y dejar de marcar los mensajes como leídos", activada por defecto, con el tiempo en minutos (2 por defecto). Pasado ese tiempo sin una tecla ni un clic en WinZapp, aunque la ventana esté en primer plano, apareces sin conexión y los mensajes que llegan a la conversación abierta dejan de marcarse como leídos; siguen sin leer hasta que vuelves a usar WinZapp, y entonces la conversación abierta se marca como leída. Una llamada, una grabación o un audio en reproducción cuentan como presencia. Desactivada, nada de esto ocurre.
 
+- Borradores: lo que escribiste y no enviaste ahora sobrevive al cierre de WinZapp, al reinicio y a las actualizaciones automáticas. Se guarda en este equipo solo cifrado, nunca como texto sin cifrar, y vuelve, con las menciones, cuando abres el chat de nuevo; el borrador de un chat bloqueado solo vuelve cuando la caja fuerte está abierta. Enviar o borrar el texto, eliminar el chat o cerrar la sesión lo elimina. En Configuración > Interfaz > Chats, "Guardar los borradores cifrados al reiniciar WinZapp" (activada por defecto) lo desactiva.
+
 V2.1.0.0
 
 Esta versión trae la transcripción de mensajes de voz en tu propio ordenador, sin enviar nada a ningún sitio, y la transcripción y descripción con IA en línea de mensajes de voz, imágenes, vídeos, stickers y PDF.

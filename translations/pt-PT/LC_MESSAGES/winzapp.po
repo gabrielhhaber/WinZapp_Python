@@ -21650,6 +21650,12 @@ msgstr "Mensagens a avançar/recuar com Page Up e Page Down:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_persist_message_drafts"
+msgid "Keep unsent te&xt as encrypted drafts after restarting WinZapp"
+msgstr "Manter os rascunhos cifrados ao fechar o &WinZapp"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "&Preservar a mensagem escrita como legenda ao anexar"

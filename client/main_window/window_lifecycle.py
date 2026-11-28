@@ -674,6 +674,12 @@ class WindowLifecycleMixin:
                 logging.warning("[shutdown] stopping the noise reducer failed", exc_info=True)
             self._stop_wpp_server()
             self._flush_pending_debounced_saves()
+            flush_drafts = getattr(cp, "flush_message_drafts", None)
+            if callable(flush_drafts):
+                try:
+                    flush_drafts()
+                except Exception as exc:
+                    logging.warning("[shutdown] saving drafts failed: %s", type(exc).__name__)
             if hasattr(self, "db") and self.db is not None:
                 try:
                     self.db.close()

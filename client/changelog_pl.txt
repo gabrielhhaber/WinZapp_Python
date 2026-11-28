@@ -726,6 +726,8 @@ NOWOŚCI
 
 - Nowa opcja w Ustawienia > Ogólne > Powiadomienia: "Uznaj mnie za nieobecnego po okresie nieużywania WinZapp: pokazuj mnie jako offline i przestań oznaczać wiadomości jako przeczytane", domyślnie włączona, z czasem podawanym w minutach (domyślnie 2). Po tym czasie bez naciśnięcia klawisza ani kliknięcia w WinZapp, nawet gdy okno jest na wierzchu, jesteś widoczny jako offline, a wiadomości przychodzące do otwartej rozmowy nie są już oznaczane jako przeczytane; pozostają nieprzeczytane, dopóki znowu nie użyjesz WinZapp, a wtedy otwarta rozmowa zostaje oznaczona jako przeczytana. Rozmowa, nagrywanie i odtwarzany dźwięk liczą się jako obecność. Po wyłączeniu nic z tego się nie dzieje.
 
+- Wersje robocze: to, co napisano i nie wysłano, przetrwa teraz zamknięcie WinZappa, ponowne uruchomienie i automatyczne aktualizacje. Tekst jest przechowywany na tym komputerze wyłącznie w postaci zaszyfrowanej, nigdy jawnym tekstem, i wraca wraz ze wzmiankami po ponownym otwarciu czatu; wersja robocza zablokowanego czatu wraca dopiero po otwarciu sejfu. Wysłanie lub skasowanie tekstu, usunięcie czatu albo wylogowanie ją usuwa. W Ustawienia > Interfejs > Czaty opcja "Zachowaj zaszyfrowane wersje robocze po ponownym uruchomieniu WinZapp" (domyślnie włączona) wyłącza to zachowanie.
+
 V2.1.0.0
 
 W tej wersji pojawia się transkrypcja wiadomości głosowych na Twoim własnym komputerze, bez wysyłania czegokolwiek, a także transkrypcje i opisy wiadomości głosowych, obrazów, filmów, naklejek i plików PDF tworzone przez AI online.

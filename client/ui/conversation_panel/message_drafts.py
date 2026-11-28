@@ -8,15 +8,19 @@ being edited is not a draft: edit mode is left on the way out, as Esc would.
 from core import message_drafts
 from core.message_drafts import MessageDrafts
 from core.utils import to_editor_line_endings
+from ui.conversation_panel.draft_persistence import DraftPersistenceMixin
 
 
-class MessageDraftsMixin:
+class MessageDraftsMixin(DraftPersistenceMixin):
     """Per-conversation drafts of the message field."""
 
     def _message_drafts(self) -> MessageDrafts:
         drafts = getattr(self, "_message_drafts_store", None)
         if drafts is None:
             drafts = self._message_drafts_store = MessageDrafts()
+            loader = getattr(self, "_load_persisted_drafts", None)
+            if callable(loader):
+                loader(drafts)
         return drafts
 
     def _draft_key(self, conversation):
@@ -67,6 +71,10 @@ class MessageDraftsMixin:
             clear_preview()
         self._link_preview_dismissed_url = ""
         self._put_in_message_field("")
+        # The field is empty now and the draft is in the store: save that.
+        if hasattr(self, "_persist_message_drafts"):
+            self._draft_live = None
+            self._persist_message_drafts()
 
     def _restore_message_draft(self) -> None:
         """Opening the conversation: put its draft back in the field, with its
@@ -85,6 +93,8 @@ class MessageDraftsMixin:
         # Windows line breaks: with bare line feeds NVDA reads the block as
         # one line (core/utils.to_editor_line_endings()).
         self._put_in_message_field(to_editor_line_endings(draft.text))
+        if hasattr(self, "_set_live_draft"):
+            self._set_live_draft(self._draft_key(self.conversation), draft.text)
         check_preview = getattr(self, "_schedule_link_preview_check", None)
         if callable(check_preview):
             check_preview()

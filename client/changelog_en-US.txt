@@ -725,6 +725,8 @@ WHAT'S NEW
 
 - New option in Settings > General > Notifications: "Consider me away after a period without using WinZapp: show me offline and stop marking messages as read", on by default, with the time in minutes (2 by default). After that long without a key press or a click in WinZapp, even with the window in front, you show as offline and messages arriving in the open conversation are no longer marked as read; they stay unread until you use WinZapp again, and then the open conversation is marked as read. A call, a recording or audio playing counts as being present. Turned off, none of this happens.
 
+- Drafts: what you typed and did not send now survives closing WinZapp, restarting it and automatic updates. It is kept on this computer only encrypted, never as plain text, and comes back, mentions included, when you open the conversation again; a locked conversation's draft comes back only once the vault is open. Sending or erasing the text, deleting the conversation or logging out removes it. In Settings > Interface > Chats, "Keep unsent text as encrypted drafts after restarting WinZapp" (on by default) turns this off.
+
 V2.1.0.0
 
 This release brings transcription of voice messages on your own computer, with nothing sent anywhere, and online AI transcription and description of voice messages, images, videos, stickers and PDFs.
