@@ -344,3 +344,16 @@ own `RECENT_CONVERSATIONS_ON_DEMAND_REQUEST`, and
 chat list has at least 390 chats. The chat counts in WinZapp's logs
 (`full pass: N target chat(s)`, `listChats raw=`) are what WhatsApp Web holds,
 never the account's real total.
+
+## The request for more conversations got no answer (2026-11-27)
+
+Gustavo T.'s pairings of 2026-11-27 (alpha with #938/#940): the bridge sent
+`RECENT_CONVERSATIONS_ON_DEMAND_REQUEST` (2000 chats x 50 messages) three times
+per pairing, and the iPhone sent nothing back: no type-9 block, no
+`recent conversations answer`. WhatsApp Web's own caller sends 10 x 10, and only
+when the phone advertises `recentConversationsOnDemand`. So both engines now
+try variants in order (`VARIANTS` in `neonize_bridge/recent_conversations.py`
+and `client/main_window/wpp_recent_conversations.py`: 10 x 10, 2000 x 10,
+2000 x 50, and on Neonize the full-history request), stop at the first one that
+grows the chat store, and log every peer answer (`peer answer: request type N`).
+This is a probe: read those log lines before building anything else on type 15.

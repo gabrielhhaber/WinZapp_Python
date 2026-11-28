@@ -37,6 +37,8 @@ log = logging.getLogger("bridge")
 
 #: PeerDataOperationRequestType.RECENT_CONVERSATIONS_ON_DEMAND_REQUEST
 PEER_OPERATION = 15
+#: PeerDataOperationRequestType.HISTORY_SYNC_CHUNK_RETRY (history_resume's own)
+CHUNK_RETRY = 10
 #: HistorySync.HistorySyncType.RECENT_CONVERSATIONS_ON_DEMAND
 SYNC_TYPE = 9
 #: HistorySync.HistorySyncType.INITIAL_BOOTSTRAP
@@ -49,14 +51,27 @@ BOOTSTRAP = 0
 #: "recent conversations" line. A little below the cap, in case the phone
 #: shaves it again.
 BOOTSTRAP_CAP = 390
-#: conversations and messages of each asked for: more than any account has, the
-#: phone sends what it holds
-CONVERSATIONS = 2000
-MESSAGES_PER_CONVERSATION = 50
+#: The 2026-11-27 pairings (build with #938) sent this request three times with
+#: 2000 conversations of 50 messages and the phone never answered. WhatsApp Web
+#: itself sends 10 and 10. So each attempt is a different variant, in this order,
+#: and the log says which one was sent and what came back (peer_response_line),
+#: so one pairing tells which form an iPhone answers, if any:
+#:   (name, conversations, messages per conversation); None = the full-history
+#:   on-demand request instead (PeerDataOperationRequestType 6).
+VARIANTS = (
+    ("web-client", 10, 10),
+    ("many-chats", 2000, 10),
+    ("many-messages", 2000, 50),
+    ("full-history", None, None),
+)
+#: days of history the full-history variant asks for
+FULL_HISTORY_DAYS = 3650
+#: PeerDataOperationRequestType.FULL_HISTORY_SYNC_ON_DEMAND
+FULL_HISTORY_OPERATION = 6
 #: seconds between two requests while the phone has not answered
-RETRY_EVERY = 90
-#: requests per pairing
-MAX_ATTEMPTS = 3
+RETRY_EVERY = 75
+#: requests per pairing: one per variant
+MAX_ATTEMPTS = len(VARIANTS)
 #: seconds after the transfer completed to stop waiting for an answer
 GIVE_UP = MAX_ATTEMPTS * RETRY_EVERY
 #: seconds between two looks at whether to ask
@@ -154,18 +169,65 @@ def note_block(s, data, omitted_batch=False):
         tracker.bootstrap(len(getattr(data, "conversations", ())))
 
 
-def request():
+def variant_of(attempt):
+    """The VARIANTS entry of the 1-based attempt number."""
+    return VARIANTS[max(1, min(attempt, len(VARIANTS))) - 1]
+
+
+def request(variant=VARIANTS[0]):
     """The peer message asking the phone for the rest of its conversations."""
     from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message, ProtocolMessage
+    _name, chats, messages = variant
     message = Message()
     protocol = message.protocolMessage
     protocol.type = ProtocolMessage.PEER_DATA_OPERATION_REQUEST_MESSAGE
     operation = protocol.peerDataOperationRequestMessage
+    if chats is None:
+        import uuid
+        operation.peerDataOperationRequestType = FULL_HISTORY_OPERATION
+        asked = operation.fullHistorySyncOnDemandRequest
+        asked.requestMetadata.requestID = uuid.uuid4().hex
+        asked.fullHistorySyncOnDemandConfig.historyDurationDays = FULL_HISTORY_DAYS
+        return message
     operation.peerDataOperationRequestType = PEER_OPERATION
     asked = operation.recentConversationsOnDemandRequest
-    asked.conversationCount = CONVERSATIONS
-    asked.messagesPerConversation = MESSAGES_PER_CONVERSATION
+    asked.conversationCount = chats
+    asked.messagesPerConversation = messages
     return message
+
+
+def peer_response_line(message, from_me):
+    """The log line for a peer answer of the phone that no other module reads
+    (anything but a block retry), or None. The phone's answer to the request
+    for more conversations, if it sends one besides the history block, lands
+    here: its type, how many results, which of them are set, and the size."""
+    if not from_me or message is None or not message.HasField("protocolMessage"):
+        return None
+    protocol = message.protocolMessage
+    if not protocol.HasField("peerDataOperationRequestResponseMessage"):
+        return None
+    response = protocol.peerDataOperationRequestResponseMessage
+    kind = int(response.peerDataOperationRequestType)
+    if kind == CHUNK_RETRY:
+        return None
+    results = response.peerDataOperationResult
+    fields = sorted({f.name for r in results for f, _v in r.ListFields()})
+    raw = response.SerializeToString()
+    # Only names and sizes: the bytes can hold JIDs and media keys (log-pii.md).
+    return ("peer answer: request type %d, %d result(s), fields=%s, %d bytes"
+            % (kind, len(results), ",".join(fields) or "-", len(raw)))
+
+
+def received(s, message, from_me):
+    """Logs a peer answer to the requests above; never consumes the message and
+    never lets a failure of the log reach the chat handling."""
+    try:
+        line = peer_response_line(message, from_me)
+        if line:
+            log.info("recent conversations: %s", line)
+    except Exception:
+        log.exception("recent conversations: peer answer")
+    return False
 
 
 def new_chat_previews(chats, rows, known):
@@ -210,13 +272,15 @@ def ask_once(s, now):
     if not tracker.next_request(now, done) or client is None:
         return False
     try:
-        client.send_peer_message(request())
+        variant = variant_of(tracker.attempts)
+        client.send_peer_message(request(variant))
     except Exception as error:
         log.info("recent conversations request not sent: %s", type(error).__name__)
         return False
     log.info("recent conversations: the pairing listed %s chats; asked the phone "
-             "for the rest (attempt %d of %d)", tracker.bootstrap_chats,
-             tracker.attempts, MAX_ATTEMPTS)
+             "for the rest (attempt %d of %d, variant %s: %s chats of %s messages)",
+             tracker.bootstrap_chats, tracker.attempts, MAX_ATTEMPTS,
+             variant[0], variant[1], variant[2])
     return True
 
 

@@ -21,7 +21,7 @@ class _Response:
     status_code = 200
 
     def json(self):
-        return {"response": {"requested": True}}
+        return {"response": {"requested": True, "primarySupports": True}}
 
 
 def _window(chats):
@@ -31,25 +31,63 @@ def _window(chats):
     )
 
 
-def test_ask_once_posts_and_latches(monkeypatch):
+def _run(monkeypatch, store_reads, chats=413):
     monkeypatch.setattr(engines, "loaded_engine", lambda mw: engines.WPPCONNECT)
     seen = []
+    reads = iter(store_reads)
 
     def post(url, **kw):
         seen.append((url, kw["json"]))
         return _Response()
 
-    mw = _window(413)
-    assert rc.ask_once(mw, post=post) is True
+    mw = _window(chats)
+    sent = rc.ask_once(mw, post=post, sleep=lambda s: None,
+                       chats_in_store=lambda m: next(reads))
+    return mw, seen, sent
+
+
+def test_every_variant_is_tried_while_the_store_does_not_grow(monkeypatch):
+    mw, seen, sent = _run(monkeypatch, [472] * 6)
+    assert sent == len(rc.VARIANTS) == len(seen)
+    assert [j["conversationCount"] for _u, j in seen] == [c for c, _m in rc.VARIANTS]
     assert seen[0][0].endswith("/api/t/request-recent-conversations")
-    assert seen[0][1]["conversationCount"] == rc.CONVERSATIONS
-    assert rc.ask_once(mw, post=post) is False
-    assert len(seen) == 1
+    assert seen[0][1] == {"conversationCount": 10, "messagesPerConversation": 10}
+
+
+def test_it_stops_at_the_first_variant_the_phone_answers(monkeypatch):
+    _mw, seen, sent = _run(monkeypatch, [472, 472 + rc.GAIN_TO_STOP])
+    assert sent == 1 == len(seen)
+
+
+def test_it_asks_once_per_launch(monkeypatch):
+    mw, seen, _sent = _run(monkeypatch, [472] * 6)
+    assert rc.ask_once(mw, post=lambda *a, **k: 1 / 0, sleep=lambda s: None) == 0
+
+
+def test_a_refused_attempt_ends_the_series(monkeypatch):
+    monkeypatch.setattr(engines, "loaded_engine", lambda mw: engines.WPPCONNECT)
+
+    class _Refused:
+        status_code = 500
+
+        def json(self):
+            return {}
+
+    calls = []
+    sent = rc.ask_once(_window(413), post=lambda *a, **k: calls.append(1) or _Refused(),
+                       sleep=lambda s: None, chats_in_store=lambda m: 472)
+    assert sent == 0 and len(calls) == 1
 
 
 def test_ask_once_skips_a_short_list(monkeypatch):
     monkeypatch.setattr(engines, "loaded_engine", lambda mw: engines.WPPCONNECT)
-    assert rc.ask_once(_window(50), post=lambda *a, **k: 1 / 0) is False
+    assert rc.ask_once(_window(50), post=lambda *a, **k: 1 / 0) == 0
+
+
+def test_gain_needs_both_reads():
+    assert rc.gained(400, 400 + rc.GAIN_TO_STOP)
+    assert not rc.gained(None, 500) and not rc.gained(400, None)
+    assert not rc.gained(400, 401)
 
 
 def test_route_and_controller_exist():

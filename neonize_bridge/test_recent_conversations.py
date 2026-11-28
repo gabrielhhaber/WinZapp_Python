@@ -26,9 +26,53 @@ def test_the_request_is_the_whatsapp_one_for_recent_conversations():
     operation = message.protocolMessage.peerDataOperationRequestMessage
     assert operation.peerDataOperationRequestType == \
         PeerDataOperationRequestType.RECENT_CONVERSATIONS_ON_DEMAND_REQUEST == rc.PEER_OPERATION
-    assert operation.recentConversationsOnDemandRequest.conversationCount == rc.CONVERSATIONS
-    assert operation.recentConversationsOnDemandRequest.messagesPerConversation == \
-        rc.MESSAGES_PER_CONVERSATION
+    name, chats, messages = rc.VARIANTS[0]
+    assert (name, chats, messages) == ("web-client", 10, 10)      # what WhatsApp Web sends
+    assert operation.recentConversationsOnDemandRequest.conversationCount == chats
+    assert operation.recentConversationsOnDemandRequest.messagesPerConversation == messages
+
+
+def test_every_variant_is_a_different_request_and_the_last_asks_for_the_full_history():
+    shapes = set()
+    for variant in rc.VARIANTS:
+        operation = rc.request(variant).protocolMessage.peerDataOperationRequestMessage
+        shapes.add(operation.SerializeToString())
+    assert len(shapes) == len(rc.VARIANTS) == rc.MAX_ATTEMPTS
+    last = rc.request(rc.VARIANTS[-1]).protocolMessage.peerDataOperationRequestMessage
+    assert last.peerDataOperationRequestType == rc.FULL_HISTORY_OPERATION
+    assert last.fullHistorySyncOnDemandRequest.requestMetadata.requestID
+    assert last.fullHistorySyncOnDemandRequest.fullHistorySyncOnDemandConfig.historyDurationDays \
+        == rc.FULL_HISTORY_DAYS
+
+
+def test_the_attempt_number_picks_the_variant():
+    assert [rc.variant_of(n) for n in range(1, rc.MAX_ATTEMPTS + 1)] == list(rc.VARIANTS)
+    assert rc.variant_of(99) == rc.VARIANTS[-1]
+
+
+def _peer_answer(kind, with_result=True):
+    from neonize.proto.waE2E.WAWebProtobufsE2E_pb2 import Message, ProtocolMessage
+    message = Message()
+    protocol = message.protocolMessage
+    protocol.type = ProtocolMessage.PEER_DATA_OPERATION_REQUEST_RESPONSE_MESSAGE
+    response = protocol.peerDataOperationRequestResponseMessage
+    response.peerDataOperationRequestType = kind
+    if with_result:
+        response.peerDataOperationResult.add().contactRefreshResponse.SetInParent()
+    return message
+
+
+def test_an_unknown_peer_answer_is_logged_with_its_type_and_fields():
+    line = rc.peer_response_line(_peer_answer(rc.PEER_OPERATION), True)
+    assert line.startswith("peer answer: request type 15, 1 result(s)")
+    assert "contactRefreshResponse" in line
+
+
+def test_a_block_retry_answer_a_chat_message_and_the_phones_echo_are_not_logged_here():
+    assert rc.peer_response_line(_peer_answer(rc.CHUNK_RETRY), True) is None
+    assert rc.peer_response_line(_peer_answer(rc.PEER_OPERATION), False) is None
+    assert rc.peer_response_line(rc.request(), True) is None
+    assert rc.received(object(), _peer_answer(rc.PEER_OPERATION), True) is False
 
 
 def test_only_a_full_bootstrap_with_no_omitted_batch_wants_the_rest():
@@ -57,8 +101,9 @@ def test_it_asks_only_when_the_transfer_is_done_and_not_more_often_than_it_retri
     assert t.next_request(10, transfer_done=True)
     assert not t.next_request(10 + rc.RETRY_EVERY - 1, transfer_done=True)
     assert t.next_request(10 + rc.RETRY_EVERY, transfer_done=True)
-    assert t.next_request(10 + 2 * rc.RETRY_EVERY, transfer_done=True)
-    assert not t.next_request(10 + 3 * rc.RETRY_EVERY, transfer_done=True)    # MAX_ATTEMPTS
+    for n in range(2, rc.MAX_ATTEMPTS):
+        assert t.next_request(10 + n * rc.RETRY_EVERY, transfer_done=True)
+    assert not t.next_request(10 + rc.MAX_ATTEMPTS * rc.RETRY_EVERY, transfer_done=True)    # MAX_ATTEMPTS
     assert t.attempts == rc.MAX_ATTEMPTS
 
 
@@ -274,3 +319,9 @@ def test_the_hold_has_a_deadline_even_when_nobody_asked():
     assert t.pending(0)
     assert t.pending(rc.GIVE_UP - 1)
     assert not t.pending(rc.GIVE_UP)
+
+
+def test_the_peer_answer_line_carries_no_bytes_and_a_failure_never_escapes():
+    line = rc.peer_response_line(_peer_answer(rc.PEER_OPERATION), True)
+    assert line.endswith("bytes") and ":" not in line.split("bytes")[-1]
+    assert rc.received(object(), "not a message", True) is False

@@ -957,6 +957,7 @@ class Session(chat_aliases.ChatAlias, chat_timers.ChatTimers, read_receipts.Read
                 o = e.Info.MessageSource
                 if history_resume.received(self, e.Message, bool(o.IsFromMe)):
                     return      # the phone's answer to a history block request
+                recent_conversations.received(self, e.Message, bool(o.IsFromMe))
                 chat = jid_text(o.Chat)
                 if message_rules.is_channel_chat(chat):
                     return      # channel posts are not conversations
