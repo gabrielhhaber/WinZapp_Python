@@ -16,7 +16,11 @@ class MediaSession:
         self.active = None
         self.closed = False
 
-    def begin(self, question):
+    def begin(self, question, local=False, steps=1):
+        """``local``: a local model may be among the providers tried (it is
+        given longer, see ``service.LOCAL_ATTEMPT_SECONDS``). ``steps``: requests
+        one action makes in a row (a hierarchical summary); it still counts as
+        one action for ``MAX_REQUESTS``, each request is in the usage counters."""
         if self.closed or self.active is not None:
             raise DescriptionError("busy")
         if not question.strip() or len(question) > MAX_QUESTION_CHARS:
@@ -25,7 +29,7 @@ class MediaSession:
             raise DescriptionError("limit")
         self.requests += 1
         self.generation += 1
-        self.active = Operation(self.kind)
+        self.active = Operation(self.kind, local=local, steps=steps)
         return self.generation, self.active
 
     def accept(self, generation, question, answer):

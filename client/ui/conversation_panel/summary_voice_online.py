@@ -22,6 +22,7 @@ from core.ai_media import config as ai_config
 from core.ai_media.errors import DescriptionError
 from core.ai_media.payload import prepare_media
 from core.ai_media.prompts import first_question, instructions
+from core.ai_media import usage as ai_usage
 from core.ai_media.service import Operation, run_chain
 from core.ai_media.summary_voice_choice import STOPPING_CATEGORIES
 from core.ai_media.transcript import spoken_answer
@@ -99,5 +100,6 @@ class SummaryVoiceOnlineMixin:
         models = {provider: ai_config.transcribe_model(provider, run.choice.model)}
         answer, _provider = run_chain(
             operation, [provider], models, store.get, prepared, (), first_question("audio"),
-            instructions(run.language, run.profile, "audio"), run.profile)
+            instructions(run.language, run.profile, "audio"), run.profile,
+            usage_sink=ai_usage.persist)
         return spoken_answer(answer or "")

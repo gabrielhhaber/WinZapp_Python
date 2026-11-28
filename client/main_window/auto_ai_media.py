@@ -32,6 +32,7 @@ from core.ai_media import config as ai_config
 from core.ai_media.payload import prepare_media
 from core.ai_media.prompts import first_question, instructions
 from core.ai_media.errors import DescriptionError
+from core.ai_media import usage as ai_usage
 from core.ai_media.service import Operation, run_chain
 from core.ai_media.transcript import spoken_answer
 from core.transcription import auto_queue
@@ -175,17 +176,20 @@ class AutoAIMediaMixin:
                 return
             info = (msg.get("message") or {}).get(msg_type) or {}
             mime = str(info.get("mimetype") or "") if isinstance(info, dict) else ""
+            frames = config.get("video_frames", "several")
             prepared = prepare_media(kind, decrypt_bytes(encrypted, self.key), mime,
-                                     config["profile"])
+                                     config["profile"], frames)
             # Counted when the request is about to leave, not when it was
             # queued: a message whose media never arrived costs nothing.
             if not self._charge_auto_ai_request():
                 return
             language = getattr(self.i18n, "language", "")
             answer, provider = run_chain(
-                Operation(kind), providers, ai_config.models_for(config, kind), store.get, prepared, (),
-                first_question(kind), instructions(language, config["profile"], kind),
-                config["profile"])
+                Operation(kind, local=ai_config.has_local(providers)), providers,
+                ai_config.models_for(config, kind), store.get, prepared, (),
+                first_question(kind), instructions(language, config["profile"], kind, frames),
+                config["profile"], usage_sink=ai_usage.persist,
+                endpoints=ai_config.endpoints(config))
         except Exception as exc:
             # The type and nothing else: the text of these exceptions can
             # quote a path, a key or the message.
@@ -204,17 +208,21 @@ class AutoAIMediaMixin:
         """Keep *text* as the inline text of the message and redraw its row."""
         current = stored_transcription.find_record(
             self._transcription_copies(remote_jid, msg_id), msg_id)
-        if current is None or current.get(stored_transcription.TRANSCRIPTION_KEY) is not None:
-            # The user got there first (a manual run, or a deletion).
+        described = kind != "audio"
+        if current is None or stored_transcription.has_decision(current, described):
+            # The user got there first (a manual run, or a deletion). Only for
+            # this category: a video already transcribed is still described.
             return
+        previous = current.get(stored_transcription.TRANSCRIPTION_KEY)
         result = type("AutoResult", (), {
             "text": text, "language": None, "language_probability": None,
             "model_id": provider, "backend": stored_transcription.ONLINE_BACKEND,
             "vad_used": True})()
-        now = stored_transcription.next_decision_time(time.time())
-        value = stored_transcription.with_result(None, stored_transcription.record_from_result(
+        now = stored_transcription.next_decision_time(time.time(), previous)
+        # `previous` keeps the other category's result (a video's transcription).
+        value = stored_transcription.with_result(previous, stored_transcription.record_from_result(
             result, now, inline=True,
-            kind=None if kind == "audio" else stored_transcription.DESCRIPTION_KIND))
+            kind=stored_transcription.DESCRIPTION_KIND if described else None))
         try:
             answer = self.store_message_transcription(remote_jid, msg_id, value)
         except Exception as exc:

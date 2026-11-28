@@ -1041,7 +1041,7 @@ class _RecordingDb:
             raise TimeoutError("busy")
         return any(self.has_row(jid, msg_id) for jid in jids)
 
-    def delete_message_transcription(self, jids, msg_id, deleted_at):
+    def delete_message_transcription(self, jids, msg_id, deleted_at, description=None):
         self.calls.append(("delete", tuple(jids), msg_id))
         self.values.append(deleted_at)
         if self.fail:

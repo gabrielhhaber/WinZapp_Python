@@ -55,7 +55,7 @@ import threading
 import time
 
 from core.transcription import errors, message_audio, preferences
-from core.transcription.stored import TRANSCRIPTION_KEY
+from core.transcription.stored import has_decision
 
 #: The key inside the settings.json "transcription" section.
 SETTING_AUTO_TRANSCRIBE = "auto_transcribe_received"
@@ -144,7 +144,9 @@ def eligible(msg, now=None, max_age=None, gaps=None) -> bool:
         return False
     if msg.get("messageType") not in AUTO_TYPES or not message_audio.is_transcribable(msg):
         return False
-    if TRANSCRIPTION_KEY in msg:
+    # A description of the picture (an automatic AI one) is not a decision
+    # about the sound: the video is still transcribed.
+    if has_decision(msg, False):
         return False
     if audio_seconds(msg) > MAX_AUDIO_SECONDS:
         return False

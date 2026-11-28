@@ -20,8 +20,12 @@ from app_paths import active_account_id, global_dir
 from app_settings import AppSettings
 from core.ai_credentials import CredentialStore
 from core.ai_media import config as ai_config
+from core.ai_media import modes
 from core.ai_media.config import MAX_SOURCE_BYTES, MENU_KEY, preferences
+from core.ai_media.context import context_text
 from core.ai_media.errors import DescriptionError
+from core.ai_media.local_text import offline_ocr_kind
+from core.ai_media.saved import saved_description
 from core.utils import decrypt_bytes
 from ui.ai_media_launch import close_open_dialog
 from ui.conversation_panel.media_paths import cached_media_path
@@ -49,7 +53,44 @@ class AIActionsMixin:
         if config is None:
             _app, config = self._ai_settings()
         kind = ai_config.offered_kind(msg, config, CredentialStore(global_dir()).saved())
-        return i18n.t(MENU_KEY[kind]) if kind else ""
+        if kind:
+            return i18n.t(MENU_KEY[kind])
+        if offline_ocr_kind(msg):
+            return i18n.t("ai_read_text_offline")
+        return ""
+
+    def _append_ai_quick_menu_items(self, menu, msg, i18n, config=None):
+        """Append fast media actions (Offline OCR, Understand full video, Quick analysis)
+        next to the primary AI item when AI providers already handle this message."""
+        if config is None:
+            _app, config = self._ai_settings()
+        offered = ai_config.offered_kind(msg, config, CredentialStore(global_dir()).saved())
+        if offered is None:
+            return
+        if offline_ocr_kind(msg) is not None:
+            ocr_item = menu.Append(wx.ID_ANY, i18n.t("ai_read_text_offline"))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_ai_action(message=m, initial_action="offline_ocr"),
+                ocr_item,
+            )
+        if offered == "video":
+            full_item = menu.Append(wx.ID_ANY, i18n.t("ai_full_video"))
+            self.Bind(
+                wx.EVT_MENU,
+                lambda e, m=msg: self._on_ai_action(message=m, initial_action="full_video"),
+                full_item,
+            )
+        if modes.offered(offered):
+            quick_menu = wx.Menu()
+            for mode in ("text_only", "receipt", "table"):
+                item = quick_menu.Append(wx.ID_ANY, i18n.t(modes.MODE_KEY[mode]))
+                self.Bind(
+                    wx.EVT_MENU,
+                    lambda e, m=msg, md=mode: self._on_ai_action(message=m, initial_mode=md),
+                    item,
+                )
+            menu.AppendSubMenu(quick_menu, i18n.t("ai_mode_label"))
 
     def _update_ai_describe_button(self, msg):
         """Show the Describe/Transcribe button under the same rule as the
@@ -84,7 +125,7 @@ class AIActionsMixin:
             return None
         return self._sorted_messages[index]
 
-    def _on_ai_action(self, event=None, message=None, parent=None):
+    def _on_ai_action(self, event=None, message=None, parent=None, initial_action=None, initial_mode=None):
         """Menu item and Ctrl+Shift+I: act on ``message``, or on the focused one.
         ``parent`` is the modal window the action was started from (the media
         viewer); the result window opens over it and focus stays there."""
@@ -95,7 +136,9 @@ class AIActionsMixin:
             return
         mw = self.main_window
         app, config = self._ai_settings()
-        if ai_config.offered_kind(message, config, CredentialStore(global_dir()).saved()) is None:
+        offered = ai_config.offered_kind(message, config, CredentialStore(global_dir()).saved())
+        offline_only = offered is None and offline_ocr_kind(message) is not None
+        if offered is None and not offline_only:
             mw.output(mw.i18n.t("ai_disabled"))
             return
         chat = (message.get("key") or {}).get("remoteJid") or (self.conversation or {}).get("remoteJid", "")
@@ -112,7 +155,18 @@ class AIActionsMixin:
         info = (snapshot.get("message") or {}).get(msg_type) or {}
         loader = self._ai_loader(snapshot, kind, cached_media_path(msg_type, identity[2]), mw.key)
         from ui.dialogs.ai_result_dialog import AIResultDialog
-        dialog = AIResultDialog(parent or self, identity, kind, locked, config, app, loader, str(info.get("mimetype") or ""))
+        # Only a video of this chat can be understood with its speech: the
+        # window gets what it needs to transcribe it (ai_full_video.py).
+        hooks = getattr(self, "_full_video_hooks", None) if kind == "video" and not offline_only else None
+        context = "" if offline_only else (
+            context_text(snapshot, config) if kind in ("image", "sticker", "video") else "")
+        dialog = AIResultDialog(parent or self, identity, kind, locked, config, app, loader, str(info.get("mimetype") or ""),
+                                saved_text=saved_description(snapshot, kind),
+                                context=context,
+                                **({"full_video": hooks(snapshot, chat)} if hooks else {}),
+                                **({"offline_only": True} if offline_only else {}),
+                                **({"initial_action": initial_action} if initial_action else {}),
+                                **({"initial_mode": initial_mode} if initial_mode else {}))
         self._ai_dialog = dialog
         try:
             dialog.ShowModal()

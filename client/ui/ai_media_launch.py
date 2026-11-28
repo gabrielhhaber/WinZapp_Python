@@ -13,6 +13,7 @@ from app_settings import AppSettings
 from core.ai_credentials import CredentialStore
 from core.ai_media import config as ai_config
 from core.ai_media.config import MENU_KEY, preferences
+from core.ai_media.local_text import offline_ocr_kind
 
 #: Statuses are not chats; they carry this in the window's identity.
 STATUS_CHAT = "status@broadcast"
@@ -28,10 +29,14 @@ def _settings(main_window):
 def describe_label(main_window, message):
     """Label of the Describe button for ``message``, or "" when none is
     offered: the same rule as the message menu (feature on, a provider with a
-    key that takes the kind, not view-once)."""
+    key that takes the kind, not view-once; or Windows OCR when available)."""
     _app, config = _settings(main_window)
     kind = ai_config.offered_kind(message, config, CredentialStore(global_dir()).saved())
-    return main_window.i18n.t(MENU_KEY[kind]) if kind else ""
+    if kind:
+        return main_window.i18n.t(MENU_KEY[kind])
+    if offline_ocr_kind(message):
+        return main_window.i18n.t("ai_read_text_offline")
+    return ""
 
 
 def describe(parent, main_window, message, make_loader, chat=STATUS_CHAT):
@@ -44,7 +49,9 @@ def describe(parent, main_window, message, make_loader, chat=STATUS_CHAT):
     if kind is None:
         return
     app, config = _settings(main_window)
-    if ai_config.offered_kind(message, config, CredentialStore(global_dir()).saved()) is None:
+    offered = ai_config.offered_kind(message, config, CredentialStore(global_dir()).saved())
+    offline_only = offered is None and offline_ocr_kind(message) is not None
+    if offered is None and not offline_only:
         main_window.output(main_window.i18n.t("ai_disabled"))
         return
     if _open:
@@ -55,7 +62,8 @@ def describe(parent, main_window, message, make_loader, chat=STATUS_CHAT):
     info = (snapshot.get("message") or {}).get(snapshot["messageType"]) or {}
     from ui.dialogs.ai_result_dialog import AIResultDialog
     dialog = AIResultDialog(parent, identity, kind, False, config, app, make_loader(snapshot, kind),
-                            str(info.get("mimetype") or ""))
+                            str(info.get("mimetype") or ""),
+                            **({"offline_only": True} if offline_only else {}))
     _open.append(dialog)
     try:
         dialog.ShowModal()

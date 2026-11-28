@@ -5,10 +5,12 @@ send) and ``parse_answer`` (what came back). Nothing here touches the network
 or the filesystem, so each provider's payload shape is tested directly.
 """
 import base64
+import re
 from typing import NamedTuple, Optional
 
 from .config import (MAX_OUTPUT_CHARS, MAX_OUTPUT_TOKENS, PROVIDERS, capability, supports, transcribe_model,
                      valid_model)
+from . import local_url
 from .errors import DescriptionError
 from .mistral_ocr import parse_document
 
@@ -19,6 +21,9 @@ class Request(NamedTuple):
     json: Optional[dict] = None
     data: Optional[dict] = None    # form fields of a multipart request
     files: Optional[dict] = None   # file part of a multipart request
+    # Sent to this computer: the environment's proxy settings are ignored, so
+    # a proxy never sees what goes to a local model (service.post_answer).
+    loopback: bool = False
 
 
 #: Groq documents about 4 MB of base64 for an image in one request (not
@@ -48,6 +53,16 @@ def is_transcription(provider, media):
     return media.kind == "audio" and bool(PROVIDERS[provider].transcribe_model)
 
 
+def _chat_target(provider, key, base_url):
+    """(url, headers, loopback) of an OpenAI-compatible chat request. A local
+    server is sent no credential at all (never another provider's key); its
+    address is read strictly here, whatever the settings file says."""
+    if PROVIDERS[provider].local:
+        base = local_url.normalize_url(base_url)
+        return f"{base}/chat/completions", {}, local_url.is_loopback_url(base)
+    return f"{_CHAT_BASE[provider]}/chat/completions", {"Authorization": f"Bearer {key}"}, False
+
+
 def _text_parts(provider, media, question):
     """The text payload and the request as plain-text parts, per provider's
     message shape. A text-capable kind (writing
@@ -59,14 +74,16 @@ def _text_parts(provider, media, question):
     return [{"type": "text", "text": text}, {"type": "text", "text": question}]
 
 
-def build_request(provider, model, key, media, history, question, instructions, profile):
+def build_request(provider, model, key, media, history, question, instructions, profile,
+                  base_url=""):
     # A video never leaves as a video: prepare_media sends one frame as an image.
     if provider not in PROVIDERS or media.kind == "video" or not supports(provider, media.kind):
         raise DescriptionError("request")
     if not valid_model(model):
         raise DescriptionError("request")
     if capability(media.kind) == "text":
-        return _text_request(provider, model, key, media, history, question, instructions)
+        return _text_request(provider, model, key, media, history, question, instructions,
+                             base_url)
     if is_transcription(provider, media):
         return _transcription(provider, key, media, model)
     if provider == "mistral" and media.kind == "pdf":
@@ -105,7 +122,7 @@ def build_request(provider, model, key, media, history, question, instructions, 
                         "messages": messages})
     if provider == "groq" and media.kind in ("image", "sticker") and len(_b64(media)) > GROQ_IMAGE_BASE64_LIMIT:
         raise DescriptionError("request")  # this provider only: the chain moves on to the next
-    # Groq, OpenRouter and Mistral use chat completions for vision.
+    # Groq, OpenRouter, Mistral and the local servers use chat completions for vision.
     messages = [{"role": "system", "content": instructions}]
     messages += [{"role": role, "content": text} for role, text in history]
     if media.kind == "pdf":
@@ -114,11 +131,12 @@ def build_request(provider, model, key, media, history, question, instructions, 
         part = {"type": "image_url", "image_url": (
             _data_url(media) if provider == "mistral" else {"url": _data_url(media)})}
     messages.append({"role": "user", "content": [{"type": "text", "text": question}, part]})
-    return Request(f"{_CHAT_BASE[provider]}/chat/completions", {"Authorization": f"Bearer {key}"},
-                   {"model": model, "messages": messages, "max_tokens": tokens})
+    url, headers, loopback = _chat_target(provider, key, base_url)
+    return Request(url, headers, {"model": model, "messages": messages, "max_tokens": tokens},
+                   loopback=loopback)
 
 
-def _text_request(provider, model, key, media, history, question, instructions):
+def _text_request(provider, model, key, media, history, question, instructions, base_url=""):
     """Text-only request: the payload plus the question, no inline media, same
     stateless shape as the other kinds."""
     tokens = MAX_OUTPUT_TOKENS[media.kind]
@@ -143,12 +161,13 @@ def _text_request(provider, model, key, media, history, question, instructions):
         return Request(_CLAUDE, {"x-api-key": key, "anthropic-version": "2023-06-01"},
                        {"model": model, "max_tokens": tokens, "system": instructions,
                         "messages": messages})
-    # Groq, OpenRouter and Mistral: OpenAI-compatible chat completions.
+    # Groq, OpenRouter, Mistral and the local servers: OpenAI-compatible chat completions.
     messages = [{"role": "system", "content": instructions}]
     messages += [{"role": role, "content": text} for role, text in history]
     messages.append({"role": "user", "content": parts})
-    return Request(f"{_CHAT_BASE[provider]}/chat/completions", {"Authorization": f"Bearer {key}"},
-                   {"model": model, "messages": messages, "max_tokens": tokens})
+    url, headers, loopback = _chat_target(provider, key, base_url)
+    return Request(url, headers, {"model": model, "messages": messages, "max_tokens": tokens},
+                   loopback=loopback)
 
 
 def _transcription(provider, key, media, model):
@@ -169,7 +188,6 @@ def _transcription(provider, key, media, model):
 
 
 def parse_answer(provider, body, kind):
-    limit = MAX_OUTPUT_CHARS[kind]
     try:
         if provider == "mistral" and kind == "audio":
             if body.get("finish_reason") not in (None, "stop"):
@@ -205,7 +223,8 @@ def parse_answer(provider, body, kind):
             if body.get("stop_reason") == "max_tokens":
                 raise DescriptionError("response")
             text = "\n".join(b["text"] for b in body.get("content", []) if b.get("type") == "text")
-        elif provider in _CHAT_BASE or provider == "chat_completions":
+        elif provider in _CHAT_BASE or provider == "chat_completions" \
+                or (provider in PROVIDERS and PROVIDERS[provider].local):
             if "text" in body and "choices" not in body:
                 text = body["text"]  # audio transcription
             else:
@@ -220,13 +239,29 @@ def parse_answer(provider, body, kind):
                 text = message.get("content")
         else:
             raise DescriptionError("request")
-        if not isinstance(text, str) or not text.strip():
-            raise DescriptionError("response")
-        text = text.strip()
-        if kind in ("audio", "pdf", "text") and len(text) > limit:
-            # A transcript or converted PDF must not lose its ending while
-            # being presented as complete. This local limit ends the action.
-            raise DescriptionError("output_limit")
-        return text[:limit]
+        return clean_answer(text, kind)
     except (KeyError, IndexError, TypeError, AttributeError):
         raise DescriptionError("response") from None
+
+
+_THINKING = re.compile(r"\A\s*<think>.*?</think>\s*", re.DOTALL)
+
+
+def clean_answer(text, kind):
+    """The answer a provider's text becomes: never empty, trimmed, and never
+    silently cut where the ending matters. Shared by ``parse_answer`` and the
+    streamed answer (``streaming.py``), so both deliver the same text."""
+    limit = MAX_OUTPUT_CHARS[kind]
+    if not isinstance(text, str):
+        raise DescriptionError("response")
+    # A local reasoning model (Qwen3, DeepSeek-R1...) may put its thinking
+    # first, in think tags; only a block at the very start is the thinking.
+    text = _THINKING.sub("", text, count=1)
+    if not text.strip():
+        raise DescriptionError("response")
+    text = text.strip()
+    if kind in ("audio", "pdf", "text") and len(text) > limit:
+        # A transcript or converted PDF must not lose its ending while
+        # being presented as complete. This local limit ends the action.
+        raise DescriptionError("output_limit")
+    return text[:limit]

@@ -8,7 +8,7 @@ _STAGES = frozenset({
     "media_load_started", "media_ready", "attempt_started", "request_started", "response_headers",
     "response_read", "response_parsed", "ui_start", "ui_waiting", "ui_completed",
     "ui_completion_ignored", "ui_error", "ui_watchdog", "ui_cancel", "ui_close",
-    "ui_close_finished", "request_failed",
+    "ui_close_finished", "request_failed", "retry_waiting",
 })
 _CATEGORIES = frozenset({
     "authentication", "quota", "credits", "server", "request", "media_size", "media_format",

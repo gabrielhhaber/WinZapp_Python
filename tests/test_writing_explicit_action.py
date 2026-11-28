@@ -79,12 +79,12 @@ def test_explicit_run_uses_current_choice_and_submits_once():
                             record=lambda *a, **kw: None,
                             wx=NS(CallLater=lambda *a: later, CallAfter=lambda *a: None),
                             submit=lambda work, done: calls.append(('submit', work())),
-                            _WATCHDOG_GRACE_SECONDS=5,
+                            _WATCHDOG_GRACE_SECONDS=5, ai_config=NS(has_local=lambda providers: False),
                             DescriptionError=RuntimeError, CredentialError=ValueError)
     for chosen in ['check', 'professional', 'translate']:
         calls.clear()
         operation = NS(total_seconds=60)
-        session = NS(active=None, begin=lambda q: (1, operation))
+        session = NS(active=None, begin=lambda q, local=False: (1, operation))
         d = NS(session=session, _valid=lambda: True, _consent=lambda: calls.append('consent') or True,
                _question=lambda: chosen, _busy=lambda busy: None,
                i18n=NS(t=lambda key: key), status=NS(ChangeValue=lambda t: None), _speak=lambda t: None,

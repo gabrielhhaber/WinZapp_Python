@@ -13,6 +13,7 @@ import wx
 
 from app_paths import active_account_id
 from core.ai_credentials import CredentialError
+from core.ai_media import config as ai_config
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import submit
 from core.ai_media.session import MediaSession
@@ -177,8 +178,15 @@ class TextAIResultDialog(wx.Dialog):
             self.replace.Enable(bool(self._latest) and not busy)
 
     def _key(self, event):
-        if event.GetKeyCode() == wx.WXK_ESCAPE:
+        code = event.GetKeyCode()
+        if code == wx.WXK_ESCAPE:
             self._close()
+            return
+        if (code in (wx.WXK_RETURN, wx.WXK_NUMPAD_ENTER)
+                and not event.ControlDown() and not event.AltDown() and not event.ShiftDown()
+                and self.replace is not None and self.replace.IsEnabled()
+                and wx.Window.FindFocus() is self.result):
+            self._replace()
             return
         event.Skip()
 
@@ -199,7 +207,8 @@ class TextAIResultDialog(wx.Dialog):
                     self._close()
                 return
             question = self._question()
-            generation, operation = self.session.begin(question)
+            generation, operation = self.session.begin(
+                question, local=ai_config.has_local(getattr(self, "_providers", ())))
             record("ui_start", generation=generation)
             self._busy(True)
             loading = self.i18n.t("ai_processing_msg")
@@ -248,6 +257,8 @@ class TextAIResultDialog(wx.Dialog):
             # latest answer must already exist when Copy is re-enabled.
             self._busy(False)
             self.result.ChangeValue(answer)
+            if self.replace is not None:
+                self.replace.SetDefault()
             ready = self.i18n.t("ai_ready") + " " + self.i18n.t("ai_answered_by").format(
                 provider=provider)
             self.status.ChangeValue(ready)

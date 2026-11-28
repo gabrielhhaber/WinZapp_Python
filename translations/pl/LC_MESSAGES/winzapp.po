@@ -769,6 +769,33 @@ msgid "Send media to an AI provider?"
 msgstr "Wysłać plik do dostawcy AI?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_context_caption_label"
+msgid "Include the &caption when describing media"
+msgstr "Dołącz po&dpis przy opisywaniu plików"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_media_modes.py
+#, python-brace-format
+msgctxt "ai_context_consent"
+msgid ""
+"Your settings add the caption and the message this one replies to, when they"
+" exist, to the description request. For this media, {providers} may also "
+"receive that text, which other people wrote in the chat, besides the "
+"picture. This replaces the earlier notice that captions are not sent. Chat "
+"names and senders are still not sent. Do you want to continue?"
+msgstr ""
+"Twoje ustawienia dodają do prośby o opis podpis oraz wiadomość, na którą ta "
+"odpowiada, jeśli istnieją. Przy tym pliku do: {providers} może trafić także "
+"ten tekst, napisany przez inne osoby na czacie, oprócz obrazu. Zastępuje to "
+"wcześniejszą informację, że podpisy nie są wysyłane. Nazwy czatów i nadawców"
+" nadal nie są wysyłane. Czy chcesz kontynuować?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_context_quote_label"
+msgid "Include the &quoted message when describing media"
+msgstr "Dołącz &cytowaną wiadomość przy opisywaniu plików"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_copy_answer"
 msgid "Copy latest answer"
 msgstr "Kopiuj ostatnią odpowiedź"
@@ -927,6 +954,16 @@ msgstr ""
 "aby rozpocząć nową sesję."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_local_url"
+msgid ""
+"The server address is not valid. Use http://localhost or http://127.0.0.1 "
+"with the port, or an https:// address, without a user name, password or "
+"parameters."
+msgstr ""
+"Adres serwera jest nieprawidłowy. Użyj http://localhost lub http://127.0.0.1"
+" z portem albo adresu https://, bez nazwy użytkownika, hasła i parametrów."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_media"
 msgid ""
 "The original media could not be downloaded or read. It may no longer be "
@@ -953,6 +990,20 @@ msgid ""
 msgstr ""
 "Nie można połączyć się z dostawcą. Sprawdź połączenie; próba nie została "
 "automatycznie powtórzona."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_ocr_language"
+msgid ""
+"Windows has no text recognition language installed. Add one in Settings, "
+"Time and language, Language and region."
+msgstr ""
+"W systemie Windows nie jest zainstalowany żaden język rozpoznawania tekstu. "
+"Dodaj go w Ustawieniach, Czas i język, Język i region."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_ocr_unavailable"
+msgid "Text recognition is not available on this computer."
+msgstr "Rozpoznawanie tekstu nie jest dostępne na tym komputerze."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_output_limit"
@@ -1083,6 +1134,102 @@ msgid "Quick"
 msgstr "Krótki"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+#: client/ui/conversation_panel/ai_full_video.py
+#: client/ui/dialogs/ai_full_video.py
+msgctxt "ai_full_video"
+msgid "Understand full video"
+msgstr "Zrozum cały film"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then try again."
+msgstr "Trwa inna transkrypcja. Poczekaj, aż się skończy, i spróbuj ponownie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_consent"
+msgid ""
+"Still pictures taken from this video and the text transcribed on this "
+"computer from what is said in it may be sent to {providers}, in that order, "
+"if the earlier ones fail. The video's sound is never sent, but the text may "
+"contain private words of the people in the video. Your questions and the "
+"previous answers in this window may be sent too. This may incur API charges."
+" Provider data policies apply; the answer can be wrong. Do you want to "
+"continue?"
+msgstr ""
+"Nieruchome klatki z tego filmu oraz tekst transkrypcji tego, co w nim "
+"słychać, wykonanej na tym komputerze, mogą zostać wysłane do: {providers}. "
+"Jeśli dostawców jest kilku, WinZapp użyje ich w podanej kolejności, "
+"przechodząc do następnego po nieudanej próbie. Dźwięk filmu nigdy nie jest "
+"wysyłany, ale tekst może zawierać prywatne słowa osób z nagrania. Mogą "
+"zostać wysłane także Twoje pytania i wcześniejsze odpowiedzi z tego okna. "
+"Może to wiązać się z opłatami za korzystanie z API. Obowiązują zasady "
+"przetwarzania danych danego dostawcy, a odpowiedź może być błędna. Czy "
+"chcesz kontynuować?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_cut_notice"
+msgid ""
+"The transcribed text is long: only its first {chars} characters are sent."
+msgstr ""
+"Tekst transkrypcji jest długi: wysyłanych jest tylko pierwszych {chars} "
+"znaków."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_full_video_cut_status"
+msgid "Only the first {chars} characters of the transcribed speech were used."
+msgstr "Użyto tylko pierwszych {chars} znaków transkrypcji mowy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_declined"
+msgid "Nothing was sent."
+msgstr "Nic nie zostało wysłane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_failed"
+msgid ""
+"The speech of this video could not be transcribed on this computer. {reason}\n"
+"\n"
+"Describe only the images instead? The answer will not cover what is said."
+msgstr ""
+"Nie udało się wykonać transkrypcji mowy z tego filmu na tym komputerze. {reason}\n"
+"\n"
+"Opisać zamiast tego tylko obrazy? Odpowiedź nie obejmie tego, co jest mówione."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_images_only"
+msgid "This answer covers only the images, not what is said."
+msgstr "Ta odpowiedź obejmuje tylko obrazy, nie to, co jest mówione."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_no_speech"
+msgid "No speech was found in this video. Describing only the images."
+msgstr "W tym filmie nie znaleziono mowy. Opisuję tylko obrazy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_full_video.py
+msgctxt "ai_full_video_progress"
+msgid ""
+"Transcribing the speech of this video on this computer. The sound is not "
+"sent anywhere."
+msgstr ""
+"Transkrypcja mowy z tego filmu na tym komputerze. Dźwięk nie jest nigdzie "
+"wysyłany."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_stopped"
+msgid "Transcription cancelled. Nothing was sent."
+msgstr "Anulowano transkrypcję. Nic nie zostało wysłane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_gemini_notice"
 msgid ""
 "Gemini: unpaid services may use inputs for product improvement and human "
@@ -1116,13 +1263,15 @@ msgstr ""
 "oferuje)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_local_actions.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_result_streaming.py
 msgctxt "ai_history_answer"
 msgid "Answer:"
 msgstr "Odpowiedź:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_local_actions.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_result_streaming.py
 msgctxt "ai_history_question"
 msgid "Your question:"
 msgstr "Twoje pytanie:"
@@ -1190,7 +1339,122 @@ msgid "Types of me&dia handled..."
 msgstr "Rodzaje &plików do przetwarzania..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_cloud_model_notice"
+msgid ""
+"The Ollama model you chose runs in Ollama's cloud: even though the server is"
+" on this computer, what is sent is forwarded to Ollama's servers, and "
+"whoever runs them can read it."
+msgstr ""
+"Wybrany model Ollama działa w chmurze Ollama: mimo że serwer jest na tym "
+"komputerze, wysyłane dane są przekazywane na serwery Ollama, a ich "
+"administrator może je przeczytać."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_cloud_model_warning"
+msgid ""
+"This model runs in Ollama's cloud (its name ends in -cloud or :cloud). "
+"Pictures and text will leave this computer, so WinZapp asks for your consent"
+" first, like any online provider."
+msgstr ""
+"Ten model działa w chmurze Ollama (jego nazwa kończy się na -cloud lub "
+":cloud). Obrazy i tekst opuszczą ten komputer, dlatego WinZapp najpierw "
+"poprosi o Twoją zgodę, jak w przypadku każdego dostawcy online."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_connection_ok"
+msgid ""
+"The server answered. This does not check that the chosen model can read "
+"pictures."
+msgstr ""
+"Serwer odpowiedział. To nie sprawdza, czy wybrany model potrafi odczytywać "
+"obrazy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_models_empty"
+msgid ""
+"The server reports no installed models. Install one in Ollama or LM Studio, "
+"or type its identifier in the Model identifier field."
+msgstr ""
+"Serwer nie zgłasza żadnych zainstalowanych modeli. Zainstaluj model w Ollama"
+" lub LM Studio albo wpisz jego identyfikator w polu Identyfikator modelu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_no_model"
+msgid ""
+"No model is chosen, so WinZapp does not use this provider. Use Get models "
+"and pick one."
+msgstr ""
+"Nie wybrano modelu, więc WinZapp nie używa tego dostawcy. Użyj opcji Pobierz"
+" listę modeli i wybierz jeden."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_provider_note"
+msgid ""
+"A language model that runs on your own computer or network. It needs no API "
+"key, and nothing is sent to an online provider while the address is this "
+"computer. Choose a model you installed (a vision model to describe "
+"pictures). It takes pictures, stickers, video frames and text, not voice "
+"messages or PDFs. Without a chosen model, WinZapp does not use it."
+msgstr ""
+"Model językowy działający na Twoim komputerze lub w Twojej sieci. Nie wymaga"
+" klucza API, a dopóki adres wskazuje ten komputer, nic nie jest wysyłane do "
+"dostawcy online. Wybierz zainstalowany model (model wizyjny, aby opisywać "
+"obrazy). Obsługuje zdjęcia, naklejki, klatki wideo i tekst, a nie wiadomości"
+" głosowe ani pliki PDF. Bez wybranego modelu WinZapp go nie używa."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_remote_notice"
+msgid ""
+"Ollama or LM Studio is set to an address that is not on this computer: what "
+"is sent goes to that server, and whoever runs it can read it."
+msgstr ""
+"Ollama lub LM Studio ma ustawiony adres, który nie wskazuje tego komputera: "
+"wysyłane dane trafiają na ten serwer, a jego administrator może je "
+"przeczytać."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_remote_warning"
+msgid ""
+"This address is not on this computer. Pictures and text will be sent to that"
+" server, so WinZapp asks for your consent first, like any online provider."
+msgstr ""
+"Ten adres nie wskazuje tego komputera. Obrazy i tekst zostaną wysłane na ten"
+" serwer, dlatego WinZapp najpierw poprosi o Twoją zgodę, jak w przypadku "
+"każdego dostawcy online."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_bad_url"
+msgid "invalid address, not used"
+msgstr "nieprawidłowy adres, nieużywany"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_cloud"
+msgid "model chosen, runs in the cloud"
+msgstr "model wybrany, działa w chmurze"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_no_model"
+msgid "no model chosen, not used"
+msgstr "nie wybrano modelu, nieużywany"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_ready"
+msgid "model chosen, runs on this computer"
+msgstr "model wybrany, działa na tym komputerze"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_remote"
+msgid "model chosen, remote server"
+msgstr "model wybrany, serwer zdalny"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_url"
+msgid "Server &address"
+msgstr "Adres &serwera"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/ai_media/summary_voice_choice.py
+#: client/ui/dialogs/ai_full_video.py client/ui/dialogs/ai_media_modes.py
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -1240,6 +1504,44 @@ msgstr ""
 " ustalić Twojego planu na podstawie klucza API."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_custom"
+msgid "Use my own instruction"
+msgstr "Użyj własnego polecenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_media_modes.py client/ui/dialogs/ai_writing_dialog.py
+msgctxt "ai_mode_instruction_label"
+msgid "Your instruction"
+msgstr "Twoje polecenie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+#: client/ui/dialogs/ai_media_modes.py
+msgctxt "ai_mode_label"
+msgid "Quick analysis"
+msgstr "Szybka analiza"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_receipt"
+msgid "Read receipt, bill or PIX proof"
+msgstr "Odczytaj paragon, rachunek lub potwierdzenie PIX"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_run"
+msgid "Analyze"
+msgstr "Analizuj"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_table"
+msgid "Read table or menu"
+msgstr "Odczytaj tabelę lub menu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_text_only"
+msgid "Extract only the text"
+msgstr "Wyodrębnij tylko tekst"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_model"
 msgid "Model &identifier (advanced)"
 msgstr "&Identyfikator modelu (dla zaawansowanych)"
@@ -1285,6 +1587,23 @@ msgstr ""
 "został zmieniony."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_offline_no_text"
+msgid "No readable text was found in this picture."
+msgstr "Na tym obrazie nie znaleziono czytelnego tekstu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_offline_reading"
+msgid "Reading the text on this computer..."
+msgstr "Odczytuję tekst na tym komputerze..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_offline_ready"
+msgid "Text read on this computer. Nothing was sent."
+msgstr "Tekst odczytano na tym komputerze. Nic nie zostało wysłane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_pdf_accessible_label"
 msgid "Convert received PDFs to accessib&le text"
 msgstr "Konwertuj otrzymane &pliki PDF na dostępny tekst"
@@ -1293,6 +1612,45 @@ msgstr "Konwertuj otrzymane &pliki PDF na dostępny tekst"
 msgctxt "ai_pdf_accessible_menu"
 msgid "Convert to accessible text"
 msgstr "Konwertuj na dostępny tekst"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+#, python-brace-format
+msgctxt "ai_pdf_local_incomplete"
+msgid "Only the first {pages} pages were read."
+msgstr "Odczytano tylko pierwsze {pages} stron."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+#, python-brace-format
+msgctxt "ai_pdf_local_partial"
+msgid "{count} of {total} pages have no text and are missing here."
+msgstr "{count} z {total} stron nie ma tekstu i brakuje ich tutaj."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_pdf_local_ready"
+msgid ""
+"Text read from the PDF on this computer. Nothing was sent. Use Run again to "
+"have an AI also describe the pictures."
+msgstr ""
+"Tekst pliku PDF odczytano na tym komputerze. Nic nie zostało wysłane. Użyj "
+"opcji Wykonaj ponownie, aby SI opisała także obrazy."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_pdf_reading_local"
+msgid "Reading the text of the PDF on this computer..."
+msgstr "Odczytuję tekst pliku PDF na tym komputerze..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_pdf_scanned"
+msgid ""
+"This PDF has no text that can be read on this computer; it looks scanned. "
+"Asking the AI providers instead."
+msgstr ""
+"Ten plik PDF nie zawiera tekstu możliwego do odczytania na tym komputerze; "
+"wygląda na skan. Zapytam dostawców SI."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_privacy_link"
@@ -1383,6 +1741,12 @@ msgctxt "ai_read_answers"
 msgid "Read &new answers aloud using WinZapp speech settings"
 msgstr "Odczytuj nowe odpowiedzi na głos zgodnie z ustawieniami &mowy WinZapp"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/ai_media_launch.py
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_read_text_offline"
+msgid "Read text on this computer"
+msgstr "Odczytaj tekst na tym komputerze"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
@@ -1445,6 +1809,125 @@ msgid "Voice message transcription (online AI)"
 msgstr "Transkrypcja wiadomości głosowej (AI online)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_general_check"
+msgid "&Use the general order for this task"
+msgstr "&Użyj ogólnej kolejności dla tego zadania"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_included"
+msgid "{provider} included, position {position}."
+msgstr "{provider} dodany, pozycja {position}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_left_out"
+msgid "{provider} left out of the route."
+msgstr "{provider} pominięty w trasie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_left_out_empty"
+msgid ""
+"{provider} left out. The route is now empty, so the general order is used."
+msgstr ""
+"{provider} pominięty. Trasa jest teraz pusta, więc obowiązuje ogólna "
+"kolejność."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_list_label"
+msgid "Pro&viders for this task (order = try order)"
+msgstr "Dostawc&y tego zadania (kolejność = kolejność prób)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_moved"
+msgid "{provider}, position {position}."
+msgstr "{provider}, pozycja {position}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_not_ready"
+msgid "not ready (off, or no key or model)"
+msgstr "niegotowy (wyłączony albo bez klucza lub modelu)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_row_in"
+msgid "in the route, position {position}"
+msgstr "w trasie, pozycja {position}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_row_out"
+msgid "left out"
+msgstr "pominięty"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_summary_general"
+msgid "{task}: using the general order."
+msgstr "{task}: używa ogólnej kolejności."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_summary_route"
+msgid "{task}: own route, providers in it: {count}."
+msgstr "{task}: własna trasa, dostawców w niej: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_audio"
+msgid "Voice messages"
+msgstr "Wiadomości głosowe"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_image"
+msgid "Photos"
+msgstr "Zdjęcia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_label"
+msgid "&Task"
+msgstr "&Zadanie"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_pdf"
+msgid "PDF"
+msgstr "PDF"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_sticker"
+msgid "Stickers"
+msgstr "Naklejki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_video"
+msgid "Videos"
+msgstr "Wideo"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_writing"
+msgid "Writing help"
+msgstr "Pomoc w pisaniu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_toggle_button"
+msgid "&Include or leave out"
+msgstr "&Włącz lub pomiń"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_routes_button"
+msgid "Pro&viders by task..."
+msgstr "Dostawcy wedłu&g zadań..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_saved_ready"
+msgid ""
+"Showing the description saved with this message. No new request was made."
+msgstr ""
+"Pokazuję opis zapisany przy tej wiadomości. Nie wysłano nowego żądania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "Wyślij &plik"
@@ -1482,6 +1965,17 @@ msgstr "Pokaż &lub ukryj klucz"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "S&tatus"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_streaming.py
+msgctxt "ai_streaming_arriving"
+msgid "The answer is arriving."
+msgstr "Odpowiedź nadchodzi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_streaming_label"
+msgid "&Show answers as they arrive"
+msgstr "Pokazuj odpowiedzi w &miarę ich nadchodzenia"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
@@ -1526,6 +2020,11 @@ msgid "Summarize with AI from here to the end"
 msgstr "Podsumuj przez AI od tego miejsca do końca"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_hierarchy_label"
+msgid "Su&mmarize older messages too (several requests)"
+msgstr "Podsumowuj też &starsze wiadomości (kilka żądań)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "ai_summary_left_out"
 msgid ""
@@ -1561,6 +2060,77 @@ msgstr ""
 msgctxt "ai_summary_nothing"
 msgid "There are no text messages to summarize here."
 msgstr "Brak wiadomości tekstowych do podsumowania."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+#, python-brace-format
+msgctxt "ai_summary_part_failed"
+msgid ""
+"Part {part} of {total} could not be summarized, so no summary is shown: with"
+" a part missing it would look complete and it would not be."
+msgstr ""
+"Nie udało się podsumować części {part} z {total}, więc nie pokazujemy "
+"podsumowania: z brakującą częścią wyglądałoby na kompletne, a takie by nie "
+"było."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_part_heading"
+msgid "Part {part} of {total}"
+msgstr "Część {part} z {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_summary_parts.py
+#, python-brace-format
+msgctxt "ai_summary_part_progress"
+msgid "Summarizing part {part} of {total}..."
+msgstr "Podsumowuję część {part} z {total}..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+#, python-brace-format
+msgctxt "ai_summary_parts_consent"
+msgid ""
+"Because you chose to also summarize older messages, a long backlog is sent "
+"in up to {parts} parts of about 12,000 characters, one request each, plus "
+"one last request that joins the summaries: up to {requests} requests in all."
+" Each request may be charged and goes to the providers above, in that order "
+"if one fails."
+msgstr ""
+"Ponieważ wybrano podsumowywanie także starszych wiadomości, długa zaległa "
+"rozmowa jest wysyłana w maksymalnie {parts} częściach po około 12 000 "
+"znaków, po jednym żądaniu na część, plus jedno ostatnie żądanie łączące "
+"podsumowania: łącznie do {requests} żądań. Każde żądanie może wiązać się z "
+"opłatą i trafia do dostawców wymienionych wyżej, w podanej kolejności, jeśli"
+" któryś zawiedzie."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_summary_parts.py
+msgctxt "ai_summary_parts_merge_failed"
+msgid ""
+"The final step that joins the parts failed. Below are the summaries of each "
+"part, in chronological order."
+msgstr ""
+"Ostatni krok, łączący części, nie powiódł się. Poniżej podsumowania "
+"poszczególnych części w kolejności chronologicznej."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_parts_merging"
+msgid "Joining the summaries of the {total} parts..."
+msgstr "Łączę podsumowania {total} części..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_parts_notice"
+msgid ""
+"Summary made in {parts} parts, joined in a final step, covering {count} "
+"messages. Follow-up questions are answered from the summaries of the parts, "
+"not from every message."
+msgstr ""
+"Podsumowanie powstało w {parts} częściach, połączonych w ostatnim kroku, i "
+"obejmuje wiadomości: {count}. Odpowiedzi na dodatkowe pytania powstają na "
+"podstawie podsumowań części, a nie każdej wiadomości."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_summary_remember_consent"
@@ -1763,7 +2333,44 @@ msgstr ""
 " zawierać błędy. Czy chcesz kontynuować?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_usage_button"
+msgid "Usa&ge summary..."
+msgstr "Podsumo&wanie użycia..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_cleared"
+msgid "Usage counters reset."
+msgstr "Liczniki użycia zostały wyzerowane."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_label"
+msgid "&Usage by provider"
+msgstr "&Użycie według dostawców"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_usage_last"
+msgid "Last failure: {reason}"
+msgstr "Ostatnie niepowodzenie: {reason}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_usage_line"
+msgid "{provider}: {ok} answered, {failed} failed."
+msgstr "{provider}: odpowiedzi {ok}, niepowodzenia {failed}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_none"
+msgid "Nothing counted yet."
+msgstr "Nic jeszcze nie zliczono."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_reset"
+msgid "Reset &counters"
+msgstr "&Zeruj liczniki"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_video_frame_notice"
 msgid ""
 "Only one still picture taken from the video is sent, without its sound and "
@@ -1771,6 +2378,20 @@ msgid ""
 msgstr ""
 "Wysyłana jest tylko jedna klatka filmu, bez dźwięku i informacji zapisanych "
 "w pliku."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_video_frames_notice"
+msgid ""
+"Several still pictures taken from the video, joined into one image, are "
+"sent, without its sound and with its information removed."
+msgstr ""
+"Wysyłanych jest kilka klatek filmu, złożonych w jeden obraz, bez dźwięku i "
+"informacji zapisanych w pliku."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_video_several_frames_label"
+msgid "Describe videos from several &frames"
+msgstr "Opisuj wideo na podstawie kilku &klatek"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_voice_model"
@@ -1792,6 +2413,26 @@ msgstr ""
 "nieudanej próbie. Może to wiązać się z opłatami za korzystanie z API. Nazwy "
 "czatów nie są wysyłane. Obowiązują zasady przetwarzania danych danego "
 "dostawcy. Wynik może zawierać błędy. Czy chcesz kontynuować?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+#, python-brace-format
+msgctxt "ai_writing_reply_consent"
+msgid ""
+"To suggest a reply, the last {count} messages of this conversation, with the"
+" names of who wrote them, and the text you are writing may be sent to "
+"{providers}, in that order if the previous ones fail. This may incur API "
+"charges. The conversation name is not sent. The provider's data policies "
+"apply; the suggestion may be wrong, and your draft is only replaced if you "
+"choose to. Do you want to continue?"
+msgstr ""
+"Aby zaproponować odpowiedź, ostatnich {count} wiadomości z tej rozmowy, wraz"
+" z nazwami ich autorów, oraz tekst, który piszesz, może zostać wysłanych do:"
+" {providers}. Jeśli dostawców jest kilku, WinZapp użyje ich w podanej "
+"kolejności. Może to wiązać się z opłatami za API. Nazwa rozmowy nie jest "
+"wysyłana. Obowiązują zasady przetwarzania danych danego dostawcy, a "
+"propozycja może być błędna; Twój szkic zostanie zastąpiony tylko wtedy, gdy "
+"tak zdecydujesz. Czy chcesz kontynuować?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -7106,6 +7747,7 @@ msgstr "%d.%m.%Y"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
 #: client/core/locale_format.py client/main_window/chat_events.py
 #: client/main_window/chat_list.py client/main_window/whats_new_since.py
+#: client/ui/conversation_panel/ai_writing.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -20563,7 +21205,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/my_status_transcription.py
 #: client/status_tab/status_transcription.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
 msgstr "transkrypcja"
@@ -23726,6 +24367,11 @@ msgid "Fix spelling and punctuation, keeping my words"
 msgstr "Popraw ortografię i interpunkcję, zachowując moje słowa"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_custom"
+msgid "Use my own instruction"
+msgstr "Użyj własnego polecenia"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "writing_action_encouraging"
 msgid "Make it more encouraging"
 msgstr "Nadaj wiadomości bardziej wspierający ton"
@@ -23745,6 +24391,11 @@ msgstr "Nadaj wiadomości bardziej profesjonalny ton"
 msgctxt "writing_action_rephrase"
 msgid "Say it another way"
 msgstr "Przeredaguj wiadomość"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_reply"
+msgid "Suggest a reply draft"
+msgstr "Zaproponuj szkic odpowiedzi"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -23767,6 +24418,11 @@ msgstr ""
 msgctxt "writing_menu"
 msgid "Writing help"
 msgstr "Pomoc w pisaniu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_quick_menu"
+msgid "Quick writing actions"
+msgstr "Szybkie akcje pisania"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "writing_replace"

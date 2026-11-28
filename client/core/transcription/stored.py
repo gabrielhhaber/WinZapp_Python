@@ -64,6 +64,16 @@ measured duration a transcription can be *deleted*:
   newer one lose — a delete undone by the next sync. `next_decision_time()`
   dates every new decision after the one it replaces.
 
+* **A description and a transcription are two results of the one value.** A
+  video can be described by the online AI and transcribed locally; both sit in
+  the same envelope (same key, same `at`, so every rule above is unchanged),
+  the description a result of `kind == DESCRIPTION_KIND` under its own key of
+  `BY_MODEL_KEY` (`record_model_key()`). What a message offers is asked by
+  category (`saved_transcription()`, `saved_description_record()`), the row
+  announces both (`inline_row_parts()`), and deleting one category re-dates the
+  other as the newest decision (`drop_kind()`) — a tombstone only when nothing
+  is left. Records written before this read unchanged.
+
 What is deliberately *not* kept: a full resync (F5) or a logout clears the
 database with `import_from_dict(clear_first=True)`, and every transcription
 goes with it, exactly as the downloaded voice notes in `voice_messages/` do —
@@ -208,6 +218,11 @@ BY_MODEL_KEY = "by_model"
 #: When the text was made, once `at` has become the time of a later decision
 #: (clearing another model's cache promotes a record that is older than that).
 MADE_AT_KEY = "made_at"
+#: The categories ("description" / "transcription") whose last result the user
+#: deleted while the other category stayed, so the envelope is not a tombstone.
+#: Without it an automatic run would take the missing category for something
+#: never decided and make it again. Absent in older records: they read as before.
+DECIDED_KEY = "decided"
 _AUTO = "auto"
 
 #: The `backend` of a transcription made by an online AI provider (the result
@@ -244,10 +259,23 @@ def model_key(backend, model_id) -> str:
     return f"{backend or ''}:{model_id}"
 
 
+#: Appended to the key of a description's result: the same provider's
+#: transcription of a video's sound and its description of the picture are two
+#: results, and one must not replace the other under BY_MODEL_KEY.
+_DESCRIPTION_SUFFIX = "#description"
+
+
+def is_description(record) -> bool:
+    """Whether a result is an AI description (of a picture, sticker or video)
+    rather than the words spoken in the message."""
+    return isinstance(record, dict) and record.get("kind") == DESCRIPTION_KIND
+
+
 def record_model_key(record) -> str:
     if not isinstance(record, dict):
         return ""
-    return model_key(record.get("backend"), record.get("model_id"))
+    key = model_key(record.get("backend"), record.get("model_id"))
+    return key + _DESCRIPTION_SUFFIX if key and is_description(record) else key
 
 
 def _has_text(record) -> bool:
@@ -256,8 +284,28 @@ def _has_text(record) -> bool:
 
 
 def _core(value) -> dict:
-    """The outer record without the other models' results."""
-    return {k: v for k, v in value.items() if k != BY_MODEL_KEY}
+    """The outer record without the other models' results (and the envelope's
+    category marks, which belong to the whole value, not to a result)."""
+    return {k: v for k, v in value.items() if k not in (BY_MODEL_KEY, DECIDED_KEY)}
+
+
+def _category(description) -> str:
+    return "description" if description else "transcription"
+
+
+def decided_of(value) -> set:
+    """The categories marked as deleted by the user on a stored value."""
+    if decision_time(value) is None or value.get("deleted"):
+        return set()
+    marks = value.get(DECIDED_KEY)
+    return {m for m in marks if m in ("description", "transcription")}         if isinstance(marks, list) else set()
+
+
+def _with_marks(record, marks) -> dict:
+    """`record` carrying `marks` (nothing added when there are none)."""
+    if marks:
+        record[DECIDED_KEY] = sorted(marks)
+    return record
 
 
 def results_of(value) -> list:
@@ -297,32 +345,66 @@ def matches_selection(record, selection) -> bool:
     return True
 
 
-def saved_transcription(msg, selection=None):
-    """The transcription stored on `msg` that the selection allows, or None.
-
-    Without a selection (or under "auto" for both) that is the newest result —
-    the outer record — as it always was. With a model selected it is that
-    model's result, wherever it is held, and None when only other models have
-    one: the message then has nothing stored as far as this model is concerned.
-    A tombstone is None too.
-    """
+def _saved_of(msg, selection, description):
+    """The newest result on `msg` of one category (a description of what is
+    seen, or the words spoken) that the selection allows, or None."""
     if not isinstance(msg, dict):
         return None
     value = msg.get(TRANSCRIPTION_KEY)
     if decision_time(value) is None or value.get("deleted"):
         return None
-    if selection is None or tuple(selection) == (_AUTO, _AUTO):
-        return value if _has_text(value) else None
-    # The newest first, and as the outer record itself (not a copy) so that a
-    # caller that keeps the value it was handed keeps the other models' results.
-    if _has_text(value) and matches_selection(value, selection):
+    auto = selection is None or tuple(selection) == (_AUTO, _AUTO)
+
+    def fits(record):
+        return (_has_text(record) and is_description(record) == description
+                and (auto or matches_selection(record, selection)))
+
+    # The outer record as itself (not a copy) so that a caller that keeps the
+    # value it was handed keeps the other results.
+    if fits(value):
         return value
     others = value.get(BY_MODEL_KEY)
-    if isinstance(others, dict):
-        for record in others.values():
-            if _has_text(record) and matches_selection(record, selection):
-                return record
-    return None
+    found = [record for record in others.values() if fits(record)] \
+        if isinstance(others, dict) else []
+    if not found:
+        return None
+    return max(found, key=lambda record: decision_time(record) or 0.0)
+
+
+def saved_transcription(msg, selection=None):
+    """The transcription (the words spoken) stored on `msg` that the selection
+    allows, or None.
+
+    Without a selection (or under "auto" for both) that is the newest one. With
+    a model selected it is that model's result, wherever it is held, and None
+    when only other models have one: the message then has nothing stored as far
+    as this model is concerned. A tombstone is None too, and so is an AI
+    description, which `saved_description_record()` answers: a video can hold
+    both, and the one is not the other's text.
+    """
+    return _saved_of(msg, selection, False)
+
+
+def saved_description_record(msg):
+    """The AI description stored on `msg`, or None. No model selection applies
+    to it: it was made by an online provider, whatever offline model is chosen."""
+    return _saved_of(msg, None, True)
+
+
+def has_decision(msg, description) -> bool:
+    """Whether `msg` already has a decision about one category: a result of it,
+    or a tombstone (the user deleted what was there). What stops an automatic
+    run from redoing what the user decided; a result of the other category does
+    not count, so a transcribed video is still described."""
+    if not isinstance(msg, dict) or TRANSCRIPTION_KEY not in msg:
+        return False
+    value = msg[TRANSCRIPTION_KEY]
+    if _category(description) in decided_of(value):
+        return True
+    results = results_of(value)
+    # Anything under the key that is not purely the other category's text
+    # (a tombstone, an undated or blank record) still counts as decided.
+    return not (results and all(is_description(record) != description for record in results))
 
 
 def with_result(previous, record) -> dict:
@@ -334,6 +416,8 @@ def with_result(previous, record) -> dict:
     """
     record = _core(record)
     mine = record_model_key(record)
+    # Storing a result is the explicit ask that lifts the mark of its category.
+    _with_marks(record, decided_of(previous) - {_category(is_description(record))})
     kept = {}
     for old in results_of(previous):
         key = record_model_key(old)
@@ -397,6 +481,7 @@ def drop_model(value, model_id, backend_id, decided_at):
             if record is not newest and record_model_key(record)}
     promoted = dict(newest, at=float(decided_at))
     promoted.setdefault(MADE_AT_KEY, newest.get("at"))
+    _with_marks(promoted, decided_of(value))
     if kept:
         promoted[BY_MODEL_KEY] = kept
     return promoted, dropped
@@ -412,6 +497,49 @@ def drop_all(value, decided_at):
     if not dropped:
         return value, 0
     return tombstone(decided_at), dropped
+
+
+def drop_kind(value, description, decided_at):
+    """`value` without its descriptions (`description` True) or without its
+    transcriptions (False): (new value, how many dropped).
+
+    The other category stays, as the outer record dated `decided_at` — a
+    decision later than the one it replaces, so a stale copy still holding the
+    dropped text loses to it, exactly as in drop_model() — with `made_at`
+    keeping the date its text was made. Nothing left is a tombstone, which is
+    how deleting the last text of a message reads as deleting the message's
+    whole decision. A value with none of that category comes back unchanged.
+    """
+    results = results_of(value)
+    dropped = sum(1 for record in results if is_description(record) == description)
+    if not dropped:
+        return value, 0
+    remaining = [record for record in results if is_description(record) != description]
+    if not remaining:
+        return tombstone(decided_at), dropped
+    newest = max(remaining, key=lambda record: decision_time(record) or 0.0)
+    kept = {record_model_key(record): record for record in remaining
+            if record is not newest and record_model_key(record)}
+    promoted = dict(newest, at=float(decided_at))
+    promoted.setdefault(MADE_AT_KEY, newest.get("at"))
+    # The category just deleted stays decided although nothing of it is left
+    # (see DECIDED_KEY); an explicit new result of it lifts the mark.
+    _with_marks(promoted, decided_of(value) | {_category(description)})
+    if kept:
+        promoted[BY_MODEL_KEY] = kept
+    return promoted, dropped
+
+
+def delete_target(value):
+    """Which category "delete the transcription" removes from a stored value:
+    False for the transcriptions (of every model), True for a description when
+    that is all there is, None when nothing is held (everything is deleted, as
+    ever). A video holding both therefore keeps its description when the
+    transcription is deleted; the next deletion removes the description."""
+    results = results_of(value)
+    if any(not is_description(record) for record in results):
+        return False
+    return True if results else None
 
 
 def drop_all_on_copies(copies, decided_at, present=None):
@@ -554,27 +682,60 @@ def is_inline(value) -> bool:
     return isinstance(value, dict) and value.get("inline") is True
 
 
-def inline_row_text(msg, selection=None) -> str:
-    """The text the message's row carries after its duration, or "".
+def is_inline_transcription(value) -> bool:
+    """Whether the newest transcription held under a stored value (the words
+    spoken, not a description kept beside it) was asked to show in the line.
+    What a new run of the transcription inherits: a description that is in the
+    line says nothing about whether the sound's text is."""
+    for record in results_of(value):
+        if not is_description(record):
+            return is_inline(record)
+    return False
 
-    One line: a row of the list has no line breaks, and a transcription has
-    them wherever the speaker paused. Only a transcription stored as inline
-    shows here — one opened in the result window leaves the row as short as it
-    was, which is the long-standing choice for rows that are read on every pass.
+
+DESCRIPTION_LABEL_KEY = "description_row_label"
+TRANSCRIPTION_LABEL_KEY = "transcription_row_label"
+
+
+def inline_row_parts(msg, selection=None) -> list:
+    """What the message's row carries after its duration: a list of
+    `(label i18n key, one-line text)`, the description first and the
+    transcription after it, each only when it was stored as inline.
+
+    A video can hold both (what is seen, then what is said), and the row says
+    both: "…, descrição: …, transcrição: …". One line each: a row of the list
+    has no line breaks, and a transcription has them wherever the speaker
+    paused. Only an inline result shows here — one opened in the result window
+    leaves the row as short as it was, which is the long-standing choice for
+    rows that are read on every pass.
     """
-    value = saved_transcription(msg, selection)
-    if value is None or not is_inline(value):
-        return ""
-    return " ".join(value["text"].split())
+    parts = []
+    for description, label in ((True, DESCRIPTION_LABEL_KEY), (False, TRANSCRIPTION_LABEL_KEY)):
+        value = _saved_of(msg, selection, description)
+        if value is not None and is_inline(value):
+            text = " ".join(value["text"].split())
+            if text:
+                parts.append((label, text))
+    return parts
+
+
+def inline_row_text(msg, selection=None) -> str:
+    """The text the message's row carries after its duration, or "" — the
+    parts of `inline_row_parts()` run together (what decides whether the row
+    has anything long to read)."""
+    return " ".join(text for _label, text in inline_row_parts(msg, selection))
 
 
 def inline_row_label_key(msg, selection=None) -> str:
     """The i18n key of the word that introduces the row's inline text: the
-    description's for an AI description, the transcription's otherwise."""
-    value = saved_transcription(msg, selection)
-    if isinstance(value, dict) and value.get("kind") == DESCRIPTION_KIND:
-        return "description_row_label"
-    return "transcription_row_label"
+    description's for an AI description, the transcription's otherwise (the
+    first part's when there are two; see `inline_row_parts()`)."""
+    parts = inline_row_parts(msg, selection)
+    if parts:
+        return parts[0][0]
+    if saved_description_record(msg) is not None and saved_transcription(msg, selection) is None:
+        return DESCRIPTION_LABEL_KEY
+    return TRANSCRIPTION_LABEL_KEY
 
 
 def as_result(value) -> TranscriptionResult:

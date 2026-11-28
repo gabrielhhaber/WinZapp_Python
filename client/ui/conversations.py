@@ -183,6 +183,7 @@ from ui.conversation_panel.transcription_delete import TranscriptionDeleteMixin
 from ui.conversation_panel.message_data import MessageDataMixin
 from ui.conversation_panel.panel_visibility import ConversationPanelVisibilityMixin
 from ui.conversation_panel.ai_actions import AIActionsMixin
+from ui.conversation_panel.ai_full_video import AIFullVideoMixin
 from ui.conversation_panel.translation_actions import TranslationActionsMixin
 from ui.conversation_panel.translation_backlog import TranslationBacklogMixin
 from ui.conversation_panel.translation_to_end import TranslationToEndMixin
@@ -246,6 +247,7 @@ class ConversationsPanel(
     BulkTranscriptionMixin,
     TranscriptionDeleteMixin,
     AIActionsMixin,
+    AIFullVideoMixin,
     TranslationActionsMixin,
     TranslationBacklogMixin,
     TranslationToEndMixin,

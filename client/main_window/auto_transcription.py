@@ -315,13 +315,14 @@ class AutoTranscriptionMixin:
             self._transcription_copies(remote_jid, msg_id), msg_id)
         if current is None:
             return
-        previous = current.get(stored_transcription.TRANSCRIPTION_KEY)
-        if previous is not None:
+        if stored_transcription.has_decision(current, False):
             # The user got there first (a manual run, or a deletion): their
-            # decision stands.
+            # decision stands. A description already kept (an AI one of the
+            # picture) is not about the sound.
             return
-        value = stored_transcription.with_result(None, stored_transcription.record_from_result(
-            result, stored_transcription.next_decision_time(time.time()), inline=True))
+        previous = current.get(stored_transcription.TRANSCRIPTION_KEY)
+        value = stored_transcription.with_result(previous, stored_transcription.record_from_result(
+            result, stored_transcription.next_decision_time(time.time(), previous), inline=True))
         try:
             answer = self.store_message_transcription(remote_jid, msg_id, value)
         except Exception as exc:

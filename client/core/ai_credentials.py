@@ -14,7 +14,7 @@ import uuid
 
 from cryptography.fernet import Fernet, InvalidToken
 from coord_locks import app_settings_lock
-from core.ai_media.config import PROVIDERS
+from core.ai_media.config import KEYED_PROVIDERS
 
 
 class CredentialError(RuntimeError):
@@ -50,7 +50,9 @@ class CredentialStore:
 
     @staticmethod
     def _accepts(provider):
-        return isinstance(provider, str) and provider in PROVIDERS
+        # A local server (Ollama, LM Studio) has no key, and an older build
+        # reading this vault would take its name for a damaged store.
+        return isinstance(provider, str) and provider in KEYED_PROVIDERS
 
     def _provider(self, provider):
         if not self._accepts(provider):

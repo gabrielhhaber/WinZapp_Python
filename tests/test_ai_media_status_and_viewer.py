@@ -52,7 +52,9 @@ def test_a_text_status_gets_no_button(ready):
     assert ai_media_launch.describe_label(mw, status("extendedTextMessage")) == ""
 
 
-def test_no_button_when_the_feature_is_off_the_kind_is_off_or_no_provider_has_a_key(ready, tmp_path):
+def test_no_button_when_the_feature_is_off_the_kind_is_off_or_no_provider_has_a_key(ready, monkeypatch):
+    from core.ai_media import local_text
+    monkeypatch.setattr(local_text, "ocr_available", lambda: False)
     mw, app, _out = ready
     app.set("ai_media", {"enabled": True, "kinds": {"video": False}})
     assert ai_media_launch.describe_label(mw, status("videoMessage")) == ""
@@ -77,12 +79,39 @@ def test_the_panels_label_rule_ignores_a_missing_status():
     assert StatusAIMixin._status_describe_label(panel, None) == ""
 
 
-def test_describing_while_disabled_says_so_and_opens_nothing(ready):
+def test_describing_while_disabled_says_so_and_opens_nothing(ready, monkeypatch):
+    from core.ai_media import local_text
+    monkeypatch.setattr(local_text, "ocr_available", lambda: False)
     mw, app, outputs = ready
     app.set("ai_media", {"enabled": False})
     built = []
     ai_media_launch.describe(object(), mw, status("imageMessage"), lambda *a: built.append(a))
     assert outputs == ["ai_disabled"] and built == []
+
+
+def test_status_offline_ocr_opens_when_ai_is_disabled(ready, monkeypatch):
+    from core.ai_media import local_text
+    import ui.dialogs.ai_result_dialog as dialog_module
+    monkeypatch.setattr(local_text, "ocr_available", lambda: True)
+    monkeypatch.setattr(ai_media_launch, "active_account_id", lambda: "account")
+    mw, app, outputs = ready
+    app.set("ai_media", {"enabled": False})
+    assert ai_media_launch.describe_label(mw, status("imageMessage")) == "ai_read_text_offline"
+    built = []
+
+    class WindowStub:
+        def __init__(self, parent, identity, kind, locked, cfg, app_s, loader, mime, **more):
+            built.append((kind, more))
+        def ShowModal(self):
+            return 0
+        def _dispose(self):
+            pass
+        def Destroy(self):
+            pass
+
+    monkeypatch.setattr(dialog_module, "AIResultDialog", WindowStub)
+    ai_media_launch.describe(object(), mw, status("imageMessage"), lambda *a: lambda t: b"img")
+    assert outputs == [] and built == [("image", {"offline_only": True})]
 
 
 def loader_for(snapshot, kind, download, tmp=None):

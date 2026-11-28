@@ -41,6 +41,7 @@ from core.transcription.stored import (
     decision_time,
     fold_transcription,
     drop_all,
+    drop_kind,
     drop_model,
     may_hold_transcription,
     newer_decision,
@@ -1214,7 +1215,7 @@ class DatabaseManager:
         return await self._rewrite_transcription(remote_jids, message_id, value)
 
     async def delete_message_transcription(
-        self, remote_jids, message_id: str, deleted_at: float
+        self, remote_jids, message_id: str, deleted_at: float, description=None
     ) -> bool:
         """Delete the message's transcription under every JID in
         *remote_jids*. False when none of them has the row.
@@ -1222,13 +1223,19 @@ class DatabaseManager:
         Leaves a tombstone dated *deleted_at* rather than removing the key, so
         that a stale copy of the record still holding the text cannot bring it
         back through insert_message()'s rule — see core.transcription.stored.
+
+        *description* True deletes only the AI description the row holds, False
+        only its transcriptions (a video keeps both): the other category stays,
+        re-dated after the row's decision like the tombstone, and only a row
+        left with nothing becomes a tombstone (`stored.drop_kind()`). None
+        deletes everything.
         """
         return await self._rewrite_transcription(
-            remote_jids, message_id, tombstone(deleted_at)
+            remote_jids, message_id, tombstone(deleted_at), description
         )
 
     async def _rewrite_transcription(
-        self, remote_jids, message_id: str, value: dict
+        self, remote_jids, message_id: str, value: dict, description=None
     ) -> bool:
         """set/delete_message_transcription()'s single write: every JID, one
         hold of _write_lock, one commit.
@@ -1287,6 +1294,13 @@ class DatabaseManager:
                             later = next_decision_time(at, current)
                             if later != at:
                                 row_value = dict(value, at=later)
+                            if description is not None:
+                                row_value, dropped = drop_kind(
+                                    current, description, row_value["at"])
+                                if not dropped:
+                                    # None of that category on this row: it
+                                    # already agrees with what was asked.
+                                    continue
                     elif not may_hold_transcription(stored):
                         refused_withdrawn = True
                         continue

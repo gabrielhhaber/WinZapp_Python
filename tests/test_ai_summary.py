@@ -164,7 +164,7 @@ class TestTextKind:
         with pytest.raises(Exception):
             prepare_media("text", b"x" * (config.MAX_SOURCE_BYTES["text"] + 1), "text/plain")
 
-    @pytest.mark.parametrize("provider", list(config.PROVIDERS))
+    @pytest.mark.parametrize("provider", list(config.KEYED_PROVIDERS))
     def test_the_request_carries_the_transcript_and_never_leaks_the_key(self, provider):
         request = build_request(provider, config.PROVIDERS[provider].model, "private-key",
                                 TEXT, (("user", "resume"), ("assistant", "fútbol")),
@@ -358,7 +358,8 @@ class TestSummaryHeading:
     the warning that an AI wrote it. Only for kind "text"."""
 
     def _heading(self, kind, notice):
-        dialog = NS(kind=kind, notice=notice, i18n=NS(t=lambda key: f"<{key}>"))
+        dialog = NS(kind=kind, notice=notice, i18n=NS(t=lambda key: f"<{key}>"),
+                    _parts_failed_notice=lambda: "")
         return AIResultDialog._summary_heading(dialog)
 
     def test_a_summary_has_the_notice_and_the_ai_warning(self):
