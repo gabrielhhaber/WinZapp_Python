@@ -9066,7 +9066,7 @@ msgstr ""
 #: client/ui/dialogs/history_search.py
 msgctxt "history_search_label"
 msgid "&Search text"
-msgstr "&Hledaný text"
+msgstr "&Text"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/history_search.py
@@ -9097,7 +9097,7 @@ msgstr "Hledám..."
 #: client/ui/dialogs/history_search.py
 msgctxt "history_search_stop"
 msgid "Sto&p"
-msgstr "&Zastavit"
+msgstr "Za&stavit"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/history_search.py
