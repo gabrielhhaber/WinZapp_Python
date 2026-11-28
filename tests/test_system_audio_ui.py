@@ -29,6 +29,9 @@ def functions(paths, names, namespace=None):
     if isinstance(paths, Path):
         paths = [paths]
     ns = {} if namespace is None else namespace
+    # The dictation guard of the recording methods (core/dictation.py): none is running here.
+    ns.setdefault("dictation", SimpleNamespace(
+        is_active=lambda panel: False, REFUSED_BY_DICTATION_I18N_KEY=''))
     remaining = set(names)
     for path in paths:
         if not remaining:

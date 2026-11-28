@@ -50,7 +50,8 @@ import pyperclip
 import wx
 
 from core.save_location import resolve_save_dialog_folder
-from core.transcription import errors
+from core.transcription import errors, segment_list
+from ui.dialogs.transcription_segments import TranscriptionSegmentList
 
 # Characters Windows refuses in a file name, plus the control characters. A
 # contact's name can hold any of them ("Ana / trabalho"), and a default name
@@ -125,7 +126,14 @@ class TranscriptionResultDialog(wx.Dialog):
     """
 
     def __init__(self, parent, main_window, title, text, notes=(),
-                 spoken="", default_file="", can_insert=True):
+                 spoken="", default_file="", can_insert=True,
+                 segments=(), duration=None, seek=None):
+        # `segments`/`duration`: only a result that has just been transcribed
+        # has them (transcription_segments.py). `seek(seconds) -> bool` jumps
+        # the playing voice message; None offers no "Listen from here".
+        self._segments = tuple(segments or ())
+        self._duration = duration
+        self._seek = seek
         self._main_window = main_window
         self._i18n = main_window.i18n
         self._text = text
@@ -171,6 +179,12 @@ class TranscriptionResultDialog(wx.Dialog):
         )
         sizer.Add(text_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
         sizer.Add(self._text_field, 1, wx.EXPAND | wx.ALL, 8)
+
+        self._segment_list = None
+        if segment_list.offers_list(self._duration, self._segments):
+            self._segment_list = TranscriptionSegmentList(
+                self, self._main_window, self._segments, self._seek)
+            sizer.Add(self._segment_list, 0, wx.EXPAND)
 
         buttons = wx.BoxSizer(wx.HORIZONTAL)
         self._copy_btn = wx.Button(self, label=i18n.t("transcription_result_copy"))

@@ -206,6 +206,11 @@ class AutoTranscriptionMixin:
             current = cancel_bulk()
             if current is not None:
                 running.append(current)
+        cancel_dictation = getattr(panel, "_cancel_dictation_now", None)
+        if callable(cancel_dictation):
+            current = cancel_dictation()
+            if current is not None:
+                running.append(current)
         cancel_summary = getattr(panel, "_cancel_summary_voice_now", None)
         if callable(cancel_summary):
             current = cancel_summary()

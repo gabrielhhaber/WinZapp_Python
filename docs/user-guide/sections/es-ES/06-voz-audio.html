@@ -21,6 +21,13 @@
   <li>Los mensajes de voz en mono se graban a 64 kbps de forma predeterminada y los de estéreo a 128 kbps. En Ajustes &gt; Audio, "Tasa de bits de los mensajes de voz (kbps)" (mono) y "Tasa de bits de los mensajes de voz en estéreo (kbps)" permiten elegir de 32 a 256 kbps.</li>
 </ul>
 
+<h3>Dictar en el mensaje</h3>
+<table class="field-table">
+  <tr><th>Atajo</th><th>Acción</th></tr>
+  <tr><td class="field-name">Ctrl+Shift+J</td><td>Empieza a dictar en el campo del mensaje; vuelve a pulsar para parar e insertar el texto</td></tr>
+</table>
+<p>En el campo del mensaje, pulsa <kbd>Ctrl+Shift+J</kbd> para dictar: el sonido de la grabación de voz avisa de que está escuchando, hablas y la misma tecla lo detiene. La voz se transcribe en este equipo, con la transcripción local de Whisper que ya configuraste (se aplican tu vocabulario y tus opciones de idioma), y el texto entra en la posición del cursor del mensaje; si hay texto seleccionado, se sustituye, y <kbd>Ctrl+Z</kbd> lo recupera. WinZapp lee lo insertado (solo las primeras palabras si es largo) y el foco se queda en el campo. El mensaje nunca se envía solo, el audio nunca se guarda ni se envía a ningún sitio, y no se descarga nada: si no hay un modelo listo, WinZapp dice el motivo. Mientras escucha, también se aplica la opción que silencia la voz de WinZapp durante las grabaciones. Pulsar la tecla mientras se abre o transcribe lo cancela, y salir de la conversación también. No empieza durante la grabación de un mensaje de voz ni durante una llamada (y lo dice), y un mensaje de voz no empieza mientras dictas. Un dictado dura hasta 5 minutos. Puedes cambiar la tecla en la pestaña Atajos de teclado de Configuración.</p>
+
 <h3>Escuchar</h3>
 <ul>
   <li>En mensajes de voz y de audio, <strong>Intro</strong> o <strong>Espacio</strong> reproducen y pausan. En Configuración &gt; Audio puedes distinguir los mensajes de voz de los archivos de audio.</li>

@@ -104,11 +104,13 @@ from core.transcription import (
     narration,
     precision,
     preferences,
+    segment_list,
     stored as stored_transcription,
     waiting_runs,
 )
 from core.utils import is_phone_like
 from ui.dialogs.transcription_progress import TranscriptionProgressDialog
+from ui.conversation_panel.audio_seek import seek_message_audio
 from ui.dialogs.transcription_result import TranscriptionResultDialog, default_file_name
 
 #: The phase this layer adds, in the same shape as narration.PHASE_I18N_KEYS.
@@ -976,6 +978,9 @@ class MessageTranscriptionFlow:
 
     #: Whether the result window offers "Insert into the message".
     _offers_insert = True
+    #: Whether the window's `[mm:ss]` list can jump the message's playback
+    #: (a status is not played by the conversation panel).
+    _offers_seek = True
     #: The question delete_saved() asks. It says what stays (the message and
     #: its audio), which is not what stays when the thing is a status.
     _delete_question_key = "transcription_delete_question"
@@ -990,6 +995,23 @@ class MessageTranscriptionFlow:
 
     def _delete(self, on_done):
         self._main_window.delete_message_transcription(self._jid, self._msg_id, on_done)
+
+    def _segment_arguments(self, result) -> dict:
+        """What the result window needs for its `[mm:ss]` list: named only for
+        a recording long enough to get one, so every other call stays as it was."""
+        segments = getattr(result, "segments", ())
+        duration = getattr(result, "duration_seconds", None)
+        if not segment_list.offers_list(duration, segments):
+            return {}
+        return {
+            "segments": segments, "duration": duration,
+            "seek": self._seek_playback if self._offers_seek else None,
+        }
+
+    def _seek_playback(self, seconds):
+        """Jump this message's playing audio to `seconds`; False when it is not
+        the one playing (ui/conversation_panel/audio_seek.py)."""
+        return seek_message_audio(self._panel, self._msg_id, seconds)
 
     def _title_name(self):
         return title_name(self._panel, self._msg)
@@ -1083,6 +1105,10 @@ class MessageTranscriptionFlow:
             # Named only when it differs from the window's default, so the
             # conversation's call stays exactly what it was.
             **({} if self._offers_insert else {"can_insert": False}),
+            # The timed list of a long recording; a stored result has none
+            # (stored.record_from_result keeps no segments), so it simply
+            # does not appear on reopening.
+            **self._segment_arguments(result),
         )
         try:
             dialog.run()
