@@ -287,6 +287,7 @@ from main_window.chat_lists import WhatsAppListsMixin
 from main_window.calls import CallsMixin
 from main_window.call_desktop_audio import DesktopCallAudioMixin
 from main_window.call_translation import CallTranslationMixin
+from main_window.call_captions import CallCaptionsMixin
 from main_window.call_participants import CallParticipantsMixin
 from main_window.call_links import CallLinksMixin
 from main_window.call_media_stall import CallMediaStallMixin
@@ -363,6 +364,7 @@ class MainWindow(
     CallsMixin,
     DesktopCallAudioMixin,
     CallTranslationMixin,
+    CallCaptionsMixin,
     CallParticipantsMixin,
     CallLinksMixin,
     CallMediaStallMixin,
@@ -1449,6 +1451,8 @@ class MainWindow(
         call_sizer.Add(self.voice_call_window_desktop_audio_button, 0, wx.ALL, 8)
         self.voice_call_window_translation_button = self._make_live_translation_button(call_panel)
         call_sizer.Add(self.voice_call_window_translation_button, 0, wx.ALL, 8)
+        self.voice_call_window_captions_button = self._make_call_captions_button(call_panel)
+        call_sizer.Add(self.voice_call_window_captions_button, 0, wx.ALL, 8)
         call_panel.SetSizer(call_sizer)
         self._call_window_sizer = call_sizer
         self.voice_call_window.Bind(wx.EVT_CLOSE, self._on_voice_call_window_close)
@@ -1464,6 +1468,7 @@ class MainWindow(
         self.ID_CALL_VIDEO    = wx.NewIdRef()  # toggle video        (Ctrl+V)
         self.ID_CALL_PROMOTE  = wx.NewIdRef()  # voice -> video      (Ctrl+P)
         self.ID_CALL_PARTICIPANTS = wx.NewIdRef()  # call participants (Ctrl+Shift+P)
+        self.ID_CALL_CAPTIONS = wx.NewIdRef()  # live captions     (Ctrl+Shift+X)
         call_accel_tbl = make_shortcut_table(self, 'call', [
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("Q"), self.ID_CALL_END),
             (wx.ACCEL_CTRL,                  ord("M"), self.ID_CALL_MUTE),
@@ -1471,6 +1476,7 @@ class MainWindow(
             (wx.ACCEL_CTRL,                  ord("V"), self.ID_CALL_VIDEO),
             (wx.ACCEL_CTRL,                  ord("P"), self.ID_CALL_PROMOTE),
             (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("P"), self.ID_CALL_PARTICIPANTS),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord("X"), self.ID_CALL_CAPTIONS),
         ], target=self.voice_call_window)
         self.voice_call_window.SetAcceleratorTable(call_accel_tbl)
         self.voice_call_window.Bind(wx.EVT_MENU, self.end_active_call,          id=self.ID_CALL_END)
@@ -1479,6 +1485,7 @@ class MainWindow(
         self.voice_call_window.Bind(wx.EVT_MENU, self.toggle_call_video,        id=self.ID_CALL_VIDEO)
         self.voice_call_window.Bind(wx.EVT_MENU, self.promote_call_to_video,    id=self.ID_CALL_PROMOTE)
         self.voice_call_window.Bind(wx.EVT_MENU, self._show_active_call_participants, id=self.ID_CALL_PARTICIPANTS)
+        self.voice_call_window.Bind(wx.EVT_MENU, self._on_call_captions_command, id=self.ID_CALL_CAPTIONS)
         self.voice_call_window.Hide()
 
         self.main_panel = wx.Panel(self)

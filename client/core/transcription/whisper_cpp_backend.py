@@ -66,6 +66,7 @@ from core.transcription import (
     errors,
     external_ggml,
     precision,
+    vocabulary,
     whisper_cpp_builds,
     whisper_cpp_catalog,
     whisper_cpp_cli,
@@ -336,6 +337,10 @@ class WhisperCppBackend(TranscriptionBackend):
         build's files."""
         if not self._keeps_loaded():
             raise whisper_cpp_server.ServerUnavailable("not asked to keep the model loaded")
+        if vocabulary.ascii_prompt(request.initial_prompt):
+            # The server's per-request prompt field was not confirmed on a real
+            # run; whisper-cli's `--prompt` is the documented path.
+            raise whisper_cpp_server.ServerUnavailable("a vocabulary is set")
         build = self._build_for(request.device)
         executable = whisper_cpp_runtime.server_path(build, self._root_for(build))
         if executable is None:
@@ -365,6 +370,7 @@ class WhisperCppBackend(TranscriptionBackend):
             stderr_text = self._execute(
                 executable, model_file, request.audio_path, workdir, request.language,
                 request.device, vad_model, progress, should_cancel,
+                initial_prompt=vocabulary.ascii_prompt(request.initial_prompt),
             )
             try:
                 with open(os.path.join(workdir, "out.json"), "rb") as handle:
@@ -383,7 +389,7 @@ class WhisperCppBackend(TranscriptionBackend):
         return segments, language or detected, probability
 
     def _execute(self, executable, model_file, audio_file, workdir, language,
-                 device, vad_model, progress, should_cancel):
+                 device, vad_model, progress, should_cancel, initial_prompt=""):
         """Run the program to completion. Returns its stderr; raises on failure."""
         cpu_count = self._cpu_count if self._cpu_count is not None else os.cpu_count()
         files = [model_file, audio_file, os.path.join(workdir, "out")]
@@ -397,6 +403,7 @@ class WhisperCppBackend(TranscriptionBackend):
             whisper_cpp_cli.default_thread_count(cpu_count),
             use_gpu=device == DEVICE_CUDA,
             vad_model_path=relative[3] if vad_model else None,
+            prompt=initial_prompt,
         )
         returncode, stderr_text = _run_process(
             command, cwd, os.path.join(workdir, "stderr.log"), progress, should_cancel,

@@ -124,8 +124,12 @@ def language_argument(language) -> str:
 
 
 def build_command(executable, model_path, audio_path, output_base, language,
-                  threads, use_gpu, vad_model_path=None) -> list:
-    """The whole argument list. `output_base` is the JSON path minus ".json"."""
+                  threads, use_gpu, vad_model_path=None, prompt="") -> list:
+    """The whole argument list. `output_base` is the JSON path minus ".json".
+
+    `prompt` is the user's vocabulary, already reduced to plain ASCII
+    (vocabulary.ascii_prompt()); it goes after the other flags so that it is
+    the one argument whose text is never a flag, whatever it holds."""
     command = [
         executable,
         "-m", model_path,
@@ -140,6 +144,8 @@ def build_command(executable, model_path, audio_path, output_base, language,
         command.append("-ng")
     if vad_model_path:
         command += ["--vad", "-vm", vad_model_path]
+    if prompt:
+        command += ["--prompt", prompt]
     return command
 
 

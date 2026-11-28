@@ -12,7 +12,7 @@ literal section and key on both the load and the save side).
 
 import wx
 
-from core.transcription import residency
+from core.transcription import residency, vocabulary
 from core.transcription import stored as stored_transcription
 from ui.dialogs.settings_pages import dialog_owner
 
@@ -38,6 +38,18 @@ class TranscriptionOptionsMixin:
             page, label=i18n.t("transcription_no_dialog_check")
         )
         sizer.Add(self._transcription_no_dialog_check, 0, wx.ALL, 8)
+        # The label right before its field, so it is the field's name. Names
+        # and terms Whisper is told to expect (core/transcription/vocabulary.py);
+        # kept in this account's settings only.
+        self._transcription_vocabulary_label = wx.StaticText(
+            page, label=i18n.t("transcription_vocabulary_label")
+        )
+        sizer.Add(self._transcription_vocabulary_label, 0, wx.LEFT | wx.RIGHT | wx.TOP, 8)
+        self._transcription_vocabulary_field = wx.TextCtrl(
+            page, style=wx.TE_MULTILINE, size=(420, 80)
+        )
+        self._transcription_vocabulary_field.SetMaxLength(vocabulary.MAX_CHARS)
+        sizer.Add(self._transcription_vocabulary_field, 0, wx.EXPAND | wx.ALL, 8)
 
     def _build_transcription_options(self, page, sizer) -> None:
         i18n = self.main_window.i18n
@@ -218,6 +230,11 @@ class TranscriptionOptionsMixin:
         self._transcription_no_dialog_check.SetValue(
             bool(section.get("run_without_dialog", False))
         )
+        stored_vocabulary = section.get("vocabulary", "")
+        # ChangeValue: loading is not an edit (SetValue fires EVT_TEXT).
+        self._transcription_vocabulary_field.ChangeValue(
+            stored_vocabulary if isinstance(stored_vocabulary, str) else ""
+        )
 
     def _apply_transcription_options(self) -> None:
         section = self.main_window.settings.setdefault("transcription", {})
@@ -225,6 +242,11 @@ class TranscriptionOptionsMixin:
         section["auto_transcribe_received"] = self._transcription_auto_check.GetValue()
         section["auto_any_age"] = self._transcription_any_age_check.GetValue()
         section["run_without_dialog"] = self._transcription_no_dialog_check.GetValue()
+        # Written only when there is something, or something to clear: a user
+        # who never used it keeps a settings file without the key.
+        typed_vocabulary = self._transcription_vocabulary_field.GetValue().strip()
+        if typed_vocabulary or "vocabulary" in section:
+            section["vocabulary"] = typed_vocabulary
         section["auto_transcribe_statuses"] = self._transcription_status_auto_check.GetValue()
         section["status_cache_enabled"] = self._transcription_status_cache_check.GetValue()
         self.main_window.settings.setdefault("user_interface", {})[
@@ -254,6 +276,9 @@ class TranscriptionOptionsMixin:
         )
         self._transcription_no_dialog_check.SetLabel(
             i18n.t("transcription_no_dialog_check")
+        )
+        self._transcription_vocabulary_label.SetLabel(
+            i18n.t("transcription_vocabulary_label")
         )
         self._transcription_status_auto_check.SetLabel(
             i18n.t("transcription_status_auto_check")

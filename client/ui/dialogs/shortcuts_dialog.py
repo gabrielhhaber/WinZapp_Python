@@ -197,6 +197,7 @@ class ShortcutsDialog(wx.Dialog):
             i18n.t("shortcut_alt_shift_s_label"),
             i18n.t("shortcut_alt_shift_t_label"),
             i18n.t("shortcut_alt_shift_n_label"),
+            i18n.t("shortcut_dictate_label"),
             "",
             section("shortcuts_bulk_section"),
             i18n.t("shortcut_space_label"),

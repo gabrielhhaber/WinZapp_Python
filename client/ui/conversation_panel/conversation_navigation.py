@@ -341,6 +341,7 @@ class ConversationNavigationMixin:
         if hasattr(self, "close_ai_media"):
             self.close_ai_media()
         self._cancel_active_recording()
+        self._cancel_dictation()
         # Leaving the conversation invalidates any pending auto-chain timers —
         # they captured a target_msg from THIS conversation's list and would
         # otherwise start stale audio (possibly in the wrong chat) later.
@@ -649,6 +650,9 @@ class ConversationNavigationMixin:
             self.close_ai_media()
         self._stop_typing_for_current_conversation()
         self._cancel_active_recording()
+        cancel_dictation = getattr(self, "_cancel_dictation", None)
+        if cancel_dictation is not None:
+            cancel_dictation()
         summary_button = getattr(self, "_summary_btn", None)
         if summary_button is not None:
             summary_button.Hide()

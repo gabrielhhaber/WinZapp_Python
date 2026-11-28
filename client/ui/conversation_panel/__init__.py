@@ -34,6 +34,7 @@ Where to look (and where new code goes):
     message_actions          star, pin, delete, cancel, edit, resend
     message_stars            sequential star jobs, explicit old-star migration
     message_accels           accelerator handlers for messages
+    dictation                dictating into the message field with the local Whisper (ACC-03)
     bulk_messages            bulk actions on selected messages
     bulk_copy_files          copying the selected files (and text) to the clipboard as files
     bulk_transcription       transcribing the selected messages in one go (#469)
@@ -82,6 +83,7 @@ Where to look (and where new code goes):
     selection_rules          pure chat multi-selection rules
     bulk_copy_plan           which selected messages copy as text, which as files; staged names
     transfer_gauge           the focus-keeping transfer gauge control
+    audio_seek               jump the playing voice message to a second (the transcription's [mm:ss] list)
 
 Rules for this package:
 

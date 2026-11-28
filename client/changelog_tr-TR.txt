@@ -2,6 +2,16 @@ V3.1.0.0
 
 Bu sürüm 3.0.0.0 üzerine düzeltmeler getirir.
 
+YENİLİKLER
+
+- Uzun kayıtların yerel dökümü (2 dakikadan uzun): sonuç penceresinde artık bir bölümler listesi de var; her satır süresiyle başlar, örneğin "[01:05] ...". "Buradan dinle" (veya Enter), o mesaj çalıyorsa sesli mesajı o saniyeye götürür; "Sürelerle kopyala" satırları kopyalar. Üstteki metin ile pencerenin Kopyala ve Kaydet düğmeleri sürelerden arınmış kalır. Mesajdan yeniden açılan bir döküm yalnızca metni içerir, bu liste olmaz.
+
+- Yerel döküm kelime listesi: Ayarlar, Yerel döküm, Gelişmiş seçenekler içindeki "Kelime listesi" alanı, Whisper'ın doğru yazması için beklemesi gereken adları, kısaltmaları ve terimleri (her satırda bir tane) alır. Liste bu bilgisayarda kalır, günlüğe asla yazılmaz ve internete gitmez; whisper.cpp yalnızca aksansız terimleri kullanır. Zaten kaydedilmiş bir döküm, liste değişince yeniden yapılmaz.
+
+- Mesaj alanında dikte: Ctrl+Shift+J mikrofonu dinlemeye başlar, aynı tuş durdurur. Konuşma bu bilgisayarda, daha önce kurduğunuz yerel Whisper ile metne dönüştürülür; metin mesajdaki imleç konumuna girer (varsa seçili metnin yerine geçer) ve sesli okunur. Mesaj kendiliğinden asla gönderilmez, ses asla kaydedilmez ya da bir yere gönderilmez; hazır bir model yoksa WinZapp bir model indirmek yerine nedenini söyler. Sesli mesaj kaydederken veya aramadayken dikte açık bir cümleyle reddedilir. Tuş Ayarlar > Klavye kısayolları bölümünden değiştirilebilir.
+
+- Aramalarda canlı altyazı: arama sırasında "Canlı altyazı" (Ctrl+Shift+X veya arama penceresindeki düğmesi), arama denetimlerinin odağını almadan, karşı tarafın söylediklerini bu bilgisayarda yerel Whisper modeliyle metne dönüştürülmüş tam cümleler olarak listeleyen bir pencere açar; komuta tekrar basmak pencereye geçirir. "Kopyala" ve "Kaydet..." yalnızca bastığınızda çalışır, hiçbir şey kendiliğinden kaydedilmez ve "Altyazıları sesli oku" varsayılan olarak kapalıdır. Model bir mesajın yazıya dökümü veya dikte için kullanılırken canlı altyazı reddedilir ve arama sesi bozulmaya başlarsa kendiliğinden kapanır.
+
 DÜZELTMELER
 
 - WinZapp'ı açma: yavaş bir diskte WinZapp, kişi listesini kaydederken başlangıçta "Database call timed out after 20s" hatasıyla durabiliyor, bir sonraki denemede normal açılıyordu. Çok sayıda kişiyi kaydetmek artık diğer toplu kayıtlar kadar bekliyor ve başlangıçta kaydedilemeyen bir kişi WinZapp'ın açılmasını artık engellemiyor.
