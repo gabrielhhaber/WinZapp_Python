@@ -667,6 +667,13 @@
   <li>Mono voice messages are recorded at 64 kbps by default and stereo ones at 128 kbps. In Settings &gt; Audio, "Voice message bitrate (kbps)" (mono) and "Stereo voice message bitrate (kbps)" let you choose from 32 to 256 kbps.</li>
 </ul>
 
+<h3>Dettare nel messaggio</h3>
+<table class="field-table">
+  <tr><th>Shortcut</th><th>Action</th></tr>
+  <tr><td class="field-name">Ctrl+Shift+J</td><td>Inizia a dettare nel campo del messaggio; premi di nuovo per fermare e inserire il testo</td></tr>
+</table>
+<p>Nel campo del messaggio, premi <kbd>Ctrl+Shift+J</kbd> per dettare: il suono della registrazione vocale avvisa che sta ascoltando, tu parli e lo stesso tasto si ferma. Il parlato viene trascritto su questo computer, con la trascrizione locale di Whisper che hai già configurato (valgono il tuo vocabolario e le scelte di lingua), e il testo entra nella posizione del cursore del messaggio; se c'è testo selezionato, viene sostituito, e <kbd>Ctrl+Z</kbd> lo ripristina. WinZapp legge ciò che è stato inserito (solo le prime parole se è lungo) e il focus resta nel campo. Il messaggio non viene mai inviato da solo, l'audio non viene mai salvato né inviato da nessuna parte e non viene scaricato nulla: se non c'è un modello pronto, WinZapp ne dice il motivo. Mentre ascolta, vale anche l'opzione che silenzia la voce di WinZapp durante le registrazioni. Premere il tasto mentre si apre o trascrive annulla, e anche uscire dalla conversazione annulla. Non parte durante la registrazione di un messaggio vocale né durante una chiamata (e lo dice), e un messaggio vocale non parte mentre detti. Una dettatura dura fino a 5 minuti. Puoi cambiare il tasto nella scheda Scorciatoie da tastiera delle Impostazioni.</p>
+
 <h3>Listen</h3>
 <ul>
   <li>On voice and audio messages, <strong>Enter</strong> or <strong>Space</strong> play and pause. In Settings &gt; Audio you can tell voice messages apart from audio files.</li>
@@ -725,6 +732,8 @@
   <li><strong>In bulk:</strong> WinZapp says how many messages will be transcribed, skipped or reused, transcribes one at a time ("message 3 of 12"), continues if one fails and says at the end how many succeeded, were skipped and failed. The same shortcut or the context menu cancels the queue, and the context menu shows all the transcriptions together, with sender, date and time, to copy or save. With "Sostituisci le scorciatoie con le azioni in blocco quando selezioni chat e messaggi", Alt+Shift+T and Alt+Shift+N also act on the selection.</li>
   <li><strong>Background downloads:</strong> with "Download updates and transcription downloads in the background, without the progress window" (Settings &gt; General), models, whisper.cpp and CUDA download without the progress window, and "Annulla il download in background" stops it.</li>
   <li><strong>Status:</strong> audio and video statuses can be transcribed in the Status tab, with the same keys (see the Status section).</li>
+  <li><strong>Registrazioni lunghe:</strong> quando una trascrizione appena fatta dura più di 2 minuti, la finestra ha anche un elenco chiamato "Momenti della registrazione (tempo e testo)", una riga per momento, ciascuna con il proprio tempo all'inizio, come "[01:05] ...". "Ascolta da qui" (o Invio su una riga) porta il messaggio vocale a quel secondo, purché sia quello in riproduzione; altrimenti WinZapp ti dice di riprodurlo prima. "Copia con i tempi" copia le righe con i loro tempi, mentre il campo di testo, Copia e Salva non hanno mai i tempi. Una trascrizione riaperta dal messaggio ha solo il testo, senza questo elenco.</li>
+  <li><strong>Vocabolario:</strong> il campo "Vocabolario" in "Opzioni Avanzate..." accetta nomi, sigle e termini, uno per riga (fino a 300 caratteri), che Whisper deve aspettarsi per scriverli bene. L'elenco resta nelle impostazioni di questo account su questo computer, non viene mai scritto nel registro e non va mai online. whisper.cpp usa solo i termini senza accenti. È un suggerimento, non un altro modello: una trascrizione già salvata non viene rifatta quando l'elenco cambia (eliminala e trascrivi di nuovo per usare termini nuovi).</li>
 </ul>
 
 <h3>Online AI</h3>
@@ -787,6 +796,7 @@
 <p>Nelle chiamate individuali con Neonize, l’audio ricevuto raggiunge il buffer di riproduzione senza un’attesa duplicata nel motore. L’adattamento automatico alle variazioni del ritardo di rete rimane attivo, senza modificare le impostazioni.</p>
 <p>L’ottimizzazione della conversione dell’audio del microfono nelle chiamate con Neonize è automatica e non richiede modifiche alle impostazioni. Se il motore installato non la supporta, WinZapp continua a usare l’elaborazione compatibile.</p>
 <p>Durante una chiamata individuale, scegli Avvia traduzione dal vivo. Solo io riproduce la voce dell’altra persona nella tua lingua. Entrambi traduce anche il tuo microfono per l’altra persona. Puoi abbassare il volume della voce originale durante la traduzione. Imposta i valori predefiniti in Impostazioni &gt; Chiamate &gt; Traduzione dal vivo e salva una chiave Gemini nelle impostazioni IA. Durante la riconnessione automatica si sente l’audio originale.</p>
+<p>Sottotitoli dal vivo: durante una chiamata, usa "Sottotitoli dal vivo" (Ctrl+Shift+X, o il pulsante nella finestra della chiamata) per leggere come testo ciò che dice l'altra persona. Usano il modello Whisper locale che hai già configurato in Impostazioni &gt; Trascrizione locale, quindi l'audio non lascia questo computer, e vengono rifiutati con una frase se il modello non è pronto o se una trascrizione di messaggio o un dettato lo sta usando. La finestra si apre senza togliere il focus: i controlli della chiamata lo mantengono e non viene detto nulla. Premi di nuovo lo stesso comando per passare alla finestra, leggi l'elenco come qualsiasi altro ed esci con Esc o "Chiudi", che disattiva i sottotitoli. L'elenco riceve una riga per frase completa, mai parola per parola; in una chiamata individuale ogni riga comincia con il nome dell'altra persona, e in una chiamata di gruppo non c'è nome, perché WinZapp riceve l'audio mescolato. "Copia" e "Salva..." agiscono solo quando li premi: nulla viene scritto su disco da solo e il testo sparisce quando chiudi la finestra (quando la chiamata finisce la finestra resta, così puoi ancora copiare o salvare). "Leggi i sottotitoli a voce alta" è disattivata di default; attivata, le frasi passano dal tuo lettore di schermo, unite perché parli al massimo una volta ogni uno o due secondi, e l'elenco le ha sempre tutte. Se la trascrizione non regge il ritmo, le frasi più vecchie vengono saltate e la riga di stato della finestra dice quante. I sottotitoli dal vivo si disattivano da soli, con una frase, se l'audio della chiamata comincia a risentirne o la trascrizione fallisce. Ogni frase resta per un momento come un piccolo file audio temporaneo per la trascrizione, come nel dettato, e viene cancellata subito dopo.</p>
 <p>Neonize call audio includes fixes for silence after answering, lost audio frames and distortion during sample-rate conversion. Codec selection follows WhatsApp automatically; there is no codec switch to configure. This experimental engine still needs real-call quality evaluation; equal quality to other calling apps is not guaranteed.</p>
 
 <p>Neonize keeps its normal call audio mode by default. A developer-only experimental 48 kHz path is available for calls negotiated with Opus; it does not change the MLow codec or add a control to the call window. Updating does not enable it automatically.</p>
@@ -810,6 +820,7 @@
   <tr><td class="field-name">Ctrl+V</td><td>Turn the camera on or off, in a video call</td></tr>
   <tr><td class="field-name">Ctrl+P</td><td>Turn a voice call into a video call</td></tr>
   <tr><td class="field-name">Ctrl+Shift+P</td><td>Open "Partecipanti alla chiamata"</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+X</td><td>Aprire la finestra "Sottotitoli dal vivo", o passarci quando è già aperta</td></tr>
   <tr><td class="field-name">Ctrl+C</td><td>Open the call settings (microphone, speaker, camera)</td></tr>
   <tr><td class="field-name">Ctrl+Shift+Q</td><td>Hang up</td></tr>
 </table>
@@ -1300,6 +1311,7 @@
 <tr><td class="field-name">Alt+Shift+P</td><td>Vai al messaggio precedente che ti risponde</td></tr>
 <tr><td class="field-name">Alt+Shift+J</td><td>Passa al messaggio successivo in cui vieni menzionato</td></tr>
 <tr><td class="field-name">Alt+Shift+O</td><td>Passa al messaggio successivo che contiene una risposta per te</td></tr>
+<tr><td class="field-name">Ctrl+Shift+J</td><td>Detta nel campo del messaggio (premi per iniziare, premi di nuovo per fermare e inserire il testo)</td></tr>
 <tr><td class="field-name">Alt+Shift+C</td><td>Copia il numero di telefono</td></tr>
 <tr><td class="field-name">Alt+Shift+V</td><td>Chat con i partecipanti (gruppi)</td></tr>
 <tr><td class="field-name">Ctrl+Shift+V</td><td>Chiamata vocale</td></tr>
@@ -1452,6 +1464,7 @@
 <tr><td class="field-name">Ctrl+V</td><td>Attiva o disattiva il video in una videochiamata</td></tr>
 <tr><td class="field-name">Ctrl+P</td><td>Passa da una chiamata vocale a una videochiamata</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Mostra i partecipanti della chiamata</td></tr>
+<tr><td class="field-name">Ctrl+Shift+X</td><td>Sottotitoli dal vivo della chiamata (premi di nuovo per andare ai sottotitoli)</td></tr>
 </table>
 <h3>Chiamata in arrivo</h3>
 <table class="field-table">
@@ -1534,6 +1547,10 @@
 <p class="lead">Every new alpha that brings features is added to the guide. This list shows up to which alpha the guide is complete and what was added in each round.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>What went into the guide</th></tr>
+  <tr><td class="field-name">Non ancora pubblicato</td><td>Sottotitoli dal vivo nelle chiamate: durante una chiamata, "Sottotitoli dal vivo" (Ctrl+Shift+X, o il suo pulsante nella finestra della chiamata) apre una finestra, senza togliere il focus ai controlli della chiamata, che elenca ciò che dice l'altra persona in frasi complete, trascritte su questo computer dal modello Whisper locale; premendo di nuovo il comando si passa alla finestra. "Copia" e "Salva..." agiscono solo quando li premi, nulla viene salvato da solo, e "Leggi i sottotitoli a voce alta" è disattivata di default. I sottotitoli dal vivo vengono rifiutati mentre una trascrizione di messaggio o un dettato usa il modello, e si disattivano da soli se l'audio della chiamata comincia a risentirne.</td></tr>
+  <tr><td class="field-name">Non ancora pubblicato</td><td>Dettatura nel campo del messaggio: Ctrl+Shift+J inizia ad ascoltare il microfono e lo stesso tasto lo ferma. Il parlato viene trascritto su questo computer, con il Whisper locale che hai già configurato, e il testo entra nella posizione del cursore del messaggio (sostituendo la selezione, se c'è) e viene letto ad alta voce. Il messaggio non viene mai inviato da solo, l'audio non viene mai salvato né inviato da nessuna parte e, se non c'è un modello pronto, WinZapp ne dice il motivo invece di scaricarne uno. Viene rifiutata con una frase chiara mentre registri un messaggio vocale o sei in una chiamata. Il tasto si può cambiare in Impostazioni &gt; Scorciatoie da tastiera.</td></tr>
+  <tr><td class="field-name">Non ancora pubblicato</td><td>Vocabolario della trascrizione locale: in Impostazioni, Trascrizione locale, Opzioni Avanzate, "Vocabolario" accetta nomi, sigle e termini (uno per riga) che Whisper deve aspettarsi per scriverli bene. L'elenco resta su questo computer, non viene mai scritto nel registro e non va mai online; whisper.cpp usa solo i termini senza accenti. Una trascrizione già salvata non viene rifatta quando l'elenco cambia.</td></tr>
+  <tr><td class="field-name">Non ancora pubblicato</td><td>Trascrizione locale di registrazioni lunghe (oltre 2 minuti): la finestra del risultato ha ora anche un elenco di momenti, ogni riga con il suo tempo all'inizio, come "[01:05] ...". "Ascolta da qui" (o Invio) porta il messaggio vocale a quel secondo quando è quello in riproduzione, e "Copia con i tempi" copia le righe; il testo sopra e i pulsanti Copia e Salva della finestra restano senza tempi. Una trascrizione riaperta dal messaggio ha solo il testo, senza questo elenco.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Messaggi inviati: con il motore Neonize, i messaggi che inviavi potevano sparire dalla conversazione alla riapertura di WinZapp, perché non ne veniva salvata alcuna copia. Ora ogni messaggio inviato viene salvato non appena l’invio è confermato.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Chiamate di gruppo Neonize: l’audio di ogni persona ha la sua riproduzione con NetEQ; un pacchetto audio perso viene recuperato dalla copia che alcuni telefoni inviano nel successivo.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Messaggi fissati: la finestra "Messaggi fissati" ha il menu contestuale e le scorciatoie dell'elenco dei messaggi; "Sfissa selezionati" e Ctrl+Shift+P con messaggi selezionati; l'opzione "Annuncia quanti messaggi sono fissati all'apertura di una chat".</td></tr>

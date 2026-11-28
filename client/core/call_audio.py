@@ -468,9 +468,22 @@ class CallAudioSession:
         # only pays for a copy. Bounded: nobody drains it while ringing.
         self._echo_reference_tap: "deque[tuple[np.ndarray, int]]" = deque(maxlen=64)
         self._reference_resampler = _ReferenceResampler()
+        # Live captions (core/call_captions.py): a copy of the received PCM
+        # for a consumer on its own threads. None unless the user turned the
+        # captions on; set and cleared by plain assignment.
+        self._caption_tap = None
         configure_transport = getattr(self._transport, 'configure', None)
         if callable(configure_transport):
             configure_transport(self.enqueue_remote_audio, self._stream_epoch)
+
+    def set_caption_tap(self, tap) -> None:
+        self._caption_tap = tap
+
+    @property
+    def remote_underruns(self) -> int:
+        """How often the playback reservoir starved: the captions' guard reads
+        it to see whether they made the call worse."""
+        return self._output_buffer.underruns
 
     @property
     def microphone_muted(self) -> bool:
@@ -797,6 +810,15 @@ class CallAudioSession:
             sample_rate = int(sample_rate or CALL_SAMPLE_RATE)
         except (TypeError, ValueError):
             sample_rate = CALL_SAMPLE_RATE
+        # The original speech, before a live translation takes it over. The
+        # tap's offer() is one bounded append and never raises or blocks.
+        tap = self._caption_tap
+        if tap is not None:
+            try:
+                tap.offer(pcm, sample_rate)
+            except Exception:
+                # The captions are optional; the call's audio is not.
+                self._caption_tap = None
         directions = self._live_translation
         if directions and directions[0].feed(pcm, sample_rate):
             return

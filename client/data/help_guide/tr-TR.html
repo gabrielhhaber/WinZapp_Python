@@ -667,6 +667,13 @@
   <li>Mono sesli mesajlar varsayılan olarak 64 kbps, stereo olanlar 128 kbps ile kaydedilir. Ayarlar &gt; Ses içindeki "Sesli mesaj bit hızı (kbps)" (mono) ve "Stereo sesli mesaj bit hızı (kbps)" ile 32 ile 256 kbps arasında seçim yapılır.</li>
 </ul>
 
+<h3>Mesaja dikte etme</h3>
+<table class="field-table">
+  <tr><th>Kısayol</th><th>İşlem</th></tr>
+  <tr><td class="field-name">Ctrl+Shift+J</td><td>Mesaj alanına dikte etmeyi başlatır; durdurup metni eklemek için tekrar basın</td></tr>
+</table>
+<p>Mesaj alanında dikte etmek için <kbd>Ctrl+Shift+J</kbd> tuşuna basın: sesli mesaj kaydının sesi dinlediğini bildirir, siz konuşursunuz ve aynı tuş durdurur. Konuşma bu bilgisayarda, daha önce kurduğunuz yerel Whisper dökümüyle metne dönüştürülür (sözlüğünüz ve dil seçimleriniz geçerlidir) ve metin mesajdaki imleç konumuna girer; metin seçiliyse yerine geçer ve <kbd>Ctrl+Z</kbd> onu geri getirir. WinZapp eklenen metni okur (uzunsa yalnızca ilk sözcükleri) ve odak alanda kalır. Mesaj kendiliğinden asla gönderilmez, ses asla kaydedilmez ya da bir yere gönderilmez ve hiçbir şey indirilmez: hazır bir model yoksa WinZapp nedenini söyler. Dinlerken, WinZapp'in konuşmasını kayıtlar sırasında susturan seçenek de geçerlidir. Açılırken veya metne dönüştürülürken tuşa basmak iptal eder, sohbetten ayrılmak da iptal eder. Sesli mesaj kaydı veya arama sırasında başlamaz (bunu söyler) ve siz dikte ederken sesli mesaj başlamaz. Bir dikte en fazla 5 dakika sürer. Tuşu Ayarlar'ın Kısayollar sekmesinden değiştirebilirsiniz.</p>
+
 <h3>Dinleme</h3>
 <ul>
   <li>Sesli mesajlarda ve seslerde <strong>Enter</strong> veya <strong>Boşluk</strong> oynatır ve duraklatır. Ayarlar &gt; Ses içinde sesli mesajları ses dosyalarından ayırabilirsiniz.</li>
@@ -725,6 +732,8 @@
   <li><strong>Toplu:</strong> WinZapp kaç mesajın yazıya dökülüp atlanacağını veya yeniden kullanılacağını söyler, tek tek yazıya döker ("Mesaj 3 / 12 yazıya dökülüyor"), biri başarısız olursa devam eder ve sonunda kaçının başarılı olduğunu, atlandığını ve başarısız olduğunu söyler. Aynı kısayol ya da bağlam menüsü kuyruğu iptal eder ve bağlam menüsü tüm dökümleri gönderen, tarih ve saatle birlikte, kopyalamak veya kaydetmek için gösterir. "Sohbet ve mesaj seçerken kısayolları toplu işlemlerle değiştir" ile Alt+Shift+T ve Alt+Shift+N seçim üzerinde de çalışır.</li>
   <li><strong>Arka planda indirmeler:</strong> "Güncellemeleri ve yazıya döküm indirmelerini ilerleme penceresi olmadan arka planda indir" (Ayarlar &gt; Genel) ile modeller, whisper.cpp ve CUDA ilerleme penceresi olmadan iner ve "Arka plan indirmesini iptal et" onu durdurur.</li>
   <li><strong>Durumlar:</strong> ses ve video durumları, aynı tuşlarla Durum sekmesinde yazıya dökülebilir (Durumlar bölümüne bakın).</li>
+  <li><strong>Uzun kayıtlar:</strong> az önce yaptığınız bir döküm 2 dakikayı aşıyorsa, pencerede ayrıca "Kaydın bölümleri (süre ve metin)" adlı bir liste bulunur; her bölüm için bir satır vardır ve her satır süresiyle başlar, örneğin "[01:05] ...". "Buradan dinle" (veya bir satırda Enter), o mesaj çalıyorsa sesli mesajı o saniyeye götürür; çalmıyorsa WinZapp önce onu oynatmanızı söyler. "Sürelerle kopyala" satırları süreleriyle kopyalar; metin alanı, Kopyala ve Kaydet ise hiçbir zaman süre içermez. Mesajdan yeniden açılan bir döküm yalnızca metni içerir, bu liste olmaz.</li>
+  <li><strong>Kelime listesi:</strong> "Gelişmiş seçenekler..." içindeki "Kelime listesi" alanı, Whisper'ın doğru yazması için beklemesi gereken adları, kısaltmaları ve terimleri, her satırda bir tane (en fazla 300 karakter), alır. Liste bu bilgisayarda, bu hesabın ayarlarında kalır, günlüğe asla yazılmaz ve internete gitmez. whisper.cpp yalnızca aksansız terimleri kullanır. Bu bir ipucudur, başka bir model değildir: zaten kaydedilmiş bir döküm liste değişince yeniden yapılmaz (yeni terimleri kullanmak için silin ve yeniden dökün).</li>
 </ul>
 
 <h3>Çevrimiçi yapay zekâ</h3>
@@ -787,6 +796,7 @@
 <p>Neonize bire bir aramalarında gelen ses, motorda yinelenen bir bekleme olmadan oynatma tamponuna ulaşır. Ağ gecikmesindeki değişimlere otomatik uyum etkin kalır ve ayarları değiştirmeniz gerekmez.</p>
 <p>Neonize aramalarında mikrofon sesi dönüştürme optimizasyonu otomatiktir ve ayarları değiştirmenizi gerektirmez. Yüklü motor optimizasyonu desteklemiyorsa WinZapp uyumlu işleme yöntemini kullanmaya devam eder.</p>
 <p>Bire bir aramada Canlı çeviriyi başlat seçeneğini kullanın. Yalnızca ben, karşı tarafın sesini dilinizde oynatır. İki taraf da, mikrofonunuzu karşı tarafın diline de çevirir. Çeviri sırasında karşı tarafın özgün sesini kısabilirsiniz. Varsayılanları Ayarlar &gt; Aramalar &gt; Canlı çeviri bölümünde seçin ve yapay zekâ ayarlarına bir Gemini anahtarı kaydedin. Otomatik yeniden bağlantı sırasında özgün ses duyulur.</p>
+<p>Canlı altyazı: arama sırasında karşı tarafın söylediklerini metin olarak okumak için "Canlı altyazı" komutunu (Ctrl+Shift+X veya arama penceresindeki düğme) kullanın. Ayarlar &gt; Yerel yazıya döküm içinde zaten kurduğunuz yerel Whisper modelini kullanır, bu yüzden ses bu bilgisayardan çıkmaz; model hazır değilse ya da bir mesajın yazıya dökümü veya dikte onu kullanıyorsa bir cümleyle reddedilir. Pencere odağı almadan açılır: arama denetimleri odağı korur ve hiçbir şey seslendirilmez. Pencereye geçmek için aynı komuta tekrar basın, listeyi diğer listeler gibi okuyun ve Esc veya "Kapat" ile çıkın; bu, altyazıyı kapatır. Liste, tam cümle başına bir satır alır, hiçbir zaman sözcük sözcük değil; bireysel bir aramada her satır karşı tarafın adıyla başlar, grup aramasında ise ad yoktur, çünkü WinZapp karışık sesi alır. "Kopyala" ve "Kaydet..." yalnızca bastığınızda çalışır: diske kendiliğinden hiçbir şey yazılmaz ve pencereyi kapattığınızda metin kaybolur (arama bittiğinde pencere kalır, böylece yine kopyalayabilir veya kaydedebilirsiniz). "Altyazıları sesli oku" varsayılan olarak kapalıdır; açıkken cümleler ekran okuyucunuzdan geçer, en fazla bir iki saniyede bir konuşması için birleştirilir ve liste her zaman hepsini içerir. Yazıya döküm yetişemezse eski cümleler atlanır ve pencerenin durum satırı kaç tane olduğunu söyler. Canlı altyazı, arama sesi bozulmaya başlarsa veya yazıya döküm başarısız olursa bir cümleyle kendiliğinden kapanır. Her cümle, dikte gibi, yazıya döküm için kısa bir geçici ses dosyası olarak bir an tutulur ve hemen ardından silinir.</p>
 <p>Neonize arama sesinde yanıtlama sonrası sessizlik, kaybolan ses kareleri ve örnekleme hızı dönüşümündeki bozulma için düzeltmeler bulunur. Codec, WhatsApp ile otomatik belirlenir; ayarlamanız gereken bir codec seçeneği yoktur. Deneysel motorun gerçek aramalardaki kalitesi ayrıca değerlendirilmelidir; diğer arama uygulamalarıyla eşit kalite garanti edilmez.</p>
 
 <p>Neonize varsayılan olarak normal arama sesi modunu korur. Opus seçilen aramalar için geliştiricilere yönelik deneysel bir 48 kHz yolu vardır; MLow kodeğini değiştirmez ve arama penceresine bir ayar eklemez. Güncelleme bu yolu kendiliğinden açmaz.</p>
@@ -810,6 +820,7 @@
   <tr><td class="field-name">Ctrl+V</td><td>Görüntülü aramada kamerayı aç veya kapat</td></tr>
   <tr><td class="field-name">Ctrl+P</td><td>Sesli aramayı görüntülü aramaya çevir</td></tr>
   <tr><td class="field-name">Ctrl+Shift+P</td><td>"Arama katılımcıları" düğmesini aç</td></tr>
+  <tr><td class="field-name">Ctrl+Shift+X</td><td>"Canlı altyazı" penceresini açmak veya zaten açıksa ona geçmek</td></tr>
   <tr><td class="field-name">Ctrl+C</td><td>Arama ayarlarını aç (mikrofon, hoparlör, kamera)</td></tr>
   <tr><td class="field-name">Ctrl+Shift+Q</td><td>Aramayı bitir</td></tr>
 </table>
@@ -1300,6 +1311,7 @@
 <tr><td class="field-name">Alt+Shift+P</td><td>Size yanıt veren önceki mesaja git</td></tr>
 <tr><td class="field-name">Alt+Shift+J</td><td>Sizden bahseden sonraki mesaja git</td></tr>
 <tr><td class="field-name">Alt+Shift+O</td><td>Size yanıt veren sonraki mesaja git</td></tr>
+<tr><td class="field-name">Ctrl+Shift+J</td><td>Mesaj alanına dikte et (başlatmak için basın, durdurup metni eklemek için tekrar basın)</td></tr>
 <tr><td class="field-name">Alt+Shift+C</td><td>Telefon numarasını kopyala</td></tr>
 <tr><td class="field-name">Alt+Shift+V</td><td>Katılımcıyla sohbet et (gruplar)</td></tr>
 <tr><td class="field-name">Ctrl+Shift+V</td><td>Sesli ara</td></tr>
@@ -1453,6 +1465,7 @@
 <tr><td class="field-name">Ctrl+V</td><td>Görüntülü aramada videoyu aç veya kapat</td></tr>
 <tr><td class="field-name">Ctrl+P</td><td>Sesli aramayı görüntülü aramaya geçir</td></tr>
 <tr><td class="field-name">Ctrl+Shift+P</td><td>Arama katılımcılarını göster</td></tr>
+<tr><td class="field-name">Ctrl+Shift+X</td><td>Aramanın canlı altyazısı (altyazılara geçmek için tekrar basın)</td></tr>
 </table>
 <h3>Gelen arama</h3>
 <table class="field-table">
@@ -1535,6 +1548,10 @@
 <p class="lead">Özellik getiren her yeni alpha kılavuza eklenir. Bu liste kılavuzun hangi alpha'ya kadar tam olduğunu ve her turda neyin eklendiğini gösterir.</p>
 <table class="field-table">
   <tr><th>Alpha</th><th>Kılavuza girenler</th></tr>
+  <tr><td class="field-name">Henüz yayınlanmadı</td><td>Aramalarda canlı altyazı: arama sırasında "Canlı altyazı" (Ctrl+Shift+X veya arama penceresindeki düğmesi), arama denetimlerinin odağını almadan, karşı tarafın söylediklerini bu bilgisayarda yerel Whisper modeliyle metne dönüştürülmüş tam cümleler olarak listeleyen bir pencere açar; komuta tekrar basmak pencereye geçirir. "Kopyala" ve "Kaydet..." yalnızca bastığınızda çalışır, hiçbir şey kendiliğinden kaydedilmez ve "Altyazıları sesli oku" varsayılan olarak kapalıdır. Model bir mesajın yazıya dökümü veya dikte için kullanılırken canlı altyazı reddedilir ve arama sesi bozulmaya başlarsa kendiliğinden kapanır.</td></tr>
+  <tr><td class="field-name">Henüz yayınlanmadı</td><td>Mesaj alanında dikte: Ctrl+Shift+J mikrofonu dinlemeye başlar, aynı tuş durdurur. Konuşma bu bilgisayarda, daha önce kurduğunuz yerel Whisper ile metne dönüştürülür; metin mesajdaki imleç konumuna girer (varsa seçili metnin yerine geçer) ve sesli okunur. Mesaj kendiliğinden asla gönderilmez, ses asla kaydedilmez ya da bir yere gönderilmez; hazır bir model yoksa WinZapp bir model indirmek yerine nedenini söyler. Sesli mesaj kaydederken veya aramadayken dikte açık bir cümleyle reddedilir. Tuş Ayarlar &gt; Klavye kısayolları bölümünden değiştirilebilir.</td></tr>
+  <tr><td class="field-name">Henüz yayınlanmadı</td><td>Yerel döküm kelime listesi: Ayarlar, Yerel döküm, Gelişmiş seçenekler içindeki "Kelime listesi" alanı, Whisper'ın doğru yazması için beklemesi gereken adları, kısaltmaları ve terimleri (her satırda bir tane) alır. Liste bu bilgisayarda kalır, günlüğe asla yazılmaz ve internete gitmez; whisper.cpp yalnızca aksansız terimleri kullanır. Zaten kaydedilmiş bir döküm, liste değişince yeniden yapılmaz.</td></tr>
+  <tr><td class="field-name">Henüz yayınlanmadı</td><td>Uzun kayıtların yerel dökümü (2 dakikadan uzun): sonuç penceresinde artık bir bölümler listesi de var; her satır süresiyle başlar, örneğin "[01:05] ...". "Buradan dinle" (veya Enter), o mesaj çalıyorsa sesli mesajı o saniyeye götürür; "Sürelerle kopyala" satırları kopyalar. Üstteki metin ile pencerenin Kopyala ve Kaydet düğmeleri sürelerden arınmış kalır. Mesajdan yeniden açılan bir döküm yalnızca metni içerir, bu liste olmaz.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Gönderilen mesajlar: Neonize motorunda, gönderdiğiniz mesajlar WinZapp yeniden açıldığında konuşmadan kaybolabiliyordu, çünkü bir kopyaları saklanmıyordu. Gönderilen her mesaj artık gönderimi onaylanır onaylanmaz saklanıyor.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Neonize grup aramaları: her kişinin sesinin kendi NetEQ oynatması vardır; kaybolan bir ses paketi, bazı telefonların sonraki pakette gönderdiği kopyadan kurtarılır.</td></tr>
   <tr><td class="field-name">3.0.0.0</td><td>Sabitlenen mesajlar: "Sabitlenen mesajlar" penceresinde mesaj listesinin bağlam menüsü ve kısayolları; seçili mesajlarda "Seçilenlerin sabitlemesini kaldır" ve Ctrl+Shift+P; "Bir sohbet açılınca kaç mesajın sabitlendiğini duyur" seçeneği.</td></tr>

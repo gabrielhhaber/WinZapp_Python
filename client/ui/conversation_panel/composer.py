@@ -149,7 +149,8 @@ class ComposerMixin:
         if checker is not None and self._spell_check_enabled():
             result = checker.suggestions_at(text, _value_index(text, position))
         writing_offered = self._writing_help_offered(text)
-        if result is None and not writing_offered:
+        dictation_offered = self._dictation_menu_offered() if hasattr(self, "_dictation_menu_offered") else False
+        if result is None and not writing_offered and not dictation_offered:
             event.Skip()
             return
         t = self.main_window.i18n.t
@@ -164,9 +165,13 @@ class ComposerMixin:
                 suggestion_ids[int(item_id)] = suggestion
             menu.AppendSubMenu(suggestions_menu, t("spell_orthography"))
             menu.AppendSeparator()
+        if dictation_offered:
+            dictate_item = menu.Append(wx.ID_ANY, self._dictation_menu_label())
+            menu.Bind(wx.EVT_MENU, lambda e: self._on_dictation_shortcut(), dictate_item)
         if writing_offered:
             writing_item = menu.Append(wx.ID_ANY, self._writing_menu_label())
             menu.Bind(wx.EVT_MENU, lambda e: self._on_writing_help(), writing_item)
+        if dictation_offered or writing_offered:
             menu.AppendSeparator()
         # Keep the standard edit commands next to the suggestions. The labels
         # come from the locale files: wx stock labels would be English, as the

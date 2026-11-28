@@ -33,6 +33,7 @@ from core.voice_recording_mode import (
 from core.voice_nr_send_plan import plan_send_reduction
 from core.voice_nr_options import (
     effective_nr_on_failure, nr_local_id, voice_nr_engine, voice_nr_moment)
+from core import dictation
 from core.focus_cloak import cloak_panel_focus_fallback
 from app_paths import data_path
 from core.utils import decrypt_bytes, encrypt
@@ -193,6 +194,9 @@ class VoiceRecordingMixin:
         if refuse_in_channel(self):
             return
         if self.conversation is None:
+            return
+        if dictation.is_active(self):
+            self._dictation_say(dictation.REFUSED_BY_DICTATION_I18N_KEY)
             return
 
         if pyaudio is None:

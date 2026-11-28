@@ -6,6 +6,14 @@ WHAT'S NEW
 
 - Drafts: what you typed and did not send now survives closing WinZapp, restarting it and automatic updates. It is kept on this computer only encrypted, never as plain text, and comes back, mentions included, when you open the conversation again; a locked conversation's draft comes back only once the vault is open. Sending or erasing the text, deleting the conversation or logging out removes it. In Settings > Interface > Chats, "Keep unsent text as encrypted drafts after restarting WinZapp" (on by default) turns this off.
 
+- Local transcription of long recordings (over 2 minutes): the result window now also has a list of moments, each row starting with its time, like "[01:05] ...". "Listen from here" (or Enter) jumps the voice message to that second when that message is the one playing, and "Copy with times" copies the rows; the text above and the window's Copy and Save stay free of times. A transcription opened again from the message has the text only, without this list.
+
+- Local transcription vocabulary: in Settings, Local transcription, Advanced options, "Vocabulary" takes names, acronyms and terms (one per line) that Whisper should expect, to get them spelled right. The list stays on this computer, is never written to the log and never goes online; whisper.cpp only uses the terms without accents. A transcription already saved is not redone when the list changes.
+
+- Dictation in the message field: Ctrl+Shift+J starts listening to the microphone and the same key stops it. The speech is transcribed on this computer, with the local Whisper you already set up, and the text goes in at the cursor of the message (replacing the selection, if there is one) and is read aloud. The message is never sent by itself, the audio is never saved or sent anywhere, and if no model is ready WinZapp says why instead of downloading one. It is refused with a clear sentence while you record a voice message or are in a call. The key can be changed in Settings > Keyboard shortcuts.
+
+- Live captions in calls: during a call, "Live captions" (Ctrl+Shift+X, or its button in the call window) opens a window, without taking the focus from the call controls, that lists what the other person says as whole phrases, transcribed on this computer by the local Whisper model; pressing the command again moves to the window. "Copy" and "Save..." act only when you press them, nothing is saved by itself, and "Speak the captions aloud" is off by default. Live captions are refused while a message transcription or a dictation is using the model, and they turn themselves off if the call audio starts to suffer.
+
 FIXES
 
 - Opening WinZapp: on a slow disk, WinZapp could stop at startup with "Database call timed out after 20s" while it saved the address book, and open normally on the next try. Saving a large number of contacts now waits as long as the other bulk saves, and a contact that cannot be saved at startup no longer stops WinZapp from opening.
