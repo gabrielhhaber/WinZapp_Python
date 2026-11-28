@@ -10,6 +10,7 @@ transcribed, a missing Whisper leaves markers and is said, cancelling drops the
 summary. No window is built: wx goes to a fake module, the result window to a
 recorder and the transcription worker runs inline.
 """
+import re
 import threading
 from types import SimpleNamespace as NS
 
@@ -82,9 +83,9 @@ class Dialog:
     made = []
 
     def __init__(self, panel, identity, kind, locked, config, app, loader, mime, notice="",
-                 preconsented=False):
+                 preconsented=False, parts=()):
         self.args = NS(identity=identity, kind=kind, locked=locked, notice=notice, loader=loader, mime=mime,
-                       preconsented=preconsented)
+                       preconsented=preconsented, parts=parts)
         self.disposed = self.destroyed = False
         Dialog.made.append(self)
         panel.events.append("result window")
@@ -264,9 +265,10 @@ def panel(wx, monkeypatch):
     Dialog.made = []
     the_panel = Panel(store)
 
-    def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None):
+    def ask_consent(parent, i18n, app, config, providers, kind, locked, valid=lambda: True, track=None,
+                    text=None):
         the_panel.events.append("consent")
-        the_panel.consents.append(NS(providers=providers, kind=kind, locked=locked, valid=valid))
+        the_panel.consents.append(NS(providers=providers, kind=kind, locked=locked, valid=valid, text=text))
         return the_panel.consent_answer
     monkeypatch.setattr(dialog_module, "ask_consent", ask_consent)
     return the_panel
@@ -531,6 +533,60 @@ class TestSummarizing:
         with caplog.at_level("DEBUG"):
             panel._on_summary_action()
         assert "secret" not in caplog.text
+
+
+class TestSeveralRequests:
+    """The opt-in hierarchical summary (core/ai_media/summary_parts.py): off by
+    default, announced in the consent, and never more requests than announced."""
+
+    @staticmethod
+    def long_rows(count):
+        return [text(n, "w" * 1000) for n in range(count)]
+
+    @staticmethod
+    def on(panel):
+        panel._config = {"enabled": True, "order": ["gemini"], "disabled": [], "summary_hierarchy": True}
+
+    def test_off_by_default_the_old_cut_and_its_notice_stay(self, panel):
+        panel._on_summarize_messages(self.long_rows(60))
+        dialog = Dialog.made[0]
+        assert dialog.args.parts == () and dialog.args.notice.startswith("in ")
+        assert all(consent.text is None for consent in panel.consents)
+
+    def test_on_a_long_backlog_goes_in_parts_and_the_consent_says_how_many(self, panel):
+        self.on(panel)
+        panel._on_summarize_messages(self.long_rows(40))
+        dialog = Dialog.made[0]
+        assert 1 < len(dialog.args.parts) <= 6
+        assert "ai_summary_parts_notice" in dialog.args.notice
+        assert " left " not in dialog.args.notice  # all 40 fit in the parts
+        assert "ai_summary_parts_consent" in panel.consents[0].text
+        assert dialog.args.loader(None).decode().count("\n") == 39  # the follow-up fallback
+
+    def test_beyond_the_ceiling_the_oldest_are_left_out_and_said(self, panel):
+        self.on(panel)
+        panel._on_summarize_messages(self.long_rows(100))
+        dialog = Dialog.made[0]
+        assert len(dialog.args.parts) == 6
+        kept, left = map(int, re.search(r"in (\d+) left (\d+)", dialog.args.notice).groups())
+        assert kept + left == 100 and left > 0  # the newest are kept, the rest is counted
+
+    def test_a_backlog_that_fits_one_request_makes_one_and_asks_the_usual(self, panel):
+        self.on(panel)
+        panel._on_summarize_messages([text(n) for n in range(5)])
+        assert Dialog.made[0].args.parts == () and panel.consents[0].text is None
+
+    def test_a_backlog_that_only_looked_small_is_cut_not_sent_unannounced(self, panel):
+        self.on(panel)
+        rows = self.long_rows(40)
+        panel._open_summary(rows, JID, None, NS(texts={}), True, False)  # the consent did not say so
+        assert Dialog.made[0].args.parts == ()
+
+    def test_declining_the_consent_sends_nothing(self, panel):
+        self.on(panel)
+        panel.consent_answer = False
+        panel._on_summarize_messages(self.long_rows(40))
+        assert Dialog.made == [] and panel.spoken == ["ai_summary_cancelled"]
 
 
 class TestFromTheList:

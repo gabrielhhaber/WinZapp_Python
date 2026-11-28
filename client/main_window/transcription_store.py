@@ -196,6 +196,20 @@ class TranscriptionStoreMixin:
               if isinstance(c, dict) and (c.get("key") or {}).get("id") == msg_id),
         )
         value = stored_transcription.tombstone(deleted_at)
+        # A video can hold a description and a transcription: deleting one
+        # keeps the other (None: nothing known in memory, everything goes).
+        # The value is then the newest copy without that category — dated
+        # `deleted_at` like the tombstone, so everything below (a later
+        # decision wins, the copies are brought to the newest) applies as is;
+        # a tombstone when nothing else is left.
+        newest_held = None
+        for copy in copies:
+            if isinstance(copy, dict) and (copy.get("key") or {}).get("id") == msg_id:
+                newest_held = stored_transcription.newer_decision(
+                    copy.get(stored_transcription.TRANSCRIPTION_KEY), newest_held)
+        description = stored_transcription.delete_target(newest_held)
+        if description is not None:
+            value, _ = stored_transcription.drop_kind(newest_held, description, deleted_at)
         db = getattr(self, "db", None)
         storage_jids = self._transcription_storage_jids(jid)
 
@@ -249,7 +263,11 @@ class TranscriptionStoreMixin:
             ok = db is not None
             if ok:
                 try:
-                    db.delete_message_transcription(storage_jids, msg_id, deleted_at)
+                    if description is None:
+                        db.delete_message_transcription(storage_jids, msg_id, deleted_at)
+                    else:
+                        db.delete_message_transcription(
+                            storage_jids, msg_id, deleted_at, description)
                 except Exception as exc:
                     ok = False
                     logging.warning("[transcription] deleting a transcription failed: %s",

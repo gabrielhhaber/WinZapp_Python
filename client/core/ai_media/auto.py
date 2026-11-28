@@ -22,7 +22,7 @@ Rules, each one a way this could otherwise surprise or harm:
 import time
 
 from core.transcription import auto_queue
-from core.transcription.stored import TRANSCRIPTION_KEY
+from core.transcription import stored
 
 from . import config as ai_config
 
@@ -87,10 +87,12 @@ def wanted_kind(msg, config, local_auto_transcription=False, now=None, max_age=N
     key = msg.get("key") or {}
     if key.get("fromMe") or not key.get("id"):
         return None
-    if TRANSCRIPTION_KEY in msg:
-        return None
     kind = ai_config.eligible_kind(msg)
     if kind not in AUTO_KINDS or not config["kinds"].get(kind, True):
+        return None
+    # A decision about this category only: a video the local transcription
+    # already transcribed is still described, and the other way round.
+    if stored.has_decision(msg, kind != "audio"):
         return None
     if kind == "audio":
         if not config.get("auto_transcribe") or local_auto_transcription:
@@ -114,6 +116,7 @@ def wanted_kind(msg, config, local_auto_transcription=False, now=None, max_age=N
 
 def usable_providers(config, kind, saved):
     """The providers to try: on, with a saved key, taking this kind, and that
-    the person consented to. Nothing is sent to any other."""
+    the person consented to. Nothing is sent to any other. A local model on
+    this computer needs no consent: nothing leaves it."""
     return [p for p in ai_config.chain(config, kind, lambda provider: provider in saved)
-            if p in config["consented"]]
+            if p in config["consented"] or not ai_config.sends_out(config, p)]

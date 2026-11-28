@@ -6,6 +6,10 @@ The four writing actions go to the AI providers the person set up in Settings
 consent, no account). The draft in the composer is never touched until
 "Replace draft" is chosen, and nothing is ever sent by itself.
 
+Besides the fixed actions the person can type an instruction of their own, and
+ask for a suggested reply: the only action that sends the latest messages of
+the chat (a consent of its own, asked again for every locked chat).
+
 Owned by the conversation panel (ui/conversation_panel/ai_writing.py), which
 builds it, runs it modally and tears it down. The window machinery is
 TextAIResultDialog's.
@@ -19,6 +23,7 @@ from core.ai_media import gtranslate, writing
 from core.ai_media.errors import DescriptionError
 from core.ai_media.payload import prepare_media
 from core.ai_media.prompts import instructions
+from core.ai_media import usage as ai_usage
 from core.ai_media.service import run_chain
 from ui.dialogs.ai_result_dialog import provider_names
 from ui.dialogs.ai_text_result_dialog import TextAIResultDialog
@@ -32,8 +37,15 @@ class WritingHelpDialog(TextAIResultDialog):
 
     has_replace = True
 
-    def __init__(self, panel, draft, locked, config, app_settings):
+    def __init__(self, panel, draft, locked, config, app_settings, recent="",
+                 initial_action=None, auto_run=False):
         self.draft = draft
+        #: The latest messages of the chat as one text ("" when there are none):
+        #: only a suggested reply sends it.
+        self._recent = recent
+        self._initial_action = initial_action
+        self._auto_run = bool(auto_run)
+        self._consented_reply = False
         self._source_draft = draft
         self._store = CredentialStore(global_dir())
         self._providers = ai_config.chain(config, "writing", lambda p: p in self._store.saved())
@@ -43,6 +55,10 @@ class WritingHelpDialog(TextAIResultDialog):
                          config, app_settings)
 
     def _on_open(self):
+        if getattr(self, "_auto_run", False):
+            self.result.SetFocus()
+            wx.CallAfter(self._regenerate)
+            return
         # Choosing an action is not permission to spend quota. Even remembered
         # provider consent must not turn opening this window into a request.
         self.status.ChangeValue(self.i18n.t("writing_choose_before_run"))
@@ -58,14 +74,23 @@ class WritingHelpDialog(TextAIResultDialog):
         layout.Add(wx.StaticText(self, label=self.i18n.t("writing_action_label")), 0, wx.LEFT, 8)
         # With no provider holding a key, only Translate is offered: an action
         # that can only fail wastes the person's time with a screen reader.
-        self._actions = list(writing.ACTIONS) if self._providers else []
-        self._actions.append(TRANSLATE)
+        if not self.draft.strip():
+            self._actions = [writing.REPLY] if (self._providers and self._recent) else [TRANSLATE]
+        else:
+            self._actions = [a for a in writing.ACTIONS if a != writing.REPLY or self._recent] if self._providers else []
+            self._actions.append(TRANSLATE)
         labels = [self.i18n.t(writing.ACTION_KEY[action]) if action != TRANSLATE
                   else self.i18n.t("writing_action_translate") for action in self._actions]
         self.action = wx.Choice(self, choices=labels, name=self.i18n.t("writing_action_label"))
-        self.action.SetSelection(0)
+        initial = getattr(self, "_initial_action", None)
+        index = self._actions.index(initial) if initial in self._actions else 0
+        self.action.SetSelection(index)
         self.action.Bind(wx.EVT_CHOICE, self._action_changed)
         layout.Add(self.action, 0, wx.EXPAND | wx.ALL, 8)
+        layout.Add(wx.StaticText(self, label=self.i18n.t("ai_mode_instruction_label")), 0, wx.LEFT, 8)
+        self.instruction = wx.TextCtrl(self, name=self.i18n.t("ai_mode_instruction_label"))
+        self.instruction.SetMaxLength(writing.MAX_INSTRUCTION_CHARS)
+        layout.Add(self.instruction, 0, wx.EXPAND | wx.ALL, 8)
         layout.Add(wx.StaticText(self, label=self.i18n.t("writing_target_label")), 0, wx.LEFT, 8)
         self.target = wx.Choice(self, choices=[self.i18n.t(key) for _code, key in gtranslate.TARGET_LANGUAGES],
                                 name=self.i18n.t("writing_target_label"))
@@ -84,10 +109,13 @@ class WritingHelpDialog(TextAIResultDialog):
 
     def _sync_target(self):
         self.target.Enable(self._selected() == TRANSLATE)
+        self.instruction.Enable(self._selected() == writing.CUSTOM)
 
     def _question(self):
         action = self._selected()
-        return writing.action_question(action) if action != TRANSLATE else "translate"
+        if action == TRANSLATE:
+            return "translate"
+        return writing.action_question(action, self.instruction.GetValue())
 
     def _consent(self):
         if self._selected() == TRANSLATE:
@@ -95,12 +123,21 @@ class WritingHelpDialog(TextAIResultDialog):
         providers = self._providers
         if not providers:
             raise DescriptionError("providers")
+        if self._selected() == writing.CUSTOM and not self.instruction.GetValue().strip():
+            raise DescriptionError("question")  # before any consent is asked
+        # Only what leaves this computer is asked about: a local model
+        # (loopback address) asks nothing, not even for a locked chat.
+        providers = ai_config.outbound(self.config, providers)
+        if not providers:
+            return True
+        if self._selected() == writing.REPLY:
+            return self._consent_reply(providers)
         needed = [p for p in providers if p not in self.config["consented_writing"]]
         if self._consented_writing or (not needed and not self.session.locked):
             self._consented_writing = True
             return True
         text = self.i18n.t("ai_writing_consent").format(providers=provider_names(providers))
-        for key in ai_config.notice_keys(providers):
+        for key in ai_config.notice_keys(providers, self.config):
             text += "\n\n" + self.i18n.t(key)
         if self.session.locked:
             text += "\n\n" + self.i18n.t("ai_locked_consent")
@@ -121,6 +158,31 @@ class WritingHelpDialog(TextAIResultDialog):
         self._consented_writing = accepted
         return accepted
 
+    def _consent_reply(self, providers):
+        """Consent to send the latest messages of the chat (and the draft). Own
+        remembered list; a locked chat is asked for every window and never
+        remembered. Covers the draft as well, so no second question follows."""
+        needed = [p for p in providers if p not in self.config["consented_reply"]]
+        if self._consented_reply or (not needed and not self.session.locked):
+            self._consented_reply = True
+            return True
+        text = self.i18n.t("ai_writing_reply_consent").format(
+            providers=provider_names(providers), count=writing.REPLY_MESSAGES)
+        for key in ai_config.notice_keys(providers, self.config):
+            text += "\n\n" + self.i18n.t(key)
+        if self.session.locked:
+            text += "\n\n" + self.i18n.t("ai_locked_consent")
+        accepted, remember = self._run_consent(text)
+        if accepted and remember:
+            try:
+                self.app.update("ai_media", lambda old: ai_config.remember_consent(old, "reply", providers))
+                self.config["consented_reply"] = sorted(set(self.config["consented_reply"]) | set(providers))
+            except (OSError, RuntimeError):
+                # Consent is valid for this session even if remembering failed.
+                pass
+        self._consented_reply = accepted
+        return accepted
+
     def _worker(self, operation):
         if self._selected() == TRANSLATE:
             target = gtranslate.TARGET_LANGUAGES[self.target.GetSelection()][0]
@@ -132,7 +194,9 @@ class WritingHelpDialog(TextAIResultDialog):
                                                                   cancel_check=operation.check)
                 return translated, "Google Translate"
             return work
-        media = prepare_media("writing", ai_config.utf8_bytes(self.draft), "", self.config["profile"])
+        reply = self._selected() == writing.REPLY
+        text = writing.reply_payload(self._recent, self.draft) if reply else self.draft
+        media = prepare_media("writing", ai_config.utf8_bytes(text), "", self.config["profile"])
         providers = self._providers
         store = self._store
         config = dict(self.config)
@@ -145,8 +209,9 @@ class WritingHelpDialog(TextAIResultDialog):
             operation.check()
             return run_chain(operation, providers, ai_config.models_for(config, "writing"),
                              store.get, media, (), question,
-                             instructions(language, config["profile"], "writing"),
-                             config["profile"])
+                             instructions(language, config["profile"], "writing", context=reply),
+                             config["profile"], usage_sink=ai_usage.persist,
+                             endpoints=ai_config.endpoints(config))
         return work
 
     def _replace(self, event=None):

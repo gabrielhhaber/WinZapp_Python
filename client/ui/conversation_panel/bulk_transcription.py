@@ -358,7 +358,7 @@ class BulkTranscriptionMixin:
         # Into the line for the Alt+Shift+N form; for the Alt+Shift+T form a
         # message already showing its text in the line keeps doing so, as a
         # single run from the window does.
-        inline = bool(inline_run) or stored_transcription.is_inline(previous)
+        inline = bool(inline_run) or stored_transcription.is_inline_transcription(previous)
         value = stored_transcription.with_result(previous, stored_transcription.record_from_result(
             result, stored_transcription.next_decision_time(time.time(), previous), inline=inline))
         try:

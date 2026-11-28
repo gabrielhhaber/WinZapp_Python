@@ -50,17 +50,20 @@ from ui.conversation_panel.row_reading import (
 )
 
 
-def _with_inline_text(main_window, msg, line: str, i18n) -> str:
-    """`line` followed by the text kept with the message and asked to show in
-    its line: a transcription, or an AI description of a picture, sticker or
-    video (core/transcription/stored.py)."""
+def _inline_clauses(main_window, msg, i18n) -> list:
+    """The clauses the text kept with the message and asked to show in its line
+    adds, each "label: text": an AI description of what is seen and a
+    transcription of what is said, both when a video holds both
+    (core/transcription/stored.py, `inline_row_parts()`)."""
     selection = stored_transcription.selection_from_settings(
         getattr(main_window, "settings", None))
-    written = stored_transcription.inline_row_text(msg, selection)
-    if not written:
-        return line
-    label = i18n.t(stored_transcription.inline_row_label_key(msg, selection))
-    return f"{line}, {label}: {written}"
+    return [f"{i18n.t(label)}: {text}"
+            for label, text in stored_transcription.inline_row_parts(msg, selection)]
+
+
+def _with_inline_text(main_window, msg, line: str, i18n) -> str:
+    """`line` followed by the clauses of `_inline_clauses()`."""
+    return ", ".join([line, *_inline_clauses(main_window, msg, i18n)])
 
 
 class MessageRenderingMixin:
@@ -247,12 +250,7 @@ class MessageRenderingMixin:
             # A transcription the user asked to have in the line (Alt+Shift+N,
             # or Enter when it is set to transcribe): "…, duração: 0:12,
             # transcrição: texto".
-            written = stored_transcription.inline_row_text(
-                msg, stored_transcription.selection_from_settings(
-                    getattr(self.main_window, "settings", None)))
-            if written:
-                line = f"{line}, {i18n.t('transcription_row_label')}: {written}"
-            return line
+            return _with_inline_text(self.main_window, msg, line, i18n)
 
         # ── Document ─────────────────────────────────────────────────────────
         if msg_type == "documentMessage":
@@ -273,11 +271,7 @@ class MessageRenderingMixin:
                 parts.append(caption)
             # An audio or video file sent as a document is transcribed like one
             # (stored_transcription.is_transcribable): its line carries the text too.
-            written = stored_transcription.inline_row_text(
-                msg, stored_transcription.selection_from_settings(
-                    getattr(self.main_window, "settings", None)))
-            if written:
-                parts.append(f"{i18n.t('transcription_row_label')}: {written}")
+            parts.extend(_inline_clauses(self.main_window, msg, i18n))
             return ", ".join(parts)
 
         # ── Image ────────────────────────────────────────────────────────────

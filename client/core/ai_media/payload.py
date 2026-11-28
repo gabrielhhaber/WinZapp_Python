@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from .config import MAX_SOURCE_BYTES, capability
 from .errors import DescriptionError
 from .image_input import prepare_image
-from .video_frame import extract_frame
+from .video_frame import extract_frame, extract_mosaic
 
 
 @dataclass(frozen=True)
@@ -36,11 +36,12 @@ def _bare(mime):
     return str(mime or "").split(";")[0].strip().lower()
 
 
-def prepare_media(kind, data, mime="", profile="balanced"):
+def prepare_media(kind, data, mime="", profile="balanced", video_frames="several"):
     """Validate ``data`` for ``kind`` and return the payload to send.
 
     Images and stickers are decoded and re-encoded (orientation applied,
-    metadata stripped). A video is reduced here to one still frame, which then
+    metadata stripped). A video is reduced here to a mosaic of frames spaced
+    over the clip (one frame when ``video_frames`` is "one"), which then
     travels as an image: its audio never leaves the machine. Audio and PDF are
     sent as they are, after the size, container and (for PDF) header checks:
     re-encoding them locally would need codecs WinZapp does not ship.
@@ -57,8 +58,9 @@ def prepare_media(kind, data, mime="", profile="balanced"):
         image = prepare_image(data, profile, first_frame=kind == "sticker")
         return Media(kind, image.data, image.mime, "image.jpg")
     if kind == "video":
-        frame = prepare_image(extract_frame(data), profile)
-        return Media("image", frame.data, frame.mime, "frame.jpg")
+        several = video_frames != "one"
+        frame = prepare_image(extract_mosaic(data) if several else extract_frame(data), profile)
+        return Media("image", frame.data, frame.mime, "frames.jpg" if several else "frame.jpg")
     if kind == "pdf":
         if not data.startswith(b"%PDF-"):
             raise DescriptionError("media_format")

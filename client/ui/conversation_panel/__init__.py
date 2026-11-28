@@ -52,6 +52,7 @@ Where to look (and where new code goes):
     media_files              opening/saving/downloading media, transfer progress
     message_data             the Message data window (local history, live receipts, group breakdown)
     ai_actions               transcribe/describe a message's media with the person's AI providers
+    ai_full_video            "Understand full video": the video's saved or local transcription for the AI window
     summary_actions          AI summary of unread / from here / selected messages (Online AI), button, menus
     summary_voice            transcribes a summary's voice messages (local Whisper) before it is sent
     summary_voice_choice     asks how: local, online (own provider and consent) or not at all

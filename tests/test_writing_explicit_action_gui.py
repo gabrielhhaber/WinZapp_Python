@@ -64,7 +64,7 @@ def test_open_choose_and_exit_without_any_provider_or_google_call(wx_app, tmp_pa
         destroy_now(frame)
 
 
-@pytest.mark.parametrize('selection', [0, 4])
+@pytest.mark.parametrize('selection', [0, 5])
 def test_only_run_button_submits_the_chosen_action_once(wx_app, tmp_path, monkeypatch, selection):
     frame = hidden_frame()
     frame.settings = {'general': {'language': 'es-ES'}}

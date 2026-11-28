@@ -107,6 +107,9 @@ class _VoiceRun:
         self.lock = threading.Lock()
         self.current = None
         self.running = True
+        #: Set by a run that is not a summary's (ai_full_video.py): its own
+        #: worker, the window it opens over, its first status line and title.
+        self.worker = self.parent = self.status = self.title = None
 
     def cancel(self):
         self.cancelled.set()
@@ -203,13 +206,15 @@ class SummaryVoiceMixin:
                 if text is not None:
                     window[0].set_status(text)  # thread-safe: hops to the wx thread
                 on_progress(tick)
-            worker = (self._summary_voice_worker if run.choice is None or run.choice.mode == MODE_LOCAL
-                      else self._summary_voice_online_worker)
+            worker = run.worker or (self._summary_voice_worker
+                                    if run.choice is None or run.choice.mode == MODE_LOCAL
+                                    else self._summary_voice_online_worker)
             return _SummaryVoiceJob(worker, run, announce, on_finished)
 
-        first = i18n.t("ai_summary_voice_progress").format(index=1, total=run.total)
+        first = run.status or i18n.t("ai_summary_voice_progress").format(index=1, total=run.total)
         dialog = TranscriptionProgressDialog(
-            self, i18n, mw.speak_output, make_job, first, i18n.t("ai_result_summary_title"))
+            run.parent or self, i18n, mw.speak_output, make_job, first,
+            run.title or i18n.t("ai_result_summary_title"))
         window.append(dialog)
         try:
             dialog.run()

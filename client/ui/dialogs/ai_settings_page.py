@@ -31,12 +31,19 @@ from core import conversation_auto_ai
 from core.ai_media import auto as ai_auto
 from core.transcription import auto_queue
 from core.ai_media import config as ai_config
-from core.ai_media.config import PROFILES, PROVIDERS, preferences, supports, valid_model
+from core.ai_media.config import (
+    KEYED_PROVIDERS, PROFILES, PROVIDERS, preferences, supports, valid_model,
+)
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, probe_connection, submit
+from .ai_local_settings import (
+    AILocalSettingsMixin, changed_addresses, changed_cloud_models,
+)
 from .ai_provider_models import ModelSelectionMixin
 from .ai_auto_options import AIAutoOptionsPanel, window_title
 from .ai_kinds_options import AIKindsPanel
+from .ai_usage_options import AIUsagePanel
+from .ai_routes_options import AIRoutesPanel
 from .settings_pages import SubPageDialog
 from ui.accessible import AccessibleReorderButton
 from ui.reorder_keys import MOVE_DOWN, MOVE_UP, bind_reorder_keys
@@ -325,7 +332,7 @@ class AIProviderDialog(ModelSelectionMixin, wx.Dialog):
         event.Skip()
 
 
-class AISettingsPage(ScrolledPanel):
+class AISettingsPage(AILocalSettingsMixin, ScrolledPanel):
     def __init__(self, parent, main_window, on_change):
         super().__init__(parent)
         self.main_window = main_window
@@ -338,6 +345,7 @@ class AISettingsPage(ScrolledPanel):
         self._order = list(config["order"])
         self._disabled = set(config["disabled"])
         self._models = dict(config["models"])
+        self._local_urls = dict(config["local_urls"])
         self._auto = set(config["auto_models"])
         self._voice_models = dict(config["transcribe_models"])
         self._drafts = {}      # provider -> key typed in its window, applied with the dialog
@@ -365,9 +373,17 @@ class AISettingsPage(ScrolledPanel):
         self.kinds_dialog = SubPageDialog(
             self.GetTopLevelParent(), window_title(self._t("ai_kinds_button")), self._t("ok"),
             on_change=lambda event: self._on_change())
-        self.kinds_panel = AIKindsPanel(self.kinds_dialog, self, config["kinds"])
+        self.kinds_panel = AIKindsPanel(self.kinds_dialog, self, config["kinds"],
+                                        config["video_frames"] == "several",
+                                        config["context_caption"], config["context_quote"],
+                                        config["ai_streaming"], config["summary_hierarchy"])
         self.kinds_dialog.set_body(self.kinds_panel)
         self.toggles = self.kinds_panel.toggles
+        self.several_frames = self.kinds_panel.several_frames
+        self.context_caption = self.kinds_panel.context_caption
+        self.context_quote = self.kinds_panel.context_quote
+        self.streaming = self.kinds_panel.streaming
+        self.hierarchy = self.kinds_panel.hierarchy
         self.profile = self._choice("ai_profile", self._profile_labels())
         self.profile.SetSelection(PROFILES.index(config["profile"]))
         self.read_answers = self._check("ai_read_answers", config["read_answers"])
@@ -387,6 +403,20 @@ class AISettingsPage(ScrolledPanel):
         self.auto_max_age = self.auto_panel.max_age
         self.auto_limit = self.auto_panel.limit
         self.auto_used = self.auto_panel.used
+        # The usage counters, in a window of their own (ai_usage_options.py).
+        self.usage_button = self._button("ai_usage_button", lambda event: self.open_usage())
+        self.usage_dialog = SubPageDialog(
+            self.GetTopLevelParent(), window_title(self._t("ai_usage_button")), self._t("ok"))
+        self.usage_panel = AIUsagePanel(self.usage_dialog, self)
+        self.usage_dialog.set_body(self.usage_panel)
+        # The provider order of each kind of task, in a window of their own
+        # (ai_routes_options.py); saved by apply() with the other preferences.
+        self.routes_button = self._button("ai_routes_button", lambda event: self.open_routes())
+        self.routes_dialog = SubPageDialog(
+            self.GetTopLevelParent(), window_title(self._t("ai_routes_button")), self._t("ok"),
+            on_change=lambda event: self._on_change())
+        self.routes_panel = AIRoutesPanel(self.routes_dialog, self, config)
+        self.routes_dialog.set_body(self.routes_panel)
         self.auto_transcribe.Bind(wx.EVT_CHECKBOX, self._on_auto_toggle)
         self.auto_describe.Bind(wx.EVT_CHECKBOX, self._on_auto_toggle)
         self.auto_limit.Bind(wx.EVT_SPINCTRL, lambda event: (self._on_change(), event.Skip()))
@@ -420,13 +450,23 @@ class AISettingsPage(ScrolledPanel):
         """The window of the automatic options, on *control* when given."""
         self.auto_dialog.open(control)
 
+    def open_usage(self, control=None):
+        """The window of the usage counters, read afresh each time it opens."""
+        self.usage_panel.refresh()
+        self.usage_dialog.open(control)
+
+    def open_routes(self, control=None):
+        """The window of the provider routes, read afresh each time it opens."""
+        self.routes_panel.refresh()
+        self.routes_dialog.open(control)
+
     def _show_options(self, shown):
         for child in self.GetChildren():
             if child not in (self.enabled, self.translation_button, self.reset_keys_button):
                 child.Show(shown)
         # The automatic options' window too: the settings search reads its
         # controls (add_subpage), and must not offer them with AI turned off.
-        for panel in (self.auto_panel, self.kinds_panel):
+        for panel in (self.auto_panel, self.kinds_panel, self.usage_panel, self.routes_panel):
             for child in panel.GetChildren():
                 child.Show(shown)
             panel.Layout()
@@ -487,8 +527,12 @@ class AISettingsPage(ScrolledPanel):
         self.profile.SetSelection(selection)
         self.auto_panel.refresh_labels()
         self.kinds_panel.refresh_labels()
+        self.usage_panel.refresh_labels()
+        self.routes_panel.refresh_labels()
+        self.routes_dialog.SetTitle(window_title(self._t("ai_routes_button")))
         self.kinds_dialog.SetTitle(window_title(self._t("ai_kinds_button")))
         self.auto_dialog.SetTitle(window_title(self._t("ai_auto_button")))
+        self.usage_dialog.SetTitle(window_title(self._t("ai_usage_button")))
         self.notice.SetName(self._plain("ai_settings_help"))
         self.notice.ChangeValue(self._t("ai_settings_notice"))
         self.status.SetName(self._plain("ai_status_label"))
@@ -501,6 +545,8 @@ class AISettingsPage(ScrolledPanel):
 
     def _row(self, provider):
         """Item text with the state embedded, in the active language."""
+        if PROVIDERS[provider].local:
+            return self._local_row(provider)
         on = provider not in self._disabled
         return ", ".join((PROVIDERS[provider].name,
                           self._t("ai_provider_state_enabled" if on else "ai_provider_state_disabled"),
@@ -538,6 +584,9 @@ class AISettingsPage(ScrolledPanel):
     def _configure(self, event):
         index, provider = self._selected()
         if provider is None:
+            return
+        if PROVIDERS[provider].local:
+            self._configure_local(index, provider)
             return
         state = {"key": key_for_dialog(self.store, provider, self._drafts, self._deleted, self._reset),
                  "deleted": provider in self._deleted,
@@ -598,7 +647,7 @@ class AISettingsPage(ScrolledPanel):
                          wx.YES_NO | wx.NO_DEFAULT | wx.ICON_WARNING, self) != wx.YES:
             return
         self._reset = True
-        self._deleted = set(PROVIDERS)
+        self._deleted = set(KEYED_PROVIDERS)  # a local server has no key to reset
         self._drafts.clear()
         self._refresh_list(self.providers.GetSelection())
         self._on_change()
@@ -626,19 +675,23 @@ class AISettingsPage(ScrolledPanel):
                 control.SetValue(False)
                 return
             kinds = ("audio",) if control is self.auto_transcribe else ("image", "sticker", "video")
-            order = {"order": self._order, "disabled": sorted(self._disabled)}
+            # The staged routes too: the consent must name the providers the
+            # automatic requests will really reach.
+            order = {"order": self._order, "disabled": sorted(self._disabled),
+                     "routes": self.routes_panel.routes(), **self._local_config()}
             providers = []
             for kind in kinds:
                 for provider in ai_config.chain(order, kind, self._has_key):
                     if provider not in providers:
                         providers.append(provider)
             consented = set(preferences(self.app)["consented"]) | self._auto_consent
-            needed = [p for p in providers if p not in consented]
+            # A local model on this computer sends nothing out: nothing to consent to.
+            needed = [p for p in ai_config.outbound(order, providers) if p not in consented]
             if needed:
                 text = self._t("ai_auto_consent").format(
                     providers=", ".join(PROVIDERS[p].name for p in needed))
                 # The same provider notices as the consent before one request.
-                text = "\n\n".join([text, *(self._t(key) for key in ai_config.notice_keys(needed))])
+                text = "\n\n".join([text, *(self._t(key) for key in ai_config.notice_keys(needed, order))])
                 answer = wx.MessageBox(text, self._plain("ai_auto_consent_title"),
                                        wx.YES_NO | wx.ICON_WARNING, self.auto_dialog)
                 if answer != wx.YES:
@@ -672,7 +725,8 @@ class AISettingsPage(ScrolledPanel):
         for provider, model in self._models.items():
             if not model.strip():
                 self._models[provider] = PROVIDERS[provider].model
-        if any(not valid_model(model) for model in self._models.values()):
+        # A local provider may have no model yet ("": it is then not used).
+        if any(model and not valid_model(model) for model in self._models.values()):
             self.status.ChangeValue(self._t("ai_error_request"))
             self.providers.SetFocus()
             return False
@@ -683,20 +737,30 @@ class AISettingsPage(ScrolledPanel):
             # Re-entering a key removes it from _deleted, but must not undo
             # the consent revocation requested by an install-wide reset.
             removed = set(PROVIDERS) if self._reset else set(self._deleted)
+            # A consent given for one address does not carry over to another.
+            removed |= changed_addresses(preferences(self.app)["local_urls"], self._local_urls)
+            removed |= changed_cloud_models(preferences(self.app)["models"], self._models)
 
             def merge(old):
                 value = dict(old) if isinstance(old, dict) else {}
                 value.update(
                     enabled=self.enabled.GetValue(), order=list(self._order),
+                    routes=self.routes_panel.routes(),
                     disabled=sorted(self._disabled),
                     models={name: "" if name in self._auto else model
                             for name, model in self._models.items()},
+                    local_urls=dict(self._local_urls),
                     # Only a choice that differs from the default: like an
                     # automatic vision model, the default may move later.
                     transcribe_models={name: model for name, model in self._voice_models.items()
                                        if model != PROVIDERS[name].transcribe_model},
                     kinds={kind: check.GetValue() for kind, check in self.toggles.items()},
                     profile=PROFILES[self.profile.GetSelection()],
+                    video_frames="several" if self.several_frames.GetValue() else "one",
+                    context_caption=self.context_caption.GetValue(),
+                    context_quote=self.context_quote.GetValue(),
+                    ai_streaming=self.streaming.GetValue(),
+                    summary_hierarchy=self.hierarchy.GetValue(),
                     read_answers=self.read_answers.GetValue(),
                     hide_action_button=self.hide_action_button.GetValue(),
                     auto_transcribe=self.auto_transcribe.GetValue(),

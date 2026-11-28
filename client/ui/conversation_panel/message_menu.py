@@ -459,6 +459,7 @@ class MessageMenuMixin:
             self.Bind(
                 wx.EVT_MENU, lambda e, m=msg: self._on_ai_action(message=m), ai_item
             )
+            self._append_ai_quick_menu_items(menu, msg, i18n)
 
         if self._saved_media_path(msg):
             if not media_actions_added:

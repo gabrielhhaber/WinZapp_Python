@@ -32,6 +32,9 @@ from core.ai_media import config as ai_config
 from core.ai_media.summary import (MAX_VOICE_TRANSCRIPTIONS, build_unread_transcript, button_offered,
                                    is_voice_message, message_text,
                                    unread_fetch_limit, unread_messages, voice_text)
+from core.ai_media.summary import SummaryTranscript
+from core.ai_media.summary_context import enrich_text
+from core.ai_media.summary_parts import MAX_CALLS, MAX_PARTS, may_need_parts, plan_parts
 from core.ai_media.summary_voice_choice import MODE_LOCAL, MODE_ONLINE
 from core.message_copy_format import format_copied_message
 from core.utils import format_number, is_phone_like
@@ -236,7 +239,7 @@ class SummaryActionsMixin:
         if is_voice_message(row):
             return voice_text(voice_texts.get((row.get("key") or {}).get("id", "")))
         named = " ".join((self._message_text_with_names(row) or "").split())
-        return named or message_text(row)
+        return enrich_text(row, named or message_text(row))
 
     # ── Request and result ───────────────────────────────────────────────
 
@@ -289,9 +292,13 @@ class SummaryActionsMixin:
             # question: asking for a summary that cannot start would be noise.
             if choice.mode == MODE_LOCAL and self._summary_voice_blocked(to_run):
                 return
+        # A long backlog may go in several requests (summary_parts.py), only when
+        # the person turned that on, and only if the consent said so.
+        parts_ok = config.get("summary_hierarchy") is True and may_need_parts(
+            messages, lambda row: self._summary_text_of(row, {}))
         # Consent first, before any voice message is transcribed: declining
         # leaves nothing transcribed and nothing sent.
-        if not self._summary_consent(app, config, jid) or (
+        if not self._summary_consent(app, config, jid, parts_ok) or (
                 choice is not None and choice.mode == MODE_ONLINE
                 and not self._summary_voice_online_consent(app, config, jid, choice, len(to_run))):
             if not (getattr(mw, "_shutting_down", False) or mw.is_chat_hidden_by_vault(jid)):
@@ -299,13 +306,15 @@ class SummaryActionsMixin:
             return
         self._summary_voice_step(
             messages, jid,
-            lambda voice: self._open_summary(messages, jid, chat, voice, follows_open_chat),
+            lambda voice: self._open_summary(messages, jid, chat, voice, follows_open_chat, parts_ok),
             follows_open_chat, choice=choice)
 
-    def _summary_consent(self, app, config, jid) -> bool:
+    def _summary_consent(self, app, config, jid, parts_ok=False) -> bool:
         """Ask to send the messages' text to the providers that would take it
         (once, remembered, for a common chat; every time for a locked one);
-        whether the person agreed. The result window does not ask again."""
+        whether the person agreed. The result window does not ask again.
+        ``parts_ok``: the summary may be made in several requests, and the
+        question says how many at most."""
         mw = self.main_window
         saved = CredentialStore(global_dir()).saved()
         providers = ai_config.chain(config, "text", lambda p: p in saved)
@@ -313,10 +322,18 @@ class SummaryActionsMixin:
         def track(dialog):
             self._summary_consent_dialog = dialog
             self._summary_consent_jid = jid
+        locked = mw.is_chat_locked(jid)
+        text = None
+        if parts_ok:
+            from ui.dialogs.ai_result_dialog import consent_text
+            text = (consent_text(mw.i18n, ai_config.outbound(config, providers), "text", locked,
+                               config=config)
+                    + "\n\n" + mw.i18n.t("ai_summary_parts_consent").format(
+                        parts=MAX_PARTS, requests=MAX_CALLS))
         return ask_consent(
-            self, mw.i18n, app, config, providers, "text", mw.is_chat_locked(jid),
+            self, mw.i18n, app, config, providers, "text", locked,
             valid=lambda: not getattr(mw, "_shutting_down", False) and not mw.is_chat_hidden_by_vault(jid),
-            track=track)
+            track=track, **({"text": text} if text else {}))
 
     def close_summary_consent(self, *, locked_only=False):
         """The vault locked or the app is closing: dismiss the consent window
@@ -331,7 +348,7 @@ class SummaryActionsMixin:
         if dialog.IsModal():
             dialog.EndModal(wx.ID_CANCEL)
 
-    def _open_summary(self, messages, jid, chat, voice, follows_open_chat):
+    def _open_summary(self, messages, jid, chat, voice, follows_open_chat, parts_ok=False):
         """The transcript is built and the result window opens, once the voice
         messages have their words (or stay markers)."""
         mw = self.main_window
@@ -346,15 +363,26 @@ class SummaryActionsMixin:
             mw.output(t("ai_summary_not_available"))
             return
         fmt = t("datetime_fmt")
-        built = build_unread_transcript(
-            messages,
-            lambda row, text: format_copied_message(
-                self._extract_timestamp(row), self._summary_sender(row, chat), text, fmt),
-            lambda row: self._summary_text_of(row, voice.texts))
+        def line(row, text):
+            return format_copied_message(
+                self._extract_timestamp(row), self._summary_sender(row, chat), text, fmt)
+        def text_of(row):
+            return self._summary_text_of(row, voice.texts)
+        built = build_unread_transcript(messages, line, text_of)
+        parts = ()
+        notices = []
+        if parts_ok and built.left_out:
+            # What does not fit one request goes in parts, up to the ceiling.
+            plan = plan_parts(messages, line, text_of)
+            if len(plan.parts) > 1:
+                parts = plan.parts
+                notices.append(t("ai_summary_parts_notice").format(
+                    count=plan.included, parts=len(parts)))
+            built = SummaryTranscript("\n".join(plan.parts), plan.included, plan.left_out,
+                                      plan.voice_markers) if plan.parts else built
         if not built.text:
             mw.output(t("ai_summary_nothing"))
             return
-        notices = []
         if built.left_out:
             notices.append(t("ai_summary_left_out").format(count=built.included, left_out=built.left_out))
         if built.voice_markers:
@@ -370,7 +398,7 @@ class SummaryActionsMixin:
         from ui.dialogs.ai_result_dialog import AIResultDialog
         dialog = AIResultDialog(self, identity, "text", locked, config, app,
                                 lambda operation: data, "text/plain", notice="\n".join(notices),
-                                preconsented=True)
+                                preconsented=True, **({"parts": parts} if parts else {}))
         self._ai_dialog = dialog
         try:
             dialog.ShowModal()

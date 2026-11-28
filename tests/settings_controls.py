@@ -46,7 +46,7 @@ MIXIN_WINDOWS = {"TranslationLocalModelsMixin": "TranslationSettingsDialog",
 
 FILES = (
     "settings_dialog.py", "settings_pages.py", "shortcuts_tab.py", "shortcut_capture.py",
-    "ai_settings_page.py", "translation_settings.py", "translation_local_models.py",
+    "ai_settings_page.py", "ai_local_provider_dialog.py", "translation_settings.py", "translation_local_models.py",
     "live_translation.py",
     "status_audience_dialog.py", "common_groups_tab.py",
     "whatsapp_privacy_panel.py", "whatsapp_profile_panel.py",
@@ -54,7 +54,7 @@ FILES = (
     "transcription_model_marks.py", "transcription_options.py", "transcription_precision.py",
     "transcription_queue.py", "transcription_result_field.py", "transcription_reuse.py",
     "transcription_tab.py", "transcription_whisper_cpp.py", "transcription_windows.py",
-    "advanced_tab.py", "ai_auto_options.py", "ai_kinds_options.py", "reading_position_options.py", "message_reading_options.py",
+    "advanced_tab.py", "ai_auto_options.py", "ai_kinds_options.py", "ai_usage_options.py", "ai_routes_options.py", "reading_position_options.py", "message_reading_options.py",
     "noise_reducer_dialog.py", "noise_model_section.py", "noise_reducer_options.py", "voice_recording_options.py", "font_scale_options.py",
     "neteq_component_dialog.py",
 )

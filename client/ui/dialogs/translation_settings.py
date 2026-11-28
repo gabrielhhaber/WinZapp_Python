@@ -11,7 +11,7 @@ import wx
 from wx.lib.scrolledpanel import ScrolledPanel
 
 from core.ai_credentials import CredentialError
-from core.ai_media.config import PROVIDERS
+from core.ai_media.config import KEYED_PROVIDERS
 from core.ai_media.errors import DescriptionError
 from core.ai_media.service import RequestToken, submit
 from core.i18n import LANGUAGE_NAMES
@@ -29,7 +29,7 @@ from ui.dialogs.translation_local_models import TranslationLocalModelsMixin
 LABELS = PROVIDER_NAMES | {"custom_openai": "OpenAI Compatible",
                            "custom_anthropic": "Anthropic Compatible"}
 #: The order of the Provider list.
-ORDER = (LOCAL, *services.SERVICES, *PROVIDERS, "grok", *LOCAL_LLM_URLS,
+ORDER = (LOCAL, *services.SERVICES, *KEYED_PROVIDERS, "grok", *LOCAL_LLM_URLS,
          "custom_openai", "custom_anthropic")
 SAMPLE = "Hello! See you tomorrow."
 
