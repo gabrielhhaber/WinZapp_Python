@@ -4,6 +4,8 @@ Toto vydání přináší opravy oproti verzi 3.0.0.0.
 
 NOVINKY
 
+- Koncepty: to, co jste napsali a neodeslali, nyní přečká zavření WinZappu, jeho restart i automatické aktualizace. Ukládá se v tomto počítači pouze šifrovaně, nikdy jako prostý text, a po novém otevření konverzace se vrátí včetně zmínek; koncept uzamčené konverzace se vrátí až po otevření trezoru. Odeslání nebo smazání textu, odstranění konverzace nebo odhlášení koncept smaže. V Nastavení > Rozhraní > Chaty jej vypnete políčkem „Ponechat neodeslaný text jako šifrované koncepty po restartu WinZappu“ (ve výchozím stavu zapnuto).
+
 - Místní přepis dlouhých nahrávek (přes 2 minuty): okno výsledku nyní obsahuje také seznam okamžiků, kde každý řádek začíná časem, například „[01:05] ...“. „Poslechnout odsud“ (nebo Enter) posune hlasovou zprávu na danou sekundu, pokud právě hraje, a „Kopírovat s časy“ zkopíruje řádky; text výše a tlačítka Kopírovat a Uložit zůstávají bez časů. Přepis znovu otevřený ze zprávy obsahuje jen text bez tohoto seznamu.
 
 - Slovník místního přepisu: v Nastavení, Místní přepis, Pokročilé možnosti pole „Slovník“ přijímá jména, zkratky a pojmy (jeden na řádek), které má Whisper očekávat, aby je zapsal správně. Seznam zůstává v tomto počítači, nikdy se nezapisuje do protokolu a nikdy nejde na internet; whisper.cpp používá pojmy pouze bez diakritiky. Již uložený přepis se při změně seznamu znovu nespouští.

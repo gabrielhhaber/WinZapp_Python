@@ -4,6 +4,8 @@ Esta versão traz correções sobre a 3.0.0.0.
 
 NOVIDADES
 
+- Rascunhos: o que você digitou e não enviou agora sobrevive ao fechamento do WinZapp, à reinicialização e às atualizações automáticas. Fica neste computador somente criptografado, nunca como texto simples, e volta, com as menções, quando você abre a conversa de novo; o rascunho de uma conversa trancada só volta com o cofre aberto. Enviar ou apagar o texto, excluir a conversa ou sair da conta remove o rascunho. Em Configurações > Interface > Conversas, "Manter os rascunhos criptografados ao fechar o WinZapp" (ativada por padrão) desliga isso.
+
 - Transcrição local de gravações longas (mais de 2 minutos): a janela do resultado passa a ter também uma lista de momentos, cada linha começando pelo tempo, como "[01:05] ...". "Ouvir daqui" (ou Enter) leva a mensagem de voz para aquele segundo quando é ela que está tocando, e "Copiar com tempos" copia as linhas; o texto acima e os botões Copiar e Salvar da janela continuam sem tempos. Uma transcrição aberta de novo a partir da mensagem tem só o texto, sem essa lista.
 
 - Vocabulário da transcrição local: em Configurações, Transcrição local, Opções avançadas, o campo "Vocabulário" recebe nomes, siglas e termos (um por linha) que o Whisper deve esperar, para escrevê-los certo. A lista fica neste computador, nunca é escrita no registro e nunca vai para a internet; o whisper.cpp só usa os termos sem acento. Uma transcrição já salva não é refeita quando a lista muda.

@@ -107,6 +107,7 @@
         "keep_pinned_chat_order": false,
         "show_channels_in_chat_list": false,
         "message_draft_mode": "per_conversation",
+        "persist_message_drafts": true,
         "preserve_typed_text_as_attachment_caption": true,
         "bulk_action_shortcuts": true,
         "confirm_mark_all_read": true,

@@ -49,6 +49,7 @@ async def harness(monkeypatch):
                                  import_from_dict=imported, clear_all=clear)
     bridge._presence_names = LatestMetadataWrite(
         lambda value: bridge._db.set_metadata_json("presence_pushname_map", value))
+    bridge._drafts = LatestMetadataWrite(lambda value: None)  # the drafts writer, idle here
     bridge._init_event_writes()
     # Patch only the bridge's submitter, not asyncio shared by pytest's runner.
     bridge_asyncio = SimpleNamespace(**vars(asyncio))

@@ -4,6 +4,8 @@ This release brings fixes on top of 3.0.0.0.
 
 WHAT'S NEW
 
+- Bozze: ciò che hai scritto e non hai inviato ora sopravvive alla chiusura di WinZapp, al riavvio e agli aggiornamenti automatici. Resta su questo computer solo cifrato, mai come testo in chiaro, e torna, con le menzioni, quando riapri la conversazione; la bozza di una conversazione bloccata torna solo quando la vault è aperta. Inviare o cancellare il testo, eliminare la conversazione o uscire dall'account la rimuove. In Impostazioni > Interfaccia utente > Chat, "Conserva le bozze cifrate anche più tardi, dopo il riavvio di WinZapp" (attiva per impostazione predefinita) la disattiva.
+
 - Trascrizione locale di registrazioni lunghe (oltre 2 minuti): la finestra del risultato ha ora anche un elenco di momenti, ogni riga con il suo tempo all'inizio, come "[01:05] ...". "Ascolta da qui" (o Invio) porta il messaggio vocale a quel secondo quando è quello in riproduzione, e "Copia con i tempi" copia le righe; il testo sopra e i pulsanti Copia e Salva della finestra restano senza tempi. Una trascrizione riaperta dal messaggio ha solo il testo, senza questo elenco.
 
 - Vocabolario della trascrizione locale: in Impostazioni, Trascrizione locale, Opzioni Avanzate, "Vocabolario" accetta nomi, sigle e termini (uno per riga) che Whisper deve aspettarsi per scriverli bene. L'elenco resta su questo computer, non viene mai scritto nel registro e non va mai online; whisper.cpp usa solo i termini senza accenti. Una trascrizione già salvata non viene rifatta quando l'elenco cambia.

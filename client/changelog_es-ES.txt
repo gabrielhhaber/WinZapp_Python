@@ -4,6 +4,8 @@ Esta versión trae correcciones sobre la 3.0.0.0.
 
 NOVEDADES
 
+- Borradores: lo que escribiste y no enviaste ahora sobrevive al cierre de WinZapp, al reinicio y a las actualizaciones automáticas. Se guarda en este equipo solo cifrado, nunca como texto sin cifrar, y vuelve, con las menciones, cuando abres el chat de nuevo; el borrador de un chat bloqueado solo vuelve cuando la caja fuerte está abierta. Enviar o borrar el texto, eliminar el chat o cerrar la sesión lo elimina. En Configuración > Interfaz > Chats, "Guardar los borradores cifrados al reiniciar WinZapp" (activada por defecto) lo desactiva.
+
 - Transcripción local de grabaciones largas (más de 2 minutos): la ventana del resultado tiene ahora también una lista de momentos, cada fila con su hora al principio, como "[01:05] ...". "Escuchar desde aquí" (o Intro) lleva el mensaje de voz a ese segundo cuando es el que se está reproduciendo, y "Copiar con horas" copia las filas; el texto de arriba y los botones Copiar y Guardar de la ventana siguen sin horas. Una transcripción que se abre de nuevo desde el mensaje tiene solo el texto, sin esta lista.
 
 - Vocabulario de la transcripción local: en Configuración, Transcripción local, Opciones avanzadas, "Vocabulario" admite nombres, siglas y términos (uno por línea) que Whisper debe esperar para escribirlos bien. La lista se queda en este equipo, nunca se escribe en el registro y nunca va a internet; whisper.cpp solo usa los términos sin acentos. Una transcripción ya guardada no se rehace al cambiar la lista.

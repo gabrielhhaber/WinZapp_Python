@@ -4,6 +4,8 @@ Bu sürüm 3.0.0.0 üzerine düzeltmeler getirir.
 
 YENİLİKLER
 
+- Taslaklar: yazıp göndermediğiniz metin artık WinZapp kapatılıp yeniden başlatıldığında ve otomatik güncellemelerde de korunur. Bu bilgisayarda yalnızca şifreli olarak tutulur, hiçbir zaman düz metin olarak değil, ve sohbeti yeniden açtığınızda bahsetmeleriyle birlikte geri gelir; kilitli bir sohbetin taslağı ancak kasa açıldığında geri gelir. Metni göndermek veya silmek, sohbeti silmek ya da oturumu kapatmak taslağı kaldırır. Ayarlar > Arayüz > Sohbetler bölümündeki "Taslakları şifreli olarak sakla, WinZapp kapansa da" (varsayılan olarak açık) bunu kapatır.
+
 - Uzun kayıtların yerel dökümü (2 dakikadan uzun): sonuç penceresinde artık bir bölümler listesi de var; her satır süresiyle başlar, örneğin "[01:05] ...". "Buradan dinle" (veya Enter), o mesaj çalıyorsa sesli mesajı o saniyeye götürür; "Sürelerle kopyala" satırları kopyalar. Üstteki metin ile pencerenin Kopyala ve Kaydet düğmeleri sürelerden arınmış kalır. Mesajdan yeniden açılan bir döküm yalnızca metni içerir, bu liste olmaz.
 
 - Yerel döküm kelime listesi: Ayarlar, Yerel döküm, Gelişmiş seçenekler içindeki "Kelime listesi" alanı, Whisper'ın doğru yazması için beklemesi gereken adları, kısaltmaları ve terimleri (her satırda bir tane) alır. Liste bu bilgisayarda kalır, günlüğe asla yazılmaz ve internete gitmez; whisper.cpp yalnızca aksansız terimleri kullanır. Zaten kaydedilmiş bir döküm, liste değişince yeniden yapılmaz.
