@@ -402,3 +402,28 @@ class TestBridge:
             assert bridge.get_metadata(message_drafts.METADATA_KEY) == token
         finally:
             bridge.close()
+
+
+class TestComposerHook:
+    def test_typing_in_the_real_field_handler_reaches_the_draft(self):
+        """on_change_message_field is what wx calls: it must feed the draft."""
+        from types import SimpleNamespace
+        from ui.conversation_panel.composer import ComposerMixin
+
+        noted = []
+        field = SimpleNamespace(GetValue=lambda: "hello")
+        btn = SimpleNamespace(Show=lambda: None, Hide=lambda: None)
+        stub = SimpleNamespace(
+            _is_recording=False,
+            _attachment_panel=SimpleNamespace(IsShown=lambda: False),
+            message_field=field, send_message_btn=btn,
+            record_voice_message_btn=btn, conversation=None,
+            _note_draft_changed=noted.append,
+            _on_text_changed_mention_check=lambda: None,
+            _schedule_link_preview_check=lambda: None,
+        )
+        ComposerMixin.on_change_message_field(stub, None)
+        assert noted == ["hello"]
+        stub._restoring_draft = True
+        ComposerMixin.on_change_message_field(stub, None)
+        assert noted == ["hello"]

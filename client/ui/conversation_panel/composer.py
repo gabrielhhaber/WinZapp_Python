@@ -243,6 +243,12 @@ class ComposerMixin:
                 self._record_voice_system_btn.Show()
         if restoring:
             return
+        # Typed (or cleared by a send): keep the persisted draft current
+        # (draft_persistence.py); without this nothing is saved until the
+        # conversation is left.
+        note_draft = getattr(self, "_note_draft_changed", None)
+        if callable(note_draft):
+            note_draft(msg)
         # Sync typing status with WPPConnect (only on state transitions)
         if self.conversation is not None:
             jid = self.conversation.get("remoteJid", "")
