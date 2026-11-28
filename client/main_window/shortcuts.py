@@ -36,6 +36,9 @@ class ShortcutsMixin:
         self.ID_COMMUNITIES      = wx.NewIdRef()
         self.ID_CHANNELS         = wx.NewIdRef()
         self.ID_STARRED          = wx.NewIdRef()
+        self.ID_FONT_BIGGER      = wx.NewIdRef()
+        self.ID_FONT_SMALLER     = wx.NewIdRef()
+        self.ID_FONT_RESET       = wx.NewIdRef()
 
         # navigation_panel's "&Navegação principal" label mnemonic is meant
         # to redirect Alt+N to nav_list, but that native StaticText-mnemonic
@@ -79,6 +82,12 @@ class ShortcutsMixin:
             (wx.ACCEL_ALT,    ord('9'),    self.ID_CHANNELS),
             # and the starred messages of every chat (issue #708)
             (wx.ACCEL_ALT,    ord('0'),    self.ID_STARRED),
+            # Font size for low vision (main_window/font_scale.py): Ctrl+= and
+            # Ctrl++ (the same key with Shift) grow it, Ctrl+- shrinks it.
+            (wx.ACCEL_CTRL,   ord('='),    self.ID_FONT_BIGGER),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('='), self.ID_FONT_BIGGER),
+            (wx.ACCEL_CTRL,   ord('-'),    self.ID_FONT_SMALLER),
+            (wx.ACCEL_CTRL | wx.ACCEL_SHIFT, ord('Z'), self.ID_FONT_RESET),
         ])
         self.SetAcceleratorTable(accel_tbl)
         self.Bind(wx.EVT_MENU, self.on_alt_1,       id=self.ID_ALT_1)
@@ -99,6 +108,9 @@ class ShortcutsMixin:
         self.Bind(wx.EVT_MENU, self._on_global_communities, id=self.ID_COMMUNITIES)
         self.Bind(wx.EVT_MENU, self._on_global_channels, id=self.ID_CHANNELS)
         self.Bind(wx.EVT_MENU, self._on_global_starred, id=self.ID_STARRED)
+        self.Bind(wx.EVT_MENU, self._on_font_bigger, id=self.ID_FONT_BIGGER)
+        self.Bind(wx.EVT_MENU, self._on_font_smaller, id=self.ID_FONT_SMALLER)
+        self.Bind(wx.EVT_MENU, self._on_font_reset, id=self.ID_FONT_RESET)
         from ui.shortcut_bindings import refresh_mnemonics
         refresh_mnemonics(self)
 

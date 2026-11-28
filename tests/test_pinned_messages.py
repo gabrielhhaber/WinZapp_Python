@@ -61,7 +61,7 @@ class Panel(PinnedMessagesMixin):
     def _is_separator(self, msg):
         return not (msg.get("key") or {}).get("id")
 
-    def _render_message_line(self, msg):
+    def _render_message_line(self, msg, **_kw):
         return "Author: " + msg["message"]["conversation"]
 
     def _merge_history_into_records(self, messages):

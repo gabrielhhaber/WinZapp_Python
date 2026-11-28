@@ -865,6 +865,12 @@ class DatabaseManager:
         ``(remote_jid, msg)``: the starred messages window (star_storage)."""
         return await starred_messages(self, limit, remote_jids)
 
+    async def get_message_rows_page(self, before_rowid, limit: int) -> list:
+        """A page of still-encrypted rows for the history search
+        (core/history_search_store.py)."""
+        from core.history_search_store import message_rows_page
+        return await message_rows_page(self, before_rowid, limit)
+
     async def get_message_count(self, remote_jid: str) -> int:
         """Return total message count for a chat."""
         conn = await self._ensure_conn()

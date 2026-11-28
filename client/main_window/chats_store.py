@@ -299,6 +299,12 @@ class ChatsStoreMixin:
             # above hands B the full _MAX_PHONE_HISTORY_REQUESTS budget to
             # spend on them.
             self._opened_conversations = set()
+            # Unsent drafts of the previous account, in memory (the sealed
+            # copy goes with the system_metadata table below).
+            discard_drafts = getattr(getattr(self, "conversations_panel", None),
+                                     "discard_message_drafts", None)
+            if callable(discard_drafts):
+                discard_drafts()
             # Media whose CDN URL answered 403/410, keyed by message id. Same
             # family as everything above and the last member of it: the ids
             # belong to the previous account's messages, and the file outlives

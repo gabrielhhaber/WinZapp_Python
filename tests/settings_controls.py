@@ -54,8 +54,8 @@ FILES = (
     "transcription_model_marks.py", "transcription_options.py", "transcription_precision.py",
     "transcription_queue.py", "transcription_result_field.py", "transcription_reuse.py",
     "transcription_tab.py", "transcription_whisper_cpp.py", "transcription_windows.py",
-    "advanced_tab.py", "ai_auto_options.py", "ai_kinds_options.py", "ai_usage_options.py", "ai_routes_options.py", "reading_position_options.py",
-    "noise_reducer_dialog.py", "noise_model_section.py", "noise_reducer_options.py", "voice_recording_options.py",
+    "advanced_tab.py", "ai_auto_options.py", "ai_kinds_options.py", "ai_usage_options.py", "ai_routes_options.py", "reading_position_options.py", "message_reading_options.py",
+    "noise_reducer_dialog.py", "noise_model_section.py", "noise_reducer_options.py", "voice_recording_options.py", "font_scale_options.py",
     "neteq_component_dialog.py",
 )
 

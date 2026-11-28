@@ -335,6 +335,7 @@ from main_window.commerce import CommerceMixin
 from main_window.message_pins import MessagePinsMixin
 from main_window.quick_audio_devices import QuickAudioDevicesMixin
 from main_window.quick_chats import QuickChatsMixin
+from main_window.font_scale import FontScaleMixin
 from main_window.message_ack import MessageAckMixin
 from main_window.whatsapp_privacy import WhatsAppPrivacyMixin
 from main_window.whatsapp_profile import WhatsAppProfileMixin
@@ -382,6 +383,7 @@ class MainWindow(
     SessionLifecycleMixin,
     ShortcutsMixin,
     QuickChatsMixin,
+    FontScaleMixin,
     SettingsMixin,
     ShortcutSharingMixin,
     SessionTokensMixin,
@@ -1543,6 +1545,7 @@ class MainWindow(
         self.SetSizer(frame_sizer)
 
         self.create_accelerator_table()
+        self.install_font_scale()
         logging.info("[init_UI] panels built — building menu bar")
 
         # ── Menu bar ──────────────────────────────────────────────────────────

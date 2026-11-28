@@ -241,6 +241,11 @@ class AttachmentsMixin:
             return
         self._caption_field.SetValue(typed)
         self.message_field.SetValue("")
+        # The panel is already shown, so the field's change handler returned
+        # early: the text moved to the caption is no longer an unsent draft.
+        note_draft = getattr(self, "_note_draft_changed", None)
+        if callable(note_draft):
+            note_draft("")
 
     def _rebuild_attachment_list(self):
         """Rebuild the per-file remove-buttons to match _staged_attachments."""

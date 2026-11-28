@@ -19,6 +19,7 @@ Where to look (and where new code goes):
     composer                 message field: spell check, link preview, keys, paste
     group_calls              visible-group call discovery and ongoing-call join button
     message_drafts           the field's text kept per conversation, like WhatsApp Web
+    draft_persistence        those drafts kept on disk, encrypted, across restarts (a base of message_drafts)
     emoticon_conversion      ":)" -> emoji while typing and at send, Backspace undo
     text_sending             sending/editing text, pending rows, cancelled sends
     voice_recording          recording and sending voice messages
@@ -34,6 +35,8 @@ Where to look (and where new code goes):
     message_actions          star, pin, delete, cancel, edit, resend
     message_stars            sequential star jobs, explicit old-star migration
     message_accels           accelerator handlers for messages
+    semantic_jump            next/previous unplayed voice, media, document, poll or link
+    row_reading              configurable reading order and concise repeats for message rows
     dictation                dictating into the message field with the local Whisper (ACC-03)
     bulk_messages            bulk actions on selected messages
     bulk_copy_files          copying the selected files (and text) to the clipboard as files

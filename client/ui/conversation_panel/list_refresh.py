@@ -107,7 +107,7 @@ class ListRefreshMixin:
         self.messages_list.Freeze()
         try:
             for i, msg in rows:
-                line = self._render_message_line(msg)
+                line = self._render_message_line(msg, index=i)
                 try:
                     if self.messages_list.GetItemText(i) == line:
                         continue
@@ -513,7 +513,8 @@ class ListRefreshMixin:
             if pagination_in_step:
                 all_sorted.append(msg)
             self._sorted_messages.append(msg)
-            append_message_row(self, self._render_message_line(msg))
+            append_message_row(self, self._render_message_line(
+                msg, index=len(self._sorted_messages) - 1))
             # What the sender was typing is here now: take them off the
             # typing row (which stays below, for anyone else still typing).
             if not from_me:
@@ -1073,7 +1074,8 @@ class ListRefreshMixin:
                     if in_step:
                         self._all_sorted_messages.append(m)
                     self._sorted_messages.append(m)
-                    append_message_row(self, self._render_message_line(m))
+                    append_message_row(self, self._render_message_line(
+                        m, index=len(self._sorted_messages) - 1))
                     # Same as the live path: a message that came in through
                     # sync takes its sender off the typing row too (own
                     # messages are ignored inside).

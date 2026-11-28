@@ -351,7 +351,8 @@ class MessageAccelsMixin:
         self._review_last_press = (digit, now, msg_id)
         self.main_window.output(
             self._render_message_line(
-                msg, index=index, total=len(self._sorted_messages)),
+                msg, index=index, total=len(self._sorted_messages),
+                standalone=True),
             interrupt=True,
         )
 
