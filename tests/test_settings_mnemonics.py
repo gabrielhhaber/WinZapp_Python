@@ -97,7 +97,13 @@ def test_the_online_ai_windows_and_their_buttons_are_checked():
             "ai_auto_daily_limit", "ok"} <= automatic
     kinds = {key for key, _ctor, _where in WINDOWS["window AISettingsPage:self.kinds_dialog"]}
     assert {"ai_describe_images_label", "ai_describe_stickers_label", "ai_describe_videos_label",
-            "ai_transcribe_audio_label", "ai_pdf_accessible_label", "ok"} <= kinds
+            "ai_transcribe_audio_label", "ai_pdf_accessible_label",
+            "ai_video_several_frames_label", "ai_context_caption_label",
+            "ai_context_quote_label", "ai_streaming_label",
+            "ai_summary_hierarchy_label", "ok"} <= kinds
+    routes = {key for key, _ctor, _where in WINDOWS["window AISettingsPage:self.routes_dialog"]}
+    assert {"ai_route_task_label", "ai_route_general_check", "ai_route_list_label",
+            "ai_route_toggle_button", "ai_provider_move_up_button", "ok"} <= routes
     page = {key for key, _ctor, _where in WINDOWS["page self._ai_holder"]}
-    assert {"ai_kinds_button", "ai_auto_button", "translation_settings"} <= page
+    assert {"ai_kinds_button", "ai_auto_button", "ai_routes_button", "translation_settings"} <= page
     assert not {"ai_describe_images_label", "ai_pdf_accessible_label"} & page

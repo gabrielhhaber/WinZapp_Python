@@ -45,21 +45,28 @@ class ModelSelectionMixin:
             self._refresh_model_choices()
             self.status.ChangeValue("")
 
+    def _model_source(self):
+        """What lists the models: a function of the cancel token, made from the
+        key the window holds. Raises DescriptionError when it cannot be asked.
+        The window of a local server overrides this (no key, an address)."""
+        provider, key = self._provider, self._current_key()
+        if not key:
+            raise DescriptionError("credentials")
+        return lambda token: fetch_models(provider, key, token)
+
     def _fetch_models(self, event):
         if not self._alive or self._model_list_token is not None:
             return
         self._cancel_model_list(clear=True)
         self._cancel_probe()
         try:
-            provider, key = self._provider, self._current_key()
-            if not key:
-                raise DescriptionError("credentials")
+            provider, load = self._provider, self._model_source()
             self._model_list_token = token = RequestToken(seconds=20)
             generation = self._model_list_generation
             self.status.ChangeValue(self._t("ai_models_loading"))
             self.get_models.Enable(False)
             self._model_list_timer = wx.CallLater(20_000, self._model_list_timeout, generation)
-            submit(lambda: fetch_models(provider, key, token),
+            submit(lambda: load(token),
                    lambda result, error: wx.CallAfter(self._models_loaded, generation, provider, result, error))
         except (DescriptionError, CredentialError) as exc:
             self._cancel_model_list()
@@ -78,7 +85,8 @@ class ModelSelectionMixin:
         self._cancel_model_list()
         self._model_options = tuple(result or ()) if not error else ()
         self._refresh_model_choices()
-        message = error or ("ai_models_ready" if self._model_options else "ai_models_empty")
+        message = error or ("ai_models_ready" if self._model_options
+                            else getattr(self, "_models_empty_key", "ai_models_empty"))
         text = self._t(message)
         self.status.ChangeValue(text)
         self.main_window.output(text)

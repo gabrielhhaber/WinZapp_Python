@@ -966,7 +966,7 @@ class MessageTranscriptionFlow:
             result, stored_transcription.next_decision_time(time.time(), previous),
             # A message that already shows its text in the line keeps showing
             # it when the window runs the transcription again.
-            inline=self._inline or stored_transcription.is_inline(previous),
+            inline=self._inline or stored_transcription.is_inline_transcription(previous),
         ))
         return self._save(value)
 

@@ -755,6 +755,33 @@ msgid "Send media to an AI provider?"
 msgstr "Dosya yapay zekâ sağlayıcısına gönderilsin mi?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_context_caption_label"
+msgid "Include the &caption when describing media"
+msgstr "Dosyaları betimlerken &altyazıyı ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_media_modes.py
+#, python-brace-format
+msgctxt "ai_context_consent"
+msgid ""
+"Your settings add the caption and the message this one replies to, when they"
+" exist, to the description request. For this media, {providers} may also "
+"receive that text, which other people wrote in the chat, besides the "
+"picture. This replaces the earlier notice that captions are not sent. Chat "
+"names and senders are still not sent. Do you want to continue?"
+msgstr ""
+"Ayarlarınız, betimleme isteğine altyazıyı ve bu iletinin yanıtladığı iletiyi"
+" (varsa) ekler. Bu dosya için {providers}, görselin yanı sıra sohbetteki "
+"diğer kişilerin yazdığı bu metni de alabilir. Bu, altyazıların "
+"gönderilmediğini söyleyen önceki bildirimin yerine geçer. Sohbet ve gönderen"
+" adları yine gönderilmez. Devam etmek istiyor musunuz?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_context_quote_label"
+msgid "Include the &quoted message when describing media"
+msgstr "Dosyaları betimlerken alıntılanan ileti&yi ekle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_copy_answer"
 msgid "Copy latest answer"
 msgstr "Son yanıtı kopyala"
@@ -905,6 +932,17 @@ msgstr ""
 "pencereyi kapatın."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_local_url"
+msgid ""
+"The server address is not valid. Use http://localhost or http://127.0.0.1 "
+"with the port, or an https:// address, without a user name, password or "
+"parameters."
+msgstr ""
+"Sunucu adresi geçerli değil. Bağlantı noktasıyla http://localhost veya "
+"http://127.0.0.1 ya da https:// ile başlayan bir adres kullanın; kullanıcı "
+"adı, parola veya parametre olmasın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_media"
 msgid ""
 "The original media could not be downloaded or read. It may no longer be "
@@ -932,6 +970,20 @@ msgid ""
 msgstr ""
 "Sağlayıcıya bağlanılamadı. Bağlantınızı denetleyin; otomatik yeniden deneme "
 "yapılmadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_ocr_language"
+msgid ""
+"Windows has no text recognition language installed. Add one in Settings, "
+"Time and language, Language and region."
+msgstr ""
+"Windows'ta yüklü bir metin tanıma dili yok. Ayarlar, Saat ve dil, Dil ve "
+"bölge bölümünden bir tane ekleyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_error_ocr_unavailable"
+msgid "Text recognition is not available on this computer."
+msgstr "Metin tanıma bu bilgisayarda kullanılamıyor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_error_output_limit"
@@ -1056,6 +1108,98 @@ msgid "Quick"
 msgstr "Hızlı"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+#: client/ui/conversation_panel/ai_full_video.py
+#: client/ui/dialogs/ai_full_video.py
+msgctxt "ai_full_video"
+msgid "Understand full video"
+msgstr "Videonun tamamını anla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_busy"
+msgid ""
+"Another transcription is running. Wait for it to finish, then try again."
+msgstr ""
+"Başka bir yazıya döküm sürüyor. Bitmesini bekleyin ve yeniden deneyin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_consent"
+msgid ""
+"Still pictures taken from this video and the text transcribed on this "
+"computer from what is said in it may be sent to {providers}, in that order, "
+"if the earlier ones fail. The video's sound is never sent, but the text may "
+"contain private words of the people in the video. Your questions and the "
+"previous answers in this window may be sent too. This may incur API charges."
+" Provider data policies apply; the answer can be wrong. Do you want to "
+"continue?"
+msgstr ""
+"Bu videodan alınan durağan görüntüler ve videoda söylenenlerin bu "
+"bilgisayarda yazıya dökülmüş metni, öncekiler başarısız olursa şu sırayla "
+"gönderilebilir: {providers}. Videonun sesi asla gönderilmez, ancak metin "
+"videodaki kişilerin özel sözlerini içerebilir. Bu penceredeki sorularınız ve"
+" önceki yanıtlar da gönderilebilir. API ücreti doğabilir. Sağlayıcının veri "
+"koşulları geçerlidir; yanıt yanlış olabilir. Devam etmek istiyor musunuz?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_cut_notice"
+msgid ""
+"The transcribed text is long: only its first {chars} characters are sent."
+msgstr "Yazıya dökülen metin uzun: yalnızca ilk {chars} karakteri gönderilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_full_video_cut_status"
+msgid "Only the first {chars} characters of the transcribed speech were used."
+msgstr "Yazıya dökülen konuşmanın yalnızca ilk {chars} karakteri kullanıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_declined"
+msgid "Nothing was sent."
+msgstr "Hiçbir şey gönderilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_full_video.py
+#, python-brace-format
+msgctxt "ai_full_video_failed"
+msgid ""
+"The speech of this video could not be transcribed on this computer. {reason}\n"
+"\n"
+"Describe only the images instead? The answer will not cover what is said."
+msgstr ""
+"Bu videodaki konuşma bu bilgisayarda yazıya dökülemedi. {reason}\n"
+"\n"
+"Bunun yerine yalnızca görüntüler anlatılsın mı? Yanıt söylenenleri kapsamayacak."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_images_only"
+msgid "This answer covers only the images, not what is said."
+msgstr "Bu yanıt yalnızca görüntüleri kapsar, söylenenleri kapsamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_no_speech"
+msgid "No speech was found in this video. Describing only the images."
+msgstr "Bu videoda konuşma bulunamadı. Yalnızca görüntüler anlatılıyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_full_video.py
+msgctxt "ai_full_video_progress"
+msgid ""
+"Transcribing the speech of this video on this computer. The sound is not "
+"sent anywhere."
+msgstr ""
+"Bu videodaki konuşma bu bilgisayarda yazıya dökülüyor. Ses hiçbir yere "
+"gönderilmez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_full_video_stopped"
+msgid "Transcription cancelled. Nothing was sent."
+msgstr "Yazıya döküm iptal edildi. Hiçbir şey gönderilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_gemini_notice"
 msgid ""
 "Gemini: unpaid services may use inputs for product improvement and human "
@@ -1088,13 +1232,15 @@ msgstr ""
 "menüsü sunmaya devam eder)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_local_actions.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_result_streaming.py
 msgctxt "ai_history_answer"
 msgid "Answer:"
 msgstr "Yanıt:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_local_actions.py client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/ai_result_streaming.py
 msgctxt "ai_history_question"
 msgid "Your question:"
 msgstr "Sorunuz:"
@@ -1162,7 +1308,121 @@ msgid "Types of me&dia handled..."
 msgstr "İşlenecek &içerik türleri..."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_cloud_model_notice"
+msgid ""
+"The Ollama model you chose runs in Ollama's cloud: even though the server is"
+" on this computer, what is sent is forwarded to Ollama's servers, and "
+"whoever runs them can read it."
+msgstr ""
+"Seçtiğiniz Ollama modeli Ollama'nın bulutunda çalışıyor: sunucu bu "
+"bilgisayarda olsa bile gönderilenler Ollama'nın sunucularına iletilir ve "
+"bunları işleten kişi okuyabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_cloud_model_warning"
+msgid ""
+"This model runs in Ollama's cloud (its name ends in -cloud or :cloud). "
+"Pictures and text will leave this computer, so WinZapp asks for your consent"
+" first, like any online provider."
+msgstr ""
+"Bu model Ollama'nın bulutunda çalışıyor (adı -cloud veya :cloud ile "
+"bitiyor). Görseller ve metin bu bilgisayardan çıkar; bu yüzden WinZapp, "
+"çevrimiçi her sağlayıcıda olduğu gibi önce onayınızı ister."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_connection_ok"
+msgid ""
+"The server answered. This does not check that the chosen model can read "
+"pictures."
+msgstr ""
+"Sunucu yanıt verdi. Bu, seçilen modelin görselleri okuyabildiğini "
+"doğrulamaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_models_empty"
+msgid ""
+"The server reports no installed models. Install one in Ollama or LM Studio, "
+"or type its identifier in the Model identifier field."
+msgstr ""
+"Sunucu kurulu bir model bildirmiyor. Ollama veya LM Studio'da bir model "
+"kurun ya da kimliğini Model kimliği alanına yazın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_no_model"
+msgid ""
+"No model is chosen, so WinZapp does not use this provider. Use Get models "
+"and pick one."
+msgstr ""
+"Model seçilmedi, bu yüzden WinZapp bu sağlayıcıyı kullanmaz. Modelleri "
+"getir'i kullanın ve birini seçin."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_provider_note"
+msgid ""
+"A language model that runs on your own computer or network. It needs no API "
+"key, and nothing is sent to an online provider while the address is this "
+"computer. Choose a model you installed (a vision model to describe "
+"pictures). It takes pictures, stickers, video frames and text, not voice "
+"messages or PDFs. Without a chosen model, WinZapp does not use it."
+msgstr ""
+"Kendi bilgisayarınızda veya ağınızda çalışan bir dil modeli. API anahtarı "
+"gerektirmez ve adres bu bilgisayar olduğu sürece çevrimiçi bir sağlayıcıya "
+"hiçbir şey gönderilmez. Kurduğunuz bir model seçin (görselleri betimlemek "
+"için bir görü modeli). Fotoğrafları, çıkartmaları, video karelerini ve metni"
+" kabul eder; sesli mesajları ve PDF'leri kabul etmez. Model seçilmezse "
+"WinZapp onu kullanmaz."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_remote_notice"
+msgid ""
+"Ollama or LM Studio is set to an address that is not on this computer: what "
+"is sent goes to that server, and whoever runs it can read it."
+msgstr ""
+"Ollama veya LM Studio, bu bilgisayarda olmayan bir adrese ayarlı: "
+"gönderilenler o sunucuya gider ve sunucuyu işleten kişi bunları okuyabilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_remote_warning"
+msgid ""
+"This address is not on this computer. Pictures and text will be sent to that"
+" server, so WinZapp asks for your consent first, like any online provider."
+msgstr ""
+"Bu adres bu bilgisayarda değil. Görseller ve metin o sunucuya gönderilir; bu"
+" yüzden WinZapp, çevrimiçi her sağlayıcıda olduğu gibi önce onayınızı ister."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_bad_url"
+msgid "invalid address, not used"
+msgstr "geçersiz adres, kullanılmıyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_cloud"
+msgid "model chosen, runs in the cloud"
+msgstr "model seçili, bulutta çalışıyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_no_model"
+msgid "no model chosen, not used"
+msgstr "model seçilmedi, kullanılmıyor"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_ready"
+msgid "model chosen, runs on this computer"
+msgstr "model seçili, bu bilgisayarda çalışır"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_state_remote"
+msgid "model chosen, remote server"
+msgstr "model seçili, uzak sunucu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_local_url"
+msgid "Server &address"
+msgstr "Sunucu &adresi"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/core/ai_media/summary_voice_choice.py
+#: client/ui/dialogs/ai_full_video.py client/ui/dialogs/ai_media_modes.py
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -1212,6 +1472,44 @@ msgstr ""
 "anahtarından anlayamaz."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_custom"
+msgid "Use my own instruction"
+msgstr "Kendi talimatımı kullan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_media_modes.py client/ui/dialogs/ai_writing_dialog.py
+msgctxt "ai_mode_instruction_label"
+msgid "Your instruction"
+msgstr "Talimatınız"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/ai_actions.py
+#: client/ui/dialogs/ai_media_modes.py
+msgctxt "ai_mode_label"
+msgid "Quick analysis"
+msgstr "Hızlı analiz"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_receipt"
+msgid "Read receipt, bill or PIX proof"
+msgstr "Makbuz, fatura veya PIX dekontunu oku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_run"
+msgid "Analyze"
+msgstr "Analiz et"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_table"
+msgid "Read table or menu"
+msgstr "Tabloyu veya menüyü oku"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_mode_text_only"
+msgid "Extract only the text"
+msgstr "Yalnızca metni çıkar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_model"
 msgid "Model &identifier (advanced)"
 msgstr "Model k&imliği (gelişmiş)"
@@ -1257,6 +1555,23 @@ msgstr ""
 "değiştirilmedi."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_offline_no_text"
+msgid "No readable text was found in this picture."
+msgstr "Bu görüntüde okunabilir metin bulunamadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_offline_reading"
+msgid "Reading the text on this computer..."
+msgstr "Metin bu bilgisayarda okunuyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_offline_ready"
+msgid "Text read on this computer. Nothing was sent."
+msgstr "Metin bu bilgisayarda okundu. Hiçbir şey gönderilmedi."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_pdf_accessible_label"
 msgid "Convert received PDFs to accessib&le text"
 msgstr "Alınan &PDF'leri erişilebilir metne dönüştür"
@@ -1265,6 +1580,45 @@ msgstr "Alınan &PDF'leri erişilebilir metne dönüştür"
 msgctxt "ai_pdf_accessible_menu"
 msgid "Convert to accessible text"
 msgstr "Erişilebilir metne dönüştür"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+#, python-brace-format
+msgctxt "ai_pdf_local_incomplete"
+msgid "Only the first {pages} pages were read."
+msgstr "Yalnızca ilk {pages} sayfa okundu."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+#, python-brace-format
+msgctxt "ai_pdf_local_partial"
+msgid "{count} of {total} pages have no text and are missing here."
+msgstr "{total} sayfadan {count} tanesinde metin yok ve burada eksik."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_pdf_local_ready"
+msgid ""
+"Text read from the PDF on this computer. Nothing was sent. Use Run again to "
+"have an AI also describe the pictures."
+msgstr ""
+"PDF'nin metni bu bilgisayarda okundu. Hiçbir şey gönderilmedi. Resimleri de "
+"bir yapay zekanın anlatması için Yeniden çalıştır'ı kullanın."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_pdf_reading_local"
+msgid "Reading the text of the PDF on this computer..."
+msgstr "PDF'nin metni bu bilgisayarda okunuyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_local_actions.py
+msgctxt "ai_pdf_scanned"
+msgid ""
+"This PDF has no text that can be read on this computer; it looks scanned. "
+"Asking the AI providers instead."
+msgstr ""
+"Bu PDF'de bu bilgisayarda okunabilecek metin yok; taranmış görünüyor. Bunun "
+"yerine yapay zeka sağlayıcılarına soruluyor."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_privacy_link"
@@ -1355,6 +1709,12 @@ msgctxt "ai_read_answers"
 msgid "Read &new answers aloud using WinZapp speech settings"
 msgstr "Yeni yanıtları &WinZapp konuşma ayarlarıyla seslendir"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/ui/ai_media_launch.py
+#: client/ui/conversation_panel/ai_actions.py
+msgctxt "ai_read_text_offline"
+msgid "Read text on this computer"
+msgstr "Metni bu bilgisayarda oku"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_result_dialog.py
 #: client/ui/dialogs/ai_text_result_dialog.py
@@ -1416,6 +1776,126 @@ msgid "Voice message transcription (online AI)"
 msgstr "Sesli mesajın yazıya dökümü (çevrimiçi yapay zekâ)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_general_check"
+msgid "&Use the general order for this task"
+msgstr "Bu görev için genel sırayı &kullan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_included"
+msgid "{provider} included, position {position}."
+msgstr "{provider} dahil edildi, sıra {position}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_left_out"
+msgid "{provider} left out of the route."
+msgstr "{provider} rotanın dışında bırakıldı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_left_out_empty"
+msgid ""
+"{provider} left out. The route is now empty, so the general order is used."
+msgstr ""
+"{provider} dışarıda bırakıldı. Rota boş kaldı, bu yüzden genel sıra "
+"kullanılıyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_list_label"
+msgid "Pro&viders for this task (order = try order)"
+msgstr "Bu görevin &sağlayıcıları (sıra = deneme sırası)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_moved"
+msgid "{provider}, position {position}."
+msgstr "{provider}, sıra {position}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_not_ready"
+msgid "not ready (off, or no key or model)"
+msgstr "hazır değil (kapalı, ya da anahtar veya model yok)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_row_in"
+msgid "in the route, position {position}"
+msgstr "rotada, sıra {position}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_row_out"
+msgid "left out"
+msgstr "dışarıda"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_summary_general"
+msgid "{task}: using the general order."
+msgstr "{task}: genel sıra kullanılıyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_route_summary_route"
+msgid "{task}: own route, providers in it: {count}."
+msgstr "{task}: kendi rotası, içindeki sağlayıcılar: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_audio"
+msgid "Voice messages"
+msgstr "Sesli mesajlar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_image"
+msgid "Photos"
+msgstr "Fotoğraflar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_label"
+msgid "&Task"
+msgstr "&Görev"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_pdf"
+msgid "PDF"
+msgstr "PDF"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_sticker"
+msgid "Stickers"
+msgstr "Çıkartmalar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_video"
+msgid "Videos"
+msgstr "Videolar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_task_writing"
+msgid "Writing help"
+msgstr "Yazma yardımı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_route_toggle_button"
+msgid "&Include or leave out"
+msgstr "Dahil &et veya çıkar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_routes_button"
+msgid "Pro&viders by task..."
+msgstr "Göre&v başına sağlayıcılar..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+msgctxt "ai_saved_ready"
+msgid ""
+"Showing the description saved with this message. No new request was made."
+msgstr ""
+"Bu iletiyle birlikte kaydedilen açıklama gösteriliyor. Yeni bir istek "
+"yapılmadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_send_media"
 msgid "Send &media"
 msgstr "&Dosyayı gönder"
@@ -1453,6 +1933,17 @@ msgstr "Anahtarı göster &veya gizle"
 msgctxt "ai_status_label"
 msgid "S&tatus"
 msgstr "&Durum"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_streaming.py
+msgctxt "ai_streaming_arriving"
+msgid "The answer is arriving."
+msgstr "Yanıt geliyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_streaming_label"
+msgid "&Show answers as they arrive"
+msgstr "Yanıtları &geldikçe göster"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/conversation_panel/summary_actions.py client/ui/conversations.py
@@ -1495,6 +1986,11 @@ msgid "Summarize with AI from here to the end"
 msgstr "Buradan sona kadar yapay zekâ ile özetle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_summary_hierarchy_label"
+msgid "Su&mmarize older messages too (several requests)"
+msgstr "Daha eski mesajları da ö&zetle (birden çok istek)"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #, python-brace-format
 msgctxt "ai_summary_left_out"
 msgid ""
@@ -1530,6 +2026,75 @@ msgstr ""
 msgctxt "ai_summary_nothing"
 msgid "There are no text messages to summarize here."
 msgstr "Burada özetlenecek metin mesajı yok."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_result_dialog.py
+#, python-brace-format
+msgctxt "ai_summary_part_failed"
+msgid ""
+"Part {part} of {total} could not be summarized, so no summary is shown: with"
+" a part missing it would look complete and it would not be."
+msgstr ""
+"{total} parçanın {part}. parçası özetlenemedi; bu yüzden özet gösterilmiyor:"
+" bir parça eksikken tam görünür ama tam olmazdı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_part_heading"
+msgid "Part {part} of {total}"
+msgstr "Parça {part} / {total}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_summary_parts.py
+#, python-brace-format
+msgctxt "ai_summary_part_progress"
+msgid "Summarizing part {part} of {total}..."
+msgstr "Özetleniyor: {part}. parça, toplam {total}..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/summary_actions.py
+#, python-brace-format
+msgctxt "ai_summary_parts_consent"
+msgid ""
+"Because you chose to also summarize older messages, a long backlog is sent "
+"in up to {parts} parts of about 12,000 characters, one request each, plus "
+"one last request that joins the summaries: up to {requests} requests in all."
+" Each request may be charged and goes to the providers above, in that order "
+"if one fails."
+msgstr ""
+"Eski mesajları da özetlemeyi seçtiğiniz için uzun bir yazışma, her biri "
+"yaklaşık 12.000 karakterlik en fazla {parts} parça halinde, parça başına bir"
+" istekle, ayrıca özetleri birleştiren son bir istekle gönderilir: toplam en "
+"fazla {requests} istek. Her istek ücretlendirilebilir ve yukarıdaki "
+"sağlayıcılara, biri başarısız olursa yukarıdaki sırayla gönderilir."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_summary_parts.py
+msgctxt "ai_summary_parts_merge_failed"
+msgid ""
+"The final step that joins the parts failed. Below are the summaries of each "
+"part, in chronological order."
+msgstr ""
+"Parçaları birleştiren son adım başarısız oldu. Aşağıda her parçanın özeti, "
+"zaman sırasına göre veriliyor."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_parts_merging"
+msgid "Joining the summaries of the {total} parts..."
+msgstr "{total} parçanın özetleri birleştiriliyor..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_summary_parts_notice"
+msgid ""
+"Summary made in {parts} parts, joined in a final step, covering {count} "
+"messages. Follow-up questions are answered from the summaries of the parts, "
+"not from every message."
+msgstr ""
+"Özet, son adımda birleştirilen {parts} parça halinde hazırlandı ve {count} "
+"mesajı kapsıyor. Ek sorular, her mesaja göre değil, parça özetlerine göre "
+"yanıtlanır."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_summary_remember_consent"
@@ -1726,7 +2291,44 @@ msgstr ""
 "koşulları geçerlidir; çeviri yanlış olabilir. Devam etmek istiyor musun?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
-#: client/ui/dialogs/ai_result_dialog.py
+#: client/ui/dialogs/settings_dialog.py
+msgctxt "ai_usage_button"
+msgid "Usa&ge summary..."
+msgstr "Kullanım &özeti..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_cleared"
+msgid "Usage counters reset."
+msgstr "Kullanım sayaçları sıfırlandı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_label"
+msgid "&Usage by provider"
+msgstr "Sağlayıcıya göre &kullanım"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_usage_last"
+msgid "Last failure: {reason}"
+msgstr "Son hata: {reason}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "ai_usage_line"
+msgid "{provider}: {ok} answered, {failed} failed."
+msgstr "{provider}: {ok} yanıt, {failed} başarısız."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_none"
+msgid "Nothing counted yet."
+msgstr "Henüz hiçbir şey sayılmadı."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_usage_reset"
+msgid "Reset &counters"
+msgstr "Sayaçları &sıfırla"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_video_frame_notice"
 msgid ""
 "Only one still picture taken from the video is sent, without its sound and "
@@ -1734,6 +2336,20 @@ msgid ""
 msgstr ""
 "Videodan alınan yalnızca bir durağan görüntü gönderilir; sesi ve dosyada "
 "saklanan bilgiler gönderilmez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_video_frames_notice"
+msgid ""
+"Several still pictures taken from the video, joined into one image, are "
+"sent, without its sound and with its information removed."
+msgstr ""
+"Videodan alınan birkaç durağan görüntü tek bir görüntüde birleştirilerek "
+"gönderilir; sesi ve dosyada saklanan bilgiler gönderilmez."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ai_video_several_frames_label"
+msgid "Describe videos from several &frames"
+msgstr "Videoları birkaç &kare ile betimle"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "ai_voice_model"
@@ -1754,6 +2370,24 @@ msgstr ""
 "adresine gönderilebilir. Bu, API ücretlerine neden olabilir. Sohbet adları "
 "gönderilmez. Sağlayıcının veri politikaları geçerlidir; sonuç yanlış "
 "olabilir. Devam etmek istiyor musun?"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/ai_writing_dialog.py
+#, python-brace-format
+msgctxt "ai_writing_reply_consent"
+msgid ""
+"To suggest a reply, the last {count} messages of this conversation, with the"
+" names of who wrote them, and the text you are writing may be sent to "
+"{providers}, in that order if the previous ones fail. This may incur API "
+"charges. The conversation name is not sent. The provider's data policies "
+"apply; the suggestion may be wrong, and your draft is only replaced if you "
+"choose to. Do you want to continue?"
+msgstr ""
+"Yanıt önermek için bu konuşmanın son {count} iletisi, yazanların adlarıyla "
+"birlikte, ve yazdığınız metin, öncekiler başarısız olursa şu sırayla "
+"gönderilebilir: {providers}. API ücreti doğabilir. Sohbet adı gönderilmez. "
+"Sağlayıcının veri koşulları geçerlidir; öneri yanlış olabilir ve taslağınız "
+"yalnızca siz seçerseniz değiştirilir. Devam etmek istiyor musunuz?"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_data_dialog.py
@@ -7039,6 +7673,7 @@ msgstr "%d.%m.%Y"
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/events.py
 #: client/core/locale_format.py client/main_window/chat_events.py
 #: client/main_window/chat_list.py client/main_window/whats_new_since.py
+#: client/ui/conversation_panel/ai_writing.py
 #: client/ui/conversation_panel/bulk_messages.py
 #: client/ui/conversation_panel/bulk_transcription.py
 #: client/ui/conversation_panel/formatting.py
@@ -20169,7 +20804,6 @@ msgstr ""
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/status_tab/my_status_transcription.py
 #: client/status_tab/status_transcription.py
-#: client/ui/conversation_panel/message_rendering.py
 msgctxt "transcription_row_label"
 msgid "transcription"
 msgstr "döküm"
@@ -23271,6 +23905,11 @@ msgid "Fix spelling and punctuation, keeping my words"
 msgstr "Kelimelerimi koruyarak yazım ve noktalamayı düzelt"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_custom"
+msgid "Use my own instruction"
+msgstr "Kendi talimatımı kullan"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "writing_action_encouraging"
 msgid "Make it more encouraging"
 msgstr "Daha cesaret verici yap"
@@ -23290,6 +23929,11 @@ msgstr "Daha profesyonel yap"
 msgctxt "writing_action_rephrase"
 msgid "Say it another way"
 msgstr "Başka türlü söyle"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_action_reply"
+msgid "Suggest a reply draft"
+msgstr "Yanıt taslağı öner"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/ai_writing_dialog.py
@@ -23312,6 +23956,11 @@ msgstr ""
 msgctxt "writing_menu"
 msgid "Writing help"
 msgstr "Yazma yardımı"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "writing_quick_menu"
+msgid "Quick writing actions"
+msgstr "Hızlı yazma eylemleri"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "writing_replace"

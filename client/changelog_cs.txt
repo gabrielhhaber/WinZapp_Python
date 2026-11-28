@@ -2,6 +2,38 @@ V3.1.0.0
 
 Toto vydání přináší opravy oproti verzi 3.0.0.0.
 
+NOVINKY
+
+- Popisy pomocí AI: stisknutím Ctrl+Shift+I u fotky, nálepky nebo videa, které už má popis uložený u zprávy, se tento uložený text zobrazí okamžitě, bez nového požadavku a bez čerpání vašeho limitu. Tlačítko „Spustit znovu (nový požadavek)“ i doplňující otázky zůstávají k dispozici.
+
+- Souhrn chatu pomocí AI: text odesílaný k souhrnu nyní zahrnuje popis AI už uložený u fotek, nálepek a videí, možnosti anket (a jejich hlasy, pokud jsou známé) a krátký úryvek zprávy, kterou každá odpověď cituje. Pokud něco vyžaduje odpověď, požadavek, datum nebo odkaz, souhrn končí krátkým seznamem těchto položek.
+
+- Text bez odesílání čehokoli: v okně AI u fotky, nálepky nebo videa tlačítko „Přečíst text v tomto počítači“ přečte text z obrázku pomocí vlastního rozpoznávání textu ve Windows, bez internetu, bez klíče a bez okna se souhlasem (vyžaduje jazyk rozpoznávání textu nainstalovaný ve Windows). Při převodu PDF na přístupný text WinZapp nyní nejprve přečte text, který obsahuje samotné PDF v tomto počítači; pouze naskenované PDF bez textu pokračuje k poskytovatelům AI a „Spustit znovu (nový požadavek)“ požádá AI také o popis obrázků.
+
+- Požadavky na AI: když poskytovatel odpoví „příliš mnoho požadavků“ nebo „nedostupné“ a požádá o čekání jen několik sekund, WinZapp tuto chvíli počká a zkusí stejného poskytovatele ještě jednou, než přejde k dalšímu. Zrušení nadále okamžitě vše zastaví.
+
+- Nastavení, Online AI: nové tlačítko „Přehled využití...“ otevře okno, které pro každého poskytovatele uvádí, kolik požadavků vyřídil a kolik selhalo, spolu s důvodem posledního selhání a tlačítkem „Vynulovat počítadla“. Ukládají se pouze počty, nikdy obsah zprávy, požadavku nebo odpovědi.
+
+- Videa: popis online AI nyní sleduje až pět snímků rozmístěných po celém videu, spojených do jednoho obrázku, místo jediného snímku. Model je upozorněn, že snímky jdou po sobě a že nemůže vědět, co se děje mezi nimi, ani neslyší zvuk, který se nadále nikdy neodesílá. Okno se souhlasem uvádí, že se odesílá několik snímků bez zvuku. Nastavení, Online AI, „Zpracovávané typy médií...“: nové políčko „Popisovat videa z více snímků“, ve výchozím stavu zapnuté, lze vypnout pro návrat k jednomu snímku.
+
+- Okno výsledku obrázku, nálepky, videa nebo PDF: nová volba „Rychlá analýza“ a tlačítko „Analyzovat“ spustí tentýž soubor znovu s jiným požadavkem: „Extrahovat pouze text“, „Přečíst účtenku, fakturu nebo potvrzení o platbě“ (částka, příjemce, datum a kód nebo klíč, bez hádání: nejasná hodnota se označí k ověření a vypíše se, co nebylo možné přečíst) nebo „Přečíst tabulku nebo jídelní lístek“. „Použít vlastní pokyn“ zpřístupní pole „Váš pokyn“, kam napíšete, co ze souboru chcete. Odpověď nahradí předchozí a projde stejným souhlasem.
+
+- Nastavení, Online AI, „Zpracovávané typy médií...“: dvě nové možnosti, obě ve výchozím stavu vypnuté, „Zahrnout popisek při popisu médií“ a „Zahrnout citovanou zprávu při popisu médií“. Když jsou zapnuté, tento text napsaný ostatními lidmi v chatu se odešle s požadavkem na popis a informuje o tom samostatný souhlas.
+
+- Pomoc se psaním: kromě čtyř akcí vám „Použít vlastní pokyn“ umožní napsat, co s konceptem udělat (například „shrň v jednom řádku“), a „Navrhnout koncept odpovědi“ požádá AI o odpověď na základě posledních 10 zpráv konverzace a vašeho konceptu. Tím se odešlou tyto zprávy a jména jejich autorů, takže se vyžádá vlastní souhlas, a u uzamčených chatů pokaždé. Návrh nahradí váš koncept jen tehdy, když zvolíte „Nahradit koncept“.
+
+- Video nyní může mít současně uložený popis pomocí AI i místní přepis. Když jsou na řádku zprávy oba, řádek oznámí oba, například „..., popis: ..., přepis: ...“. Smazání přepisu (Alt+Shift+Delete nebo místní nabídka) popis ponechá; opakované smazání odstraní popis. Zpráva smazaná pro všechny ztratí obojí.
+
+- Odpovědi AI: nová možnost v Nastavení, Online AI, „Zpracovávané typy médií...“, „Zobrazovat odpovědi postupně, jak přicházejí“ (ve výchozím stavu vypnuto), vyplňuje okno výsledku popisu, PDF nebo souhrnu chatu po celých řádcích či větách, zatímco AI ještě píše, nejvýše jednou za sekundu, místo čekání na celou odpověď. Zvuk čekání ustane a okno jednou oznámí, že odpověď přichází; po dokončení se stále přečte nahlas jednou celá. Pokud požadavek selže nebo ho zrušíte, částečný text se zahodí a Zrušit i Esc spojení ihned ukončí. Hlasových zpráv a pomoci se psaním se to netýká.
+
+- Místní modely AI: Nastavení, Online AI nyní vedle online poskytovatelů uvádí Ollama a LM Studio. Zadáte adresu serveru (obvyklá je předvyplněná) a zvolíte nainstalovaný model; WinZapp pak popisuje obrázky, nálepky a snímky videí, shrnuje chaty, pomáhá se psaním a spouští režimy rychlé analýzy přímo v tomto počítači, bez klíče API a bez odesílání čehokoli ven. Bez zvoleného modelu se poskytovatel nepoužije a okno na to upozorní. Pokud zadáte adresu, která není v tomto počítači, WinZapp ji bere jako online poskytovatele a nejprve požádá o váš souhlas. Místní modely nezpracovávají hlasové zprávy ani soubory PDF.
+
+- Souhrn chatu: nová volitelná možnost „Shrnout také starší zprávy (více požadavků)“ (Nastavení, Online AI, „Zpracovávané typy médií...“) umožní shrnout dlouhou historii až v 6 částech plus jeden požadavek, který je spojí, místo zahazování starších zpráv. Souhlas uvede, kolik požadavků může být odesláno, okno hlásí „Shrnuji část 2 z 5...“ a při selhání části se nezobrazí neúplný souhrn jako hotový.
+
+- Nastavení, Online AI: nové tlačítko „Poskytovatelé podle úkolu...“ otevře okno, kde může mít každý druh úkolu (hlasové zprávy, fotky, nálepky, videa, PDF, souhrn zpráv a pomoc se psaním) své vlastní poskytovatele ve vlastním pořadí. Zaškrtnutím „Použít pro tento úkol obecné pořadí“ zachováte stávající nastavení; jinak pomocí „Zahrnout nebo vynechat“ a tlačítek přesunu sestavíte pořadí. Úkol s vlastním pořadím používá jen poskytovatele v něm (pokud není žádný připravený, akce se nenabídne) a každý poskytovatel dál žádá o váš souhlas jako dříve.
+
+- Videa: v okně AI u videa nové tlačítko „Porozumět celému videu“ spojí do jednoho textu, co je vidět a co se říká. Použije přepis už uložený u videa, nebo řeč přepíše v tomto počítači (okno průběhu se Zrušit); zvuk nikdy neopustí počítač. Vlastní souhlas, zobrazovaný při každém otevření okna a nikdy neukládaný, upozorní, že snímky z videa i přepsaný text budou odeslány, a uvede poskytovatele. Pokud řeč nelze přepsat, dozvíte se proč a můžete popsat jen obrázky; odpověď pak uvede, že pokrývá jen obrázky. Odesílaný text je omezen na prvních 12 000 znaků. Doplňující otázky a „Spustit znovu (nový požadavek)“ dál fungují; odpověď se nevkládá do řádku zprávy, takže nikdy nenahradí uložený popis ani přepis.
+
 OPRAVY
 
 - Spuštění WinZapp: na pomalém disku se WinZapp mohl při spuštění zastavit s chybou „Database call timed out after 20s“, když ukládal seznam kontaktů, a při dalším pokusu se normálně otevřel. Uložení velkého počtu kontaktů nyní čeká stejně dlouho jako ostatní hromadná ukládání a kontakt, který se při spuštění nepodaří uložit, už WinZapp neznemožní otevřít.

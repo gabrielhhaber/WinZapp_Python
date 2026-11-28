@@ -29,9 +29,13 @@ assert [kind for kind, _key in KIND_TOGGLES] == list(KINDS)
 
 
 class AIKindsPanel(wx.Panel):
-    """One check box per kind of media; *kinds* is {kind: on}."""
+    """One check box per kind of media; *kinds* is {kind: on}. The last one
+    chooses what a video sends: frames spaced over it (on) or a single frame.
+    Two more, off by default, add the caption and the quoted message to the
+    description request (core/ai_media/context.py)."""
 
-    def __init__(self, parent, page, kinds):
+    def __init__(self, parent, page, kinds, several_frames=True, caption=False, quote=False,
+                 streaming=False, hierarchy=False):
         super().__init__(parent)
         self._page = page
         self._keys = dict(KIND_TOGGLES)
@@ -42,8 +46,32 @@ class AIKindsPanel(wx.Panel):
             control.SetValue(kinds[kind])
             sizer.Add(control, 0, wx.ALL, 8)
             self.toggles[kind] = control
+        self.several_frames = wx.CheckBox(self, label=page._t("ai_video_several_frames_label"))
+        self.several_frames.SetValue(several_frames)
+        sizer.Add(self.several_frames, 0, wx.ALL, 8)
+        self.context_caption = wx.CheckBox(self, label=page._t("ai_context_caption_label"))
+        self.context_caption.SetValue(caption)
+        sizer.Add(self.context_caption, 0, wx.ALL, 8)
+        self.context_quote = wx.CheckBox(self, label=page._t("ai_context_quote_label"))
+        self.context_quote.SetValue(quote)
+        sizer.Add(self.context_quote, 0, wx.ALL, 8)
+        # Not a kind of media: how a text answer reaches the result window
+        # (ai_result_streaming.py). Off by default.
+        self.streaming = wx.CheckBox(self, label=page._t("ai_streaming_label"))
+        self.streaming.SetValue(streaming)
+        sizer.Add(self.streaming, 0, wx.ALL, 8)
+        # Chat summaries: also summarize the older messages a long backlog
+        # does not fit, in several requests (core/ai_media/summary_parts.py).
+        self.hierarchy = wx.CheckBox(self, label=page._t("ai_summary_hierarchy_label"))
+        self.hierarchy.SetValue(hierarchy)
+        sizer.Add(self.hierarchy, 0, wx.ALL, 8)
         self.SetSizer(sizer)
 
     def refresh_labels(self) -> None:
         for kind, control in self.toggles.items():
             control.SetLabel(self._page._t(self._keys[kind]))
+        self.several_frames.SetLabel(self._page._t("ai_video_several_frames_label"))
+        self.context_caption.SetLabel(self._page._t("ai_context_caption_label"))
+        self.context_quote.SetLabel(self._page._t("ai_context_quote_label"))
+        self.streaming.SetLabel(self._page._t("ai_streaming_label"))
+        self.hierarchy.SetLabel(self._page._t("ai_summary_hierarchy_label"))

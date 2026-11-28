@@ -22,6 +22,7 @@ SOURCES = (
     *sorted((CLIENT / "core" / "ai_media").glob("*.py")),
     *sorted((CLIENT / "ui" / "dialogs").glob("ai_*.py")),
     CLIENT / "ui" / "conversation_panel" / "ai_actions.py",
+    CLIENT / "ui" / "conversation_panel" / "ai_full_video.py",
     CLIENT / "ui" / "conversation_panel" / "summary_actions.py",
     CLIENT / "ui" / "conversation_panel" / "summary_voice.py",
     CLIENT / "ui" / "conversation_panel" / "summary_voice_choice.py",
@@ -71,6 +72,7 @@ def used_keys():
     if "ai_processing" in strings(CLIENT / "core" / "sound_system.py"):
         keys.add("sound_event_ai_processing")
     keys.discard("ai_processing")
+    keys.discard("ai_streaming")  # the preference of the streamed answer
     keys.discard("ai_media")  # the settings block and package name, not a string shown to anyone
     return keys
 
@@ -123,6 +125,11 @@ def test_no_two_keys_say_the_same_thing():
         if OWNED.match(key):
             texts.setdefault(value.strip().lower().rstrip(".:…"), []).append(key)
     same = [sorted(keys) for keys in texts.values() if len(keys) > 1]
+    # A route's task names (ai_route_task_*) are capitalised, standalone
+    # versions of the kind names the "handles" line lists (ai_kind_*).
+    same = [keys for keys in same if not (
+        len(keys) == 2 and keys[0].startswith("ai_kind_")
+        and keys[1] == keys[0].replace("ai_kind_", "ai_route_task_"))]
     # Two media kinds keep their own menu entry so each can be reworded alone.
     assert same == [["ai_describe_image_menu", "ai_describe_video_menu"]]
 
@@ -138,21 +145,38 @@ SETTINGS_PAGE = (
     "ai_provider_move_up_button", "ai_provider_move_down_button", "ai_kinds_button",
     "ai_profile", "ai_read_answers", "ai_hide_action_button", "ai_auto_button", "ai_settings_help",
     "ai_technical_info", "translation_settings", "ai_reset_keys", "ai_status_label",
+    "ai_usage_button", "ai_routes_button",
 )
 #: The window of the kinds of media, opened from the page (ai_kinds_options.py).
 KINDS_WINDOW = (
     "ai_describe_images_label", "ai_describe_stickers_label", "ai_describe_videos_label",
-    "ai_transcribe_audio_label", "ai_pdf_accessible_label",
+    "ai_transcribe_audio_label", "ai_pdf_accessible_label", "ai_video_several_frames_label",
+    "ai_context_caption_label", "ai_context_quote_label", "ai_streaming_label",
+    "ai_summary_hierarchy_label",
 )
 #: The window of the automatic options, opened from the page (ai_auto_options.py).
 AUTO_WINDOW = (
     "ai_auto_transcribe", "ai_auto_describe", "ai_auto_scope", "ai_auto_max_age",
     "ai_auto_daily_limit", "ai_auto_used_today",
 )
+#: The window of the usage counters, opened from the page (ai_usage_options.py).
+USAGE_WINDOW = ("ai_usage_label", "ai_usage_reset")
+#: The window of the provider routes, opened from the page (ai_routes_options.py);
+#: the two move buttons are the page's own labels.
+ROUTES_WINDOW = (
+    "ai_route_task_label", "ai_route_general_check", "ai_route_list_label",
+    "ai_route_toggle_button", "ai_provider_move_up_button", "ai_provider_move_down_button",
+)
 PROVIDER_WINDOW = (
     "ai_provider_enabled_checkbox", "ai_api_key", "ai_key_readable", "ai_show_key", "ai_delete_key",
     "ai_get_key", "ai_get_models", "ai_voice_model", "ai_model_automatic", "ai_model_choice", "ai_model",
     "ai_test_connection", "ai_billing", "ai_privacy_link", "ai_status_label",
+)
+#: The window of a local model server (ai_local_provider_dialog.py): the provider
+#: window's own labels it shares, and the address.
+LOCAL_WINDOW = (
+    "ai_provider_enabled_checkbox", "ai_local_url", "ai_get_models", "ai_model_choice", "ai_model",
+    "ai_test_connection", "ai_status_label",
 )
 MNEMONIC = re.compile(r"&([^&])")
 
@@ -168,7 +192,8 @@ def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcu
     the consent window, the settings page, its automatic options and kinds of
     media windows and the provider window only; the
     result window and the menus stay free of them."""
-    allowed = {*CONSENT_WINDOW, *SUMMARY_CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW, *KINDS_WINDOW}
+    allowed = {*CONSENT_WINDOW, *SUMMARY_CONSENT_WINDOW, *SETTINGS_PAGE, *PROVIDER_WINDOW, *AUTO_WINDOW, *KINDS_WINDOW, *USAGE_WINDOW,
+               *ROUTES_WINDOW, *LOCAL_WINDOW}
     for key, value in locale(name).items():
         if OWNED.match(key) and key != "ai_demo_notice":
             if key not in allowed:
@@ -183,7 +208,10 @@ def test_only_the_keyboard_reachable_windows_carry_mnemonics_and_never_a_shortcu
     (SETTINGS_PAGE, ("ok", "apply", "cancel", "settings_search_label")),
     (AUTO_WINDOW, ("ok",)),
     (KINDS_WINDOW, ("ok",)),
+    (USAGE_WINDOW, ("ok",)),
+    (ROUTES_WINDOW, ("ok",)),
     (PROVIDER_WINDOW, ("ok", "cancel")),
+    (LOCAL_WINDOW, ("ok", "cancel")),
 ])
 def test_every_control_of_a_window_has_its_own_mnemonic_letter(name, keys, fixed):
     """The Alt shortcuts of one window must not collide with each other or with

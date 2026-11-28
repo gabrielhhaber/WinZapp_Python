@@ -390,10 +390,12 @@ class DatabaseBridge(EventWritesMixin):
         )
 
     def delete_message_transcription(
-        self, remote_jids, message_id: str, deleted_at: float
+        self, remote_jids, message_id: str, deleted_at: float, description=None
     ) -> bool:
         return self._call(
-            self._db.delete_message_transcription(remote_jids, message_id, deleted_at)
+            self._db.delete_message_transcription(
+                remote_jids, message_id, deleted_at, description
+            )
         )
 
     def clear_model_transcriptions(

@@ -241,10 +241,10 @@ def test_translation_reuses_existing_keys_and_keeps_custom_keys_out_of_shared_st
 
 
 def test_every_engine_but_grok_and_custom_endpoints_has_a_ready_default_model():
-    from core.ai_media.config import PROVIDERS
+    from core.ai_media.config import KEYED_PROVIDERS
     from core.message_translation import default_model, settings_from
 
-    for provider in PROVIDERS:
+    for provider in KEYED_PROVIDERS:
         config = settings_from({"provider": provider, "language": "Arabic"})
         assert config.model == default_model(provider) != ""
         assert translation_model_ready(config), provider

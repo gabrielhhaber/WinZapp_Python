@@ -717,6 +717,28 @@ other models sit inside it under `by_model`, keyed by `backend:model`
   `DatabaseManager._rewrite_transcription`): the value is built from the copy
   in memory, which may lack the key (a message from `on_historical_message`).
 
+## A description beside the transcription (ACC-08)
+
+A video can hold the online AI's description of the picture and the local
+transcription of its sound. Same envelope under `_transcription`, same single
+`at`: the description is a result with `kind == "description"`, kept under its
+own `by_model` key (`...#description`), so one provider's transcription and
+description do not replace each other. Nothing in the two defences changed.
+
+- Ask by category: `saved_transcription()` never returns a description;
+  `saved_description_record()` answers it. `has_decision(msg, description)` is
+  what the automatic runs ask (a transcribed video is still described), and a
+  tombstone is a decision for both.
+- The row says both, description first (`inline_row_parts()`); a new
+  transcription inherits the inline mark of the newest *transcription*, never of
+  the description (`is_inline_transcription()`).
+- Deleting takes one category (`delete_target()`: transcriptions first, then the
+  description) and re-dates the other as the newest decision (`drop_kind()`, in
+  memory and in `_rewrite_transcription(description=...)`); the last one left is
+  a tombstone. A kind deleted while the other stays leaves no mark of its own: an
+  automatic run only happens on arrival, once per message in a session.
+- The summary reads both for a video (`summary_context.visual_text`).
+
 ## How long the loaded model stays (`residency.py`)
 
 faster-whisper caches the model it loaded in the backend singleton. That cache
@@ -882,6 +904,35 @@ transcription skips a model chosen explicitly whose cache is off (it would run f
   per-model one (`_rewrite_all_transcriptions`), leaving a tombstone on every message that held a result.
 - The new controls have no Alt keys: the tab has no free letter left in several locales.
 
+## Vocabulary and the timed list (IA-08)
+
+- **The vocabulary** (`core/transcription/vocabulary.py`, `transcription.vocabulary`, Settings >
+  Local transcription > Advanced options) is an `initial_prompt` for faster-whisper and
+  `--prompt` for whisper-cli. It is deliberately **not in `preferences.DEFAULTS`** (a test pins
+  those to the stored-automatic strings); an absent key means none, and the tab writes it only
+  when there is text or a key to clear. `MessageTranscription._run_job` reads it from the
+  settings and names `initial_prompt` to the job only when non-empty. **Never log it**
+  (`tests/test_transcription_vocabulary.py` walks the package's logging calls), never store it
+  outside the account's settings, never send it anywhere.
+- **It is not part of the per-model cache key.** A saved result belongs to `backend:model`; a
+  different vocabulary is a hint to the same model, and keying on it would orphan every saved
+  text when the list is edited. Changing the list does not redo saved transcriptions; deleting
+  one and transcribing again does.
+- **whisper.cpp gets plain-ASCII terms only** (`vocabulary.ascii_prompt`): the prompt is a
+  command-line argument in the system code page and whether whisper-cli reads it as UTF-8 was
+  not verified on a real run. With a vocabulary set the whisper.cpp server is not used (its
+  per-request prompt is unconfirmed) and the note runs on whisper-cli. Not run on a real
+  whisper-cli: confirm before widening.
+- **The `[mm:ss]` list** (`core/transcription/segment_list.py`,
+  `ui/dialogs/transcription_segments.py`) shows only for the window of a result just produced
+  and longer than 2 minutes. `stored.record_from_result` still keeps no segments, so a stored
+  transcription reopened has none. "Listen from here" goes through
+  `ui/conversation_panel/audio_seek.py`, which moves a playback only if that message is the one
+  loaded in the player (starting one would mean the whole of `_toggle_playback()`, and the saved
+  resume position is in bytes of a stream that does not exist yet). Otherwise the window says to
+  play it first. A status's flow offers the list with no "Listen from here"
+  (`_offers_seek = False`).
+
 ## Videos
 
 A video is transcribed from its sound track, through exactly the voice-note path:
@@ -1021,3 +1072,32 @@ context menu. `ui/conversation_panel/transcription_delete.py`:
 - Every key here is a catalogue row and so is listed on the Keyboard shortcuts
   tab (`visible_shortcuts()`); `tests/test_transcription_delete_shortcuts.py`
   holds the list.
+
+## Dictation into the message field (ACC-03)
+
+`Ctrl+Shift+J` (catalogue row `messages.ID_DICTATE`) listens to the microphone and,
+pressed again, transcribes and writes the text at the caret. Never sends. Pieces:
+`core/dictation.py` (state machine, refusals, insertion rule), `core/dictation_capture.py`
+(PyAudio into memory), `core/transcription/dictation_run.py` (a `MessageTranscription`
+whose audio is the captured PCM) and `ui/conversation_panel/dictation.py` (the wx half).
+
+- **The audio is memory, then one WAV in a `winzapp-dictation-` private folder** for
+  ffmpeg, removed by the `with` that owns it on every way out; the prefix is in
+  `temp_sweep.PREFIXES`. It is never in `voice_messages/` and never logged.
+- **`preflight()` runs before the microphone opens** (same `_decide()`, off the wx
+  thread): no model, no program or an unreadable `app.json` is said at once, with the
+  sentence a message run gives (`model_problem_i18n_key`). Nothing is ever downloaded.
+- **Nothing is spoken while the microphone is open**: `_dictation_listening` is read by
+  `MainWindow._voice_recording_silence_active` (so "silence while recording" covers it)
+  and by `_audio_capture_in_progress` (background work stands down). It is not
+  `_is_recording`: every voice-note path keys on that one.
+- **A recording or a call refuses it, and it refuses a recording**
+  (`dictation.is_active`, in `_start_voice_recording` and
+  `_on_record_system_audio`): two readers of one device is a half-silent message.
+- **Stale results are voided by a token** (`Dictation.cancel()` bumps it); leaving or
+  closing the conversation cancels (`conversation_navigation`), quitting too
+  (`stop_transcription_runs`). The text is dropped, not said, when the conversation
+  changed or the vault hides it.
+- A selection is replaced (`WriteText`), as in an editor; the focus is never moved.
+- Not covered: noise reduction (DPDFNet) on the dictation, the `sounddevice` fallback
+  of the voice recording, and the processor re-run after a GPU failure (it is told).

@@ -40,7 +40,7 @@ def _parts_of(provider, request):
 
 
 def test_every_provider_builds_a_text_only_writing_request():
-    for provider in config.PROVIDERS:
+    for provider in config.KEYED_PROVIDERS:
         assert config.supports(provider, "writing"), provider
         request = providers.build_request(provider, "model-x", "key", draft(), (),
                                           "Fix only the spelling.", "instructions", "balanced")
@@ -76,7 +76,7 @@ def test_check_action_keeps_every_word():
     question = writing.action_question("check")
     assert "Keep every word" in question
     for action in writing.ACTIONS:
-        assert writing.action_question(action)
+        assert writing.action_question(action, "make it shorter")
         assert writing.ACTION_KEY[action].startswith("writing_action_")
     with pytest.raises(KeyError):
         writing.action_question("translate")  # served by gtranslate, not a provider

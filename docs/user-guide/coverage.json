@@ -4,6 +4,21 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "afc9916dfa1f": "Descrições com IA: ao abrir Ctrl+Shift+I numa foto, figurinha ou vídeo que já te",
+    "212496a8a112": "Resumo de mensagens com IA: o texto enviado para o resumo agora inclui a descriç",
+    "f36fbc54f9ce": "Texto sem enviar nada: na janela de IA de uma foto, figurinha ou vídeo, o botão ",
+    "ac3f9f452048": "Pedidos de IA: quando um provedor responde \"muitas solicitações\" ou \"indisponíve",
+    "ae6774d71037": "Configurações, IA online: o novo botão \"Uso e falhas da IA...\" abre uma janela q",
+    "a0cc57d7f180": "Vídeos: a descrição por IA online agora olha até cinco quadros espalhados pelo v",
+    "7e128c55372d": "Janela de resultado de uma imagem, figurinha, vídeo ou PDF: a nova escolha \"Anál",
+    "cd9790f97d75": "Configurações, IA online, \"Tipos de mídia processados...\": duas novas opções, am",
+    "22dc92ac992b": "Ajuda de escrita: além das quatro ações, \"Usar minha própria instrução\" permite ",
+    "3a550566bf24": "Um vídeo agora pode guardar ao mesmo tempo uma descrição por IA e uma transcriçã",
+    "6a8e7a9c4ad4": "Respostas da IA: uma nova opção em Configurações, IA online, \"Tipos de mídia pro",
+    "7dcc63b2592f": "Modelos de IA locais: Configurações, IA online agora lista Ollama e LM Studio ju",
+    "ac35e01805ed": "Resumo de conversa: uma nova opção, desligada por padrão, \"Resumir também as men",
+    "9783cb32760d": "Configurações, IA online: o novo botão \"Ajuste dos provedores por tarefa...\" abr",
+    "a2f56e6b4f41": "Vídeos: na janela de IA de um vídeo, o novo botão \"Entender o vídeo completo\" co",
     "7e7d059e4efe": "Abertura do WinZapp: em um disco lento, o WinZapp podia parar ao iniciar com \"Da"
   }
 }

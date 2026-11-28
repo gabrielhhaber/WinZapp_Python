@@ -6,7 +6,7 @@ from hashlib import sha256
 from urllib.parse import urlsplit
 
 from core.ai_media.auto import PAUSING_CATEGORIES, charged, limit_reached
-from core.ai_media.config import PROVIDERS, _view_once, valid_model
+from core.ai_media.config import KEYED_PROVIDERS, _view_once, valid_model
 from core.transcription.auto_queue import AGE_CHOICES_MINUTES, too_old
 from core.quote_recovery import RECOVERED_FROM_QUOTE
 from core.ai_media.errors import DescriptionError
@@ -24,7 +24,9 @@ LOCAL_LLM_URLS = {"ollama": "http://localhost:11434/v1", "lm_studio": "http://lo
 CUSTOM = ("custom_openai", "custom_anthropic", *LOCAL_LLM_URLS)
 #: The engines that are not a language model: no model to test, no prompt.
 NON_LLM = (LOCAL, *services.SERVICES)
-PROVIDER_NAMES = ({key: spec.name for key, spec in PROVIDERS.items()} | {"grok": "Grok (xAI)"}
+#: Translation keeps its own "ollama"/"lm_studio" entries below; the AI media
+#: local servers (ids "local_*" in ai_media.config) are a separate setting.
+PROVIDER_NAMES = ({key: spec.name for key, spec in KEYED_PROVIDERS.items()} | {"grok": "Grok (xAI)"}
                   | {"ollama": "Ollama", "lm_studio": "LM Studio"} | services.NAMES)
 MAX_TEXT_CHARS = 12000
 GEMINI_DEFAULT_MODEL = "gemini-flash-lite-latest"
@@ -382,7 +384,7 @@ def list_models(config, key, token):
     if provider in CUSTOM or provider == "grok":
         base, headers = _endpoint(config, key)
         request = (base + "/models", headers, {})
-    elif provider in PROVIDERS:
+    elif provider in KEYED_PROVIDERS:
         request = _list_request(provider, key)
     else:
         raise DescriptionError("request")

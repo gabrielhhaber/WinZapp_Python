@@ -11,6 +11,9 @@ from core.ai_media import config as ai_config
 from core.ai_media.payload import Media
 from core.ai_media.session import MediaSession
 from ui.dialogs.ai_result_dialog import AIResultDialog
+from ui.dialogs.ai_media_modes import AIMediaModesMixin
+from ui.dialogs.ai_result_streaming import AIStreamingMixin
+from ui.dialogs.ai_summary_parts import AISummaryPartsMixin
 from ui.dialogs.ai_settings_page import AIProviderDialog, AISettingsPage
 from ui.conversation_panel.ai_actions import AIActionsMixin
 
@@ -130,6 +133,7 @@ class DialogStub:
     _cancel = AIResultDialog._cancel
     _timeout = AIResultDialog._timeout
     _key = AIResultDialog._key
+    _mode_enter = AIMediaModesMixin._mode_enter
     _valid = AIResultDialog._valid
     _busy = AIResultDialog._busy
     _show_error = AIResultDialog._show_error
@@ -137,6 +141,14 @@ class DialogStub:
     _chain = AIResultDialog._chain
     _start = AIResultDialog._start
     _summary_heading = AIResultDialog._summary_heading
+    _stream = None
+    _stream_begin = AIStreamingMixin._stream_begin
+    _stream_discard = AIStreamingMixin._stream_discard
+    _parts = ()
+    _parts_run = AISummaryPartsMixin._parts_run
+    _parts_failed_notice = AISummaryPartsMixin._parts_failed_notice
+    _parts_merge_failed = False
+    _write_result = AIStreamingMixin._write_result
     app = None  # only read when a consent is remembered
 
     def __init__(self, *, locked=False, kind="image"):
@@ -450,7 +462,7 @@ def _prepare_start(dialog, monkeypatch):
     dialog.loader = lambda token: b"synthetic photo"
     monkeypatch.setattr(module, "CredentialStore", lambda path: SimpleNamespace(
         saved=lambda: {"gemini", "openai"}, get=lambda provider: "fake-key"))
-    monkeypatch.setattr(module, "prepare_media", lambda kind, data, mime, profile: image(data))
+    monkeypatch.setattr(module, "prepare_media", lambda kind, data, mime, profile, frames="several": image(data))
     class TimerStub:
         def __init__(self, milliseconds, callback, generation):
             self.milliseconds, self.callback, self.generation = milliseconds, callback, generation
@@ -484,7 +496,7 @@ def test_requests_follow_current_application_language(dialog, monkeypatch, langu
         return "synthetic answer", providers[0]
     monkeypatch.setattr(module, "run_chain", chain)
     monkeypatch.setattr(module, "submit", lambda work, complete: work())
-    monkeypatch.setattr(module, "prepare_media", lambda kind, data, mime, profile: Media(kind, data, "x/y", "f"))
+    monkeypatch.setattr(module, "prepare_media", lambda kind, data, mime, profile, frames="several": Media(kind, data, "x/y", "f"))
     question = first_question(kind) if regenerate else "Question in another language"
     dialog._start(question, regenerate=regenerate)
     assert len(sent) == 1
@@ -492,6 +504,29 @@ def test_requests_follow_current_application_language(dialog, monkeypatch, langu
     assert providers == ["gemini", "openai"]  # the person's order, both with a saved key
     assert asked == question
     assert (f"Answer in language {language}" in instruction) or (kind == "audio" and "language that is spoken" in instruction)
+
+
+@pytest.mark.parametrize("choice", ["several", "one"])
+def test_a_videos_frames_choice_reaches_the_media_and_the_prompt(dialog, monkeypatch, choice):
+    module = _prepare_start(dialog, monkeypatch)
+    dialog.kind = "video"
+    dialog.session = MediaSession("a", "c", "m", "video")
+    dialog.config["video_frames"] = choice
+    seen = []
+    def chain(operation, providers, models, key_for, media, history, question, instruction, profile, **kwargs):
+        seen.append(instruction)
+        return "synthetic answer", providers[0]
+    monkeypatch.setattr(module, "run_chain", chain)
+    monkeypatch.setattr(module, "submit", lambda work, complete: work())
+    frames = []
+    def prepare(kind, data, mime, profile, video_frames="several"):
+        frames.append(video_frames)
+        return Media("image", data, "x/y", "f")
+    monkeypatch.setattr(module, "prepare_media", prepare)
+    dialog._start("Question")
+    assert frames == [choice]
+    assert ("chronological order" in seen[0]) == (choice == "several")
+    assert ("Only this one still frame" in seen[0]) == (choice == "one")
 
 
 @pytest.mark.parametrize("regenerate, held_by", [
@@ -748,6 +783,10 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
                            auto_dialog=SimpleNamespace(SetTitle=lambda title: setattr(page, "title", title)),
                            kinds_dialog=SimpleNamespace(
                                SetTitle=lambda title: setattr(page, "kinds_title", title)),
+                           usage_dialog=SimpleNamespace(SetTitle=lambda title: None),
+                           usage_panel=SimpleNamespace(refresh_labels=lambda: None),
+                           routes_dialog=SimpleNamespace(SetTitle=lambda title: None),
+                           routes_panel=SimpleNamespace(refresh_labels=lambda: None),
                            _refresh_list=lambda selection: None)
     # The automatic options live in their own window (ai_auto_options.py).
     panel = SimpleNamespace(_page=page, transcribe=NamedControl(), describe=NamedControl(),
@@ -760,11 +799,18 @@ def test_settings_guidance_has_a_distinct_readable_name_and_keeps_profile_select
     # So do the kinds of media (ai_kinds_options.py).
     from ui.dialogs.ai_kinds_options import AIKindsPanel
     kinds = SimpleNamespace(_page=page, _keys={"image": "ai_describe_images_label"},
-                            toggles={"image": NamedControl()})
+                            toggles={"image": NamedControl()}, several_frames=NamedControl(),
+                            context_caption=NamedControl(), context_quote=NamedControl(),
+                            streaming=NamedControl(), hierarchy=NamedControl())
     kinds.refresh_labels = lambda: AIKindsPanel.refresh_labels(kinds)
     page.kinds_panel = kinds
     AISettingsPage.refresh_labels(page)
     assert kinds.toggles["image"].value == "ai_describe_images_label"
+    assert kinds.several_frames.value == "ai_video_several_frames_label"
+    assert kinds.context_caption.value == "ai_context_caption_label"
+    assert kinds.context_quote.value == "ai_context_quote_label"
+    assert kinds.streaming.value == "ai_streaming_label"
+    assert kinds.hierarchy.value == "ai_summary_hierarchy_label"
     assert page.kinds_title == "ai_kinds_button"
     assert page.notice.name == "ai_settings_help" and page.notice.value == "ai_settings_notice"
     assert page.status.name == "ai_status_label" and page.profile.selection == 2
@@ -811,6 +857,8 @@ class PageStub:
     apply = AISettingsPage.apply
     _has_key = AISettingsPage._has_key
     _row = AISettingsPage._row
+    _local_config = AISettingsPage._local_config
+    _local_row = AISettingsPage._local_row
     _selected = AISettingsPage._selected
     _move = AISettingsPage._move
     _configure = AISettingsPage._configure
@@ -824,6 +872,7 @@ class PageStub:
         self._order = list(config["order"])
         self._disabled = set()
         self._models = dict(config["models"])
+        self._local_urls = dict(config["local_urls"])
         self._auto = set(config["auto_models"])
         self._voice_models = dict(config["transcribe_models"])
         self._drafts = {}
@@ -834,6 +883,11 @@ class PageStub:
         self.enabled = Control(True)
         self.toggles = {kind: Control(True) for kind in ai_config.KINDS}
         self.profile = Control(selection=1)
+        self.several_frames = Control(True)
+        self.context_caption = Control(False)
+        self.context_quote = Control(False)
+        self.streaming = Control(False)
+        self.hierarchy = Control(False)
         self.read_answers = Control(False)
         self.hide_action_button = Control(False)
         self.auto_transcribe = Control(False)
@@ -841,6 +895,7 @@ class PageStub:
         self.auto_scope = Control(selection=0)
         self.auto_max_age = Control(selection=0)
         self.auto_limit = Control(50)
+        self.routes_panel = SimpleNamespace(routes=lambda: {"pdf": ["mistral"]})
         self._auto_consent = set()
         self.status = Control()
         self.providers = Control(selection=0)
@@ -866,12 +921,15 @@ def test_apply_saves_order_switches_models_and_kinds_but_never_a_key_in_the_sett
     page._drafts = {"gemini": "gemini-secret"}
     page.toggles["audio"].value = False
     page.profile.selection = 2
+    page.several_frames.value = False
     assert page.apply()
     saved = page.app.get("ai_media")
     assert saved["order"][:3] == ["groq", "gemini", "openai"] and saved["disabled"] == ["claude"]
     assert saved["models"]["openai"] == "gpt-4o" and saved["models"]["groq"] == ""  # pinned vs automatic
     assert saved["kinds"]["audio"] is False
     assert saved["profile"] == "detailed" and saved["enabled"] is True and saved["read_answers"] is False
+    assert saved["video_frames"] == "one"
+    assert saved["routes"] == {"pdf": ["mistral"]}  # the routes window's draft
     assert "secret" not in str(saved) and page.store.get("gemini") == "gemini-secret"
     assert page._drafts == {} and "gemini" in page._saved
 
@@ -932,7 +990,7 @@ def test_reset_recovers_corruption_and_can_save_new_key(tmp_path, monkeypatch):
     page.store.key_path.unlink()
     monkeypatch.setattr(module.wx, "MessageBox", lambda *args: wx.YES)
     page._reset_keys(None)
-    assert page._reset and page._deleted == set(ai_config.PROVIDERS) and page.dirty == [True]
+    assert page._reset and page._deleted == set(ai_config.KEYED_PROVIDERS) and page.dirty == [True]
     assert not any(page._has_key(p) for p in ai_config.PROVIDERS)
     page._drafts["openai"] = "new"
     assert page.apply()
@@ -947,7 +1005,7 @@ def test_declining_the_reset_confirmation_changes_nothing(tmp_path, monkeypatch)
     assert not page._reset and not page._deleted and not page.dirty
 
 
-@pytest.mark.parametrize("provider", list(ai_config.PROVIDERS))
+@pytest.mark.parametrize("provider", list(ai_config.KEYED_PROVIDERS))
 @pytest.mark.parametrize("ending", ["apply", "cancel"])
 @pytest.mark.parametrize("model_mode", ["automatic", "pinned"])
 def test_reset_then_configure_new_key_revokes_old_consent_only_on_apply(
@@ -1220,8 +1278,10 @@ def message(kind, **info):
 
 def test_disabled_feature_never_opens_a_window_or_downloads(tmp_path, monkeypatch):
     import ui.conversation_panel.ai_actions as module
+    from core.ai_media import local_text
     spoken = []
     monkeypatch.setattr(module, "global_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(local_text, "ocr_available", lambda: False)
     panel = SimpleNamespace(main_window=SimpleNamespace(_app_settings=AppSettings(str(tmp_path)),
                             i18n=SimpleNamespace(t=lambda key: key), output=spoken.append))
     panel._ai_settings = lambda: AIActionsMixin._ai_settings(panel)
@@ -1265,7 +1325,9 @@ def test_the_menu_offers_only_what_a_provider_with_a_key_can_do(ready):
     assert label({"messageType": "conversation", "key": {"id": "m"}}) == ""
 
 
-def test_the_menu_hides_a_kind_whose_switch_is_off_and_everything_when_the_feature_is_off(ready):
+def test_the_menu_hides_a_kind_whose_switch_is_off_and_everything_when_the_feature_is_off(ready, monkeypatch):
+    from core.ai_media import local_text
+    monkeypatch.setattr(local_text, "ocr_available", lambda: False)
     module, app = ready
     panel = SimpleNamespace(main_window=SimpleNamespace(_app_settings=app))
     panel._ai_settings = lambda: AIActionsMixin._ai_settings(panel)
@@ -1279,12 +1341,78 @@ def test_the_menu_hides_a_kind_whose_switch_is_off_and_everything_when_the_featu
 
 def test_the_menu_offers_nothing_when_no_provider_has_a_key(tmp_path, monkeypatch):
     import ui.conversation_panel.ai_actions as module
+    from core.ai_media import local_text
     monkeypatch.setattr(module, "global_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(local_text, "ocr_available", lambda: False)
     app = AppSettings(str(tmp_path))
     app.set("ai_media", {"enabled": True})
     panel = SimpleNamespace(main_window=SimpleNamespace(_app_settings=app))
     panel._ai_settings = lambda: AIActionsMixin._ai_settings(panel)
     assert AIActionsMixin._ai_menu_label(panel, message("imageMessage"), SimpleNamespace(t=lambda k: k)) == ""
+
+
+def test_offline_ocr_is_offered_for_pictures_stickers_and_videos_without_ai_keys(tmp_path, monkeypatch):
+    import ui.conversation_panel.ai_actions as module
+    import ui.dialogs.ai_result_dialog as dialog_module
+    from core.ai_media import local_text
+    monkeypatch.setattr(module, "global_dir", lambda: str(tmp_path))
+    monkeypatch.setattr(local_text, "ocr_available", lambda: True)
+    app = AppSettings(str(tmp_path))
+    spoken, built = [], []
+    i18n = SimpleNamespace(t=lambda k: k)
+    mw = SimpleNamespace(_app_settings=app, key=b"k", IsShown=lambda: True, i18n=i18n,
+                         is_chat_locked=lambda jid: False, output=spoken.append)
+    panel = SimpleNamespace(main_window=mw, conversation={"remoteJid": "c"}, _sorted_messages=[],
+                            messages_list=SimpleNamespace(Focus=lambda i: None, Select=lambda i: None,
+                                                          SetFocus=lambda: None))
+    for name in ("_ai_settings", "_ai_loader", "_restore_focus_after_ai"):
+        setattr(panel, name, getattr(AIActionsMixin, name).__get__(panel))
+    panel._full_video_hooks = lambda snapshot, chat: {"chat": chat}
+
+    assert AIActionsMixin._ai_menu_label(panel, message("imageMessage"), i18n) == "ai_read_text_offline"
+    assert AIActionsMixin._ai_menu_label(panel, message("stickerMessage"), i18n) == "ai_read_text_offline"
+    assert AIActionsMixin._ai_menu_label(panel, message("videoMessage"), i18n) == "ai_read_text_offline"
+    assert AIActionsMixin._ai_menu_label(panel, message("audioMessage"), i18n) == ""
+    assert AIActionsMixin._ai_menu_label(panel, message("documentMessage", mimetype="application/pdf"), i18n) == ""
+
+    AIActionsMixin._on_ai_action(panel, message=message("documentMessage", mimetype="application/pdf"))
+    AIActionsMixin._on_ai_action(panel, message=message("audioMessage"))
+    assert spoken == ["ai_disabled", "ai_disabled"]
+
+    class WindowStub:
+        def __init__(self, parent, identity, kind, locked, cfg, app_s, loader, mime, saved_text="",
+                     context="", **more):
+            built.append((kind, context, more))
+            self.session = MediaSession(*identity, kind, locked=locked)
+        def ShowModal(self):
+            return 0
+        def _dispose(self):
+            self.session.close()
+        def Destroy(self):
+            pass
+
+    monkeypatch.setattr(module, "active_account_id", lambda: "account")
+    monkeypatch.setattr(module, "cached_media_path", lambda *args: "unused")
+    monkeypatch.setattr(dialog_module, "AIResultDialog", WindowStub)
+    AIActionsMixin._on_ai_action(panel, message=message("videoMessage", caption="caption"))
+    assert built == [("video", "", {"offline_only": True})]
+
+
+def test_offline_only_busy_handles_missing_regenerate_button():
+    class Btn:
+        enabled = None
+        def Enable(self, value):
+            self.enabled = value
+
+    dialog = SimpleNamespace(
+        _processing=SimpleNamespace(start=lambda: None, stop=lambda: None),
+        ask=None, regenerate=None, mode_run=None, offline=Btn(), full_video=None,
+        cancel=Btn(), copy=Btn(), inline=None, _latest="ocr text", _provider=None,
+    )
+    AIResultDialog._busy(dialog, True)
+    assert dialog.offline.enabled is False and dialog.cancel.enabled is True
+    AIResultDialog._busy(dialog, False)
+    assert dialog.offline.enabled is True and dialog.copy.enabled is True and dialog.cancel.enabled is False
 
 
 @pytest.mark.parametrize("kind,msg_type,fetcher,limit", [
@@ -1371,7 +1499,8 @@ def test_entry_point_opens_one_window_with_the_kind_chat_and_message_and_restore
     monkeypatch.setattr(module, "active_account_id", lambda: "account")
     monkeypatch.setattr(module, "cached_media_path", lambda *args: "unused")
     class WindowStub:
-        def __init__(self, panel, identity, kind, locked, config, app, loader, mime):
+        def __init__(self, panel, identity, kind, locked, config, app, loader, mime, saved_text="",
+                     context=""):
             built.append((identity, kind, locked, mime, config["enabled"]))
             self.session = MediaSession(*identity, kind, locked=locked)
         def ShowModal(self):
@@ -1442,9 +1571,14 @@ def test_consent_text_names_providers_and_warns_about_metadata_only_where_it_is_
         assert "ai_metadata_notice" in consent_text(i18n, ["openai"], kind, False)
     for kind in ("video", "image", "sticker"):
         assert "ai_metadata_notice" not in consent_text(i18n, ["openai"], kind, False)
-    # A video goes out as one picture without its sound: the consent says so.
-    assert "ai_video_frame_notice" in consent_text(i18n, ["openai"], "video", False)
-    assert "ai_video_frame_notice" not in consent_text(i18n, ["openai"], "image", False)
+    # A video goes out as pictures without its sound: the consent says so, and
+    # says how many (several in one image, or a single one by the person's choice).
+    assert "ai_video_frames_notice" in consent_text(i18n, ["openai"], "video", False)
+    assert "ai_video_frame_notice" not in consent_text(i18n, ["openai"], "video", False)
+    assert "ai_video_frame_notice" in consent_text(i18n, ["openai"], "video", False, "one")
+    assert "ai_video_frames_notice" not in consent_text(i18n, ["openai"], "video", False, "one")
+    for notice in ("ai_video_frame_notice", "ai_video_frames_notice"):
+        assert notice not in consent_text(i18n, ["openai"], "image", False)
     text = consent_text(i18n, ["gemini", "groq"], "image", True)
     assert "Google Gemini, Groq" in text and "ai_gemini_notice" in text and "ai_locked_consent" in text
     assert "ai_gemini_notice" not in consent_text(i18n, ["groq"], "image", False)
@@ -1537,7 +1671,7 @@ def test_automatic_model_follows_the_recommendation_and_pinning_reveals_the_fiel
 
 def test_a_model_pinned_in_the_provider_window_is_kept_and_automatic_clears_it(tmp_path):
     page = PageStub(tmp_path)
-    assert page._auto == set(ai_config.PROVIDERS)  # nothing saved: all follow the recommendation
+    assert page._auto == set(ai_config.KEYED_PROVIDERS)  # nothing saved: all follow the recommendation
     page.apply()
     assert set(page.app.get("ai_media")["models"].values()) == {""}
     assert ai_config.preferences(page.app)["models"]["openai"] == ai_config.PROVIDERS["openai"].model

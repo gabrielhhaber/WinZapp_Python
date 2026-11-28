@@ -88,7 +88,7 @@ def test_cross_instance_writes_preserve_other_provider(tmp_path):
             CredentialStore(tmp_path).set(provider, provider + "-secret")
         except Exception as exc:
             errors.append(exc)
-    threads = [threading.Thread(target=save, args=(p,)) for p in config.PROVIDERS]
+    threads = [threading.Thread(target=save, args=(p,)) for p in config.KEYED_PROVIDERS]
     for thread in threads:
         thread.start()
     for thread in threads:
@@ -96,15 +96,15 @@ def test_cross_instance_writes_preserve_other_provider(tmp_path):
         assert not thread.is_alive()
     assert not errors
     store = CredentialStore(tmp_path)
-    for provider in config.PROVIDERS:
+    for provider in config.KEYED_PROVIDERS:
         assert store.get(provider) == provider + "-secret"
 
 
 def test_every_provider_has_a_slot_and_unknown_ones_are_refused(tmp_path):
     store = CredentialStore(tmp_path)
-    for provider in config.PROVIDERS:
+    for provider in config.KEYED_PROVIDERS:
         store.set(provider, "secret-" + provider)
-    assert [bool(store.get(p)) for p in config.PROVIDERS] == [True] * len(config.PROVIDERS)
+    assert [bool(store.get(p)) for p in config.KEYED_PROVIDERS] == [True] * len(config.KEYED_PROVIDERS)
     for blob in (b"secret-claude", b"secret-groq", b"secret-openrouter"):
         assert blob not in store.data_path.read_bytes()
     with pytest.raises(CredentialError):
@@ -124,7 +124,7 @@ def test_global_preferences_are_opt_in_and_defaults_are_complete(tmp_path):
     assert p["order"] == list(config.PROVIDERS) and p["disabled"] == []
     assert p["consented"] == [] and all(p["kinds"].values())
     assert p["models"] == {name: spec.model for name, spec in config.PROVIDERS.items()}
-    assert p["auto_models"] == sorted(config.PROVIDERS)  # no model saved: all automatic
+    assert p["auto_models"] == sorted(config.KEYED_PROVIDERS)  # no model saved: all automatic
 
 
 def test_order_disabled_and_consent_are_validated_and_persisted(tmp_path):
@@ -345,7 +345,7 @@ def test_oversized_response_is_bounded():
         request(FakeHTTP(FakeResponse(data=b"x" * (config.MAX_RESPONSE_BYTES + 1))))
 
 
-@pytest.mark.parametrize("provider", list(config.PROVIDERS))
+@pytest.mark.parametrize("provider", list(config.KEYED_PROVIDERS))
 def test_connection_test_sends_no_media_and_no_generation(provider):
     http = FakeHTTP()
     assert service.probe_connection(provider, config.PROVIDERS[provider].model, "secret",

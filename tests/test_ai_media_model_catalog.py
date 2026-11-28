@@ -51,8 +51,8 @@ def test_other_providers_list_their_models_under_data_and_are_filtered_the_same_
 
 
 def test_catalog_has_real_alternatives_and_uses_trusted_names(catalog):
-    from core.ai_media.config import PROVIDERS
-    assert set(catalog.COMPATIBLE_MODELS) == set(PROVIDERS)
+    from core.ai_media.config import KEYED_PROVIDERS, PROVIDERS
+    assert set(catalog.COMPATIBLE_MODELS) == set(KEYED_PROVIDERS)
     for provider, rows in catalog.COMPATIBLE_MODELS.items():
         assert PROVIDERS[provider].model in rows  # the default is always offered
         body = _listing(provider, rows)
