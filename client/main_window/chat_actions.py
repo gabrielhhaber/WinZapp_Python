@@ -560,6 +560,10 @@ class ChatActionsMixin:
 
     def delete_chat_local(self, jid: str):
         self._forget_chat_lock(jid)
+        forget_draft = getattr(getattr(self, "conversations_panel", None),
+                               "forget_message_draft", None)
+        if callable(forget_draft):
+            forget_draft(jid)
         if jid not in self._deleted_chats:
             self._deleted_chats.add(jid)
         if jid.endswith("@s.whatsapp.net"):

@@ -2,6 +2,10 @@ V3.1.0.0
 
 To wydanie przynosi poprawki do wersji 3.0.0.0.
 
+NOWOŚCI
+
+- Wersje robocze: to, co napisano i nie wysłano, przetrwa teraz zamknięcie WinZappa, ponowne uruchomienie i automatyczne aktualizacje. Tekst jest przechowywany na tym komputerze wyłącznie w postaci zaszyfrowanej, nigdy jawnym tekstem, i wraca wraz ze wzmiankami po ponownym otwarciu czatu; wersja robocza zablokowanego czatu wraca dopiero po otwarciu sejfu. Wysłanie lub skasowanie tekstu, usunięcie czatu albo wylogowanie ją usuwa. W Ustawienia > Interfejs > Czaty opcja "Zachowaj zaszyfrowane wersje robocze po ponownym uruchomieniu WinZapp" (domyślnie włączona) wyłącza to zachowanie.
+
 POPRAWKI
 
 - Uruchamianie WinZapp: na wolnym dysku WinZapp mógł zatrzymać się przy starcie z komunikatem „Database call timed out after 20s” podczas zapisywania listy kontaktów, a przy kolejnej próbie otwierał się normalnie. Zapis dużej liczby kontaktów czeka teraz tak długo jak inne zapisy zbiorcze, a kontakt, którego nie da się zapisać przy starcie, nie uniemożliwia już otwarcia WinZapp.

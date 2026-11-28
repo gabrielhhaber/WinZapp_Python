@@ -2,6 +2,10 @@ V3.1.0.0
 
 Această versiune aduce corectări față de 3.0.0.0.
 
+NOUTĂȚI
+
+- Ciorne: ce ați scris și nu ați trimis supraviețuiește acum închiderii WinZapp, repornirii și actualizărilor automate. Se păstrează pe acest computer numai criptat, niciodată ca text simplu, și revine, cu mențiunile, când deschideți din nou conversația; ciorna unei conversații blocate revine doar după deschiderea seifului. Trimiterea sau ștergerea textului, ștergerea conversației sau deconectarea o elimină. În Setări > Interfață > Conversații, "Păstrează ciornele criptate după închiderea aplicației WinZapp" (activată implicit) oprește acest lucru.
+
 CORECTĂRI
 
 - Deschiderea WinZapp: pe un disc lent, WinZapp se putea opri la pornire cu „Database call timed out after 20s” în timp ce salva lista de contacte, și se deschidea normal la următoarea încercare. Salvarea unui număr mare de contacte așteaptă acum la fel de mult ca celelalte salvări în bloc, iar un contact care nu poate fi salvat la pornire nu mai împiedică deschiderea WinZapp.

@@ -2,6 +2,10 @@ V3.1.0.0
 
 Bu sürüm 3.0.0.0 üzerine düzeltmeler getirir.
 
+YENİLİKLER
+
+- Taslaklar: yazıp göndermediğiniz metin artık WinZapp kapatılıp yeniden başlatıldığında ve otomatik güncellemelerde de korunur. Bu bilgisayarda yalnızca şifreli olarak tutulur, hiçbir zaman düz metin olarak değil, ve sohbeti yeniden açtığınızda bahsetmeleriyle birlikte geri gelir; kilitli bir sohbetin taslağı ancak kasa açıldığında geri gelir. Metni göndermek veya silmek, sohbeti silmek ya da oturumu kapatmak taslağı kaldırır. Ayarlar > Arayüz > Sohbetler bölümündeki "Taslakları şifreli olarak sakla, WinZapp kapansa da" (varsayılan olarak açık) bunu kapatır.
+
 DÜZELTMELER
 
 - WinZapp'ı açma: yavaş bir diskte WinZapp, kişi listesini kaydederken başlangıçta "Database call timed out after 20s" hatasıyla durabiliyor, bir sonraki denemede normal açılıyordu. Çok sayıda kişiyi kaydetmek artık diğer toplu kayıtlar kadar bekliyor ve başlangıçta kaydedilemeyen bir kişi WinZapp'ın açılmasını artık engellemiyor.

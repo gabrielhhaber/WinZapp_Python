@@ -101,6 +101,12 @@ NOT_BACKED_BY_SETTINGS = {
 #: trip; without the pair the box dropped out of that test entirely and was
 #: covered only by a stub. Each must still be a checkbox this file sees.
 WIRED_THROUGH_A_MODULE = {
+    "_persist_message_drafts_cb": (
+        ("user_interface", "persist_message_drafts"),
+        "the dialog reads and writes it through core.message_drafts.PERSIST_SETTING "
+        "(a constant, which this file's parse of literal keys cannot follow); "
+        "tests/test_message_drafts_persistence.py covers the setting itself"
+    ),
     "_transcription_detect_language_check": (
         (transcription_preferences.SECTION,
          transcription_preferences.SETTING_AUTO_DETECT_LANGUAGE),

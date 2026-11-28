@@ -2,6 +2,10 @@ V3.1.0.0
 
 This release brings fixes on top of 3.0.0.0.
 
+WHAT'S NEW
+
+- Drafts: what you typed and did not send now survives closing WinZapp, restarting it and automatic updates. It is kept on this computer only encrypted, never as plain text, and comes back, mentions included, when you open the conversation again; a locked conversation's draft comes back only once the vault is open. Sending or erasing the text, deleting the conversation or logging out removes it. In Settings > Interface > Chats, "Keep unsent text as encrypted drafts after restarting WinZapp" (on by default) turns this off.
+
 FIXES
 
 - Opening WinZapp: on a slow disk, WinZapp could stop at startup with "Database call timed out after 20s" while it saved the address book, and open normally on the next try. Saving a large number of contacts now waits as long as the other bulk saves, and a contact that cannot be saved at startup no longer stops WinZapp from opening.

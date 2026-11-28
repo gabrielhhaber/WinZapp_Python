@@ -2,6 +2,10 @@ V3.1.0.0
 
 Esta versión trae correcciones sobre la 3.0.0.0.
 
+NOVEDADES
+
+- Borradores: lo que escribiste y no enviaste ahora sobrevive al cierre de WinZapp, al reinicio y a las actualizaciones automáticas. Se guarda en este equipo solo cifrado, nunca como texto sin cifrar, y vuelve, con las menciones, cuando abres el chat de nuevo; el borrador de un chat bloqueado solo vuelve cuando la caja fuerte está abierta. Enviar o borrar el texto, eliminar el chat o cerrar la sesión lo elimina. En Configuración > Interfaz > Chats, "Guardar los borradores cifrados al reiniciar WinZapp" (activada por defecto) lo desactiva.
+
 CORRECCIONES
 
 - Apertura de WinZapp: en un disco lento, WinZapp podía detenerse al iniciar con "Database call timed out after 20s" mientras guardaba la lista de contactos, y abrirse con normalidad al intentarlo de nuevo. Guardar muchos contactos ahora espera tanto como los demás guardados en lote, y un contacto que no se pueda guardar al iniciar ya no impide que WinZapp se abra.

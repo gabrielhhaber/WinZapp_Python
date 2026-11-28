@@ -2,6 +2,10 @@ V3.1.0.0
 
 This release brings fixes on top of 3.0.0.0.
 
+WHAT'S NEW
+
+- Bozze: ciò che hai scritto e non hai inviato ora sopravvive alla chiusura di WinZapp, al riavvio e agli aggiornamenti automatici. Resta su questo computer solo cifrato, mai come testo in chiaro, e torna, con le menzioni, quando riapri la conversazione; la bozza di una conversazione bloccata torna solo quando la vault è aperta. Inviare o cancellare il testo, eliminare la conversazione o uscire dall'account la rimuove. In Impostazioni > Interfaccia utente > Chat, "Conserva le bozze cifrate anche più tardi, dopo il riavvio di WinZapp" (attiva per impostazione predefinita) la disattiva.
+
 FIXES
 
 - Opening WinZapp: on a slow disk, WinZapp could stop at startup with "Database call timed out after 20s" while it saved the address book, and open normally on the next try. Saving a large number of contacts now waits as long as the other bulk saves, and a contact that cannot be saved at startup no longer stops WinZapp from opening.

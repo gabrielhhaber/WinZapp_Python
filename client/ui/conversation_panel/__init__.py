@@ -19,6 +19,7 @@ Where to look (and where new code goes):
     composer                 message field: spell check, link preview, keys, paste
     group_calls              visible-group call discovery and ongoing-call join button
     message_drafts           the field's text kept per conversation, like WhatsApp Web
+    draft_persistence        those drafts kept on disk, encrypted, across restarts (a base of message_drafts)
     emoticon_conversion      ":)" -> emoji while typing and at send, Backspace undo
     text_sending             sending/editing text, pending rows, cancelled sends
     voice_recording          recording and sending voice messages

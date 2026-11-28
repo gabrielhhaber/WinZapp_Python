@@ -2,6 +2,10 @@ V3.1.0.0
 
 Toto vydání přináší opravy oproti verzi 3.0.0.0.
 
+NOVINKY
+
+- Koncepty: to, co jste napsali a neodeslali, nyní přečká zavření WinZappu, jeho restart i automatické aktualizace. Ukládá se v tomto počítači pouze šifrovaně, nikdy jako prostý text, a po novém otevření konverzace se vrátí včetně zmínek; koncept uzamčené konverzace se vrátí až po otevření trezoru. Odeslání nebo smazání textu, odstranění konverzace nebo odhlášení koncept smaže. V Nastavení > Rozhraní > Chaty jej vypnete políčkem „Ponechat neodeslaný text jako šifrované koncepty po restartu WinZappu“ (ve výchozím stavu zapnuto).
+
 OPRAVY
 
 - Spuštění WinZapp: na pomalém disku se WinZapp mohl při spuštění zastavit s chybou „Database call timed out after 20s“, když ukládal seznam kontaktů, a při dalším pokusu se normálně otevřel. Uložení velkého počtu kontaktů nyní čeká stejně dlouho jako ostatní hromadná ukládání a kontakt, který se při spuštění nepodaří uložit, už WinZapp neznemožní otevřít.

@@ -2,6 +2,10 @@ V3.1.0.0
 
 Esta versão traz correções sobre a 3.0.0.0.
 
+NOVIDADES
+
+- Rascunhos: o que você digitou e não enviou agora sobrevive ao fechamento do WinZapp, à reinicialização e às atualizações automáticas. Fica neste computador somente criptografado, nunca como texto simples, e volta, com as menções, quando você abre a conversa de novo; o rascunho de uma conversa trancada só volta com o cofre aberto. Enviar ou apagar o texto, excluir a conversa ou sair da conta remove o rascunho. Em Configurações > Interface > Conversas, "Manter os rascunhos criptografados ao fechar o WinZapp" (ativada por padrão) desliga isso.
+
 CORREÇÕES
 
 - Abertura do WinZapp: em um disco lento, o WinZapp podia parar ao iniciar com "Database call timed out after 20s" enquanto salvava a lista de contatos, e abrir normalmente na tentativa seguinte. Salvar muitos contatos agora espera tanto quanto os outros salvamentos em lote, e um contato que não puder ser salvo na inicialização não impede mais o WinZapp de abrir.

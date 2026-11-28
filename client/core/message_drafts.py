@@ -6,8 +6,15 @@ Enter sent it to the wrong person. Like WhatsApp Web, each conversation now
 keeps its own: left behind when the conversation is left, put back when it is
 opened again.
 
-In memory only, for this run: a draft is message content, and nothing here
-writes it to disk unencrypted.
+A draft is message content: it never reaches the disk unencrypted. With
+`persist_enabled()` (the default) the drafts also survive a restart or an
+automatic update: `encode()` seals all of them, the open conversation's
+included, into one Fernet token with the installation's key, kept in the
+account's own database (ui/conversation_panel/draft_persistence.py writes it);
+`decode()` reads it back and answers "no drafts" for anything it cannot read.
+A locked conversation's draft is kept the same way, inside the one token: its
+existence shows nowhere, and it is only handed back by take(), which runs when
+the vault lets the conversation open.
 
 Settings > Interface > Conversations chooses among three (`mode()`):
 
@@ -19,10 +26,22 @@ Settings > Interface > Conversations chooses among three (`mode()`):
 Pure, no wx, so it is tested directly.
 """
 
+import json
 from dataclasses import dataclass, field
+
+from cryptography.fernet import Fernet
 
 SECTION = "user_interface"
 SETTING = "message_draft_mode"
+#: Keep the drafts across restarts. On by default: they are encrypted like
+#: every message in the database, and a blind user who loses a long unsent
+#: text to an update has to retype it with a screen reader.
+PERSIST_SETTING = "persist_message_drafts"
+#: system_metadata key of the sealed token.
+METADATA_KEY = "message_drafts_v1"
+_FORMAT = 1
+#: A bound on what a damaged or hostile file can make the app load.
+MAX_PERSISTED = 500
 
 KEEP_IN_FIELD = "keep_in_field"
 PER_CONVERSATION = "per_conversation"
@@ -39,6 +58,14 @@ def mode(settings) -> str:
     return value if value in MODES else DEFAULT
 
 
+def persist_enabled(settings) -> bool:
+    """Whether drafts are kept across restarts; on when missing or malformed,
+    and never in DISCARD mode (nothing is kept at all there)."""
+    section = settings.get(SECTION) if isinstance(settings, dict) else None
+    value = section.get(PERSIST_SETTING, True) if isinstance(section, dict) else True
+    return value is not False and mode(settings) == PER_CONVERSATION
+
+
 @dataclass
 class Draft:
     text: str
@@ -48,12 +75,63 @@ class Draft:
     mention_names: dict = field(default_factory=dict)
 
 
+def to_payload(drafts: dict) -> str:
+    """The plain JSON of {jid: Draft}; "" when there is nothing to keep."""
+    kept = {
+        jid: {"t": d.text, "m": list(d.mentions), "n": dict(d.mention_names)}
+        for jid, d in list(drafts.items())[:MAX_PERSISTED]
+        if jid and isinstance(d.text, str) and d.text.strip()
+    }
+    if not kept:
+        return ""
+    return json.dumps({"v": _FORMAT, "d": kept}, ensure_ascii=False, sort_keys=True)
+
+
+def seal(payload: str, key: bytes) -> str:
+    """*payload* as a Fernet token; "" stays "" (nothing stored)."""
+    if not payload:
+        return ""
+    return Fernet(key).encrypt(payload.encode("utf-8")).decode("ascii")
+
+
+def decode(token, key: bytes) -> dict:
+    """{jid: Draft} out of a stored token. Anything unreadable (a truncated or
+    foreign token, another key, bad JSON, wrong shapes) is "no drafts": a
+    damaged file must never raise into the window."""
+    if not token or not isinstance(token, str):
+        return {}
+    try:
+        data = json.loads(Fernet(key).decrypt(token.encode("ascii")).decode("utf-8"))
+        if data.get("v") != _FORMAT:
+            return {}
+        out = {}
+        for jid, item in list(data["d"].items())[:MAX_PERSISTED]:
+            text = item["t"]
+            mentions = [m for m in item.get("m", []) if isinstance(m, str)]
+            names = {k: v for k, v in item.get("n", {}).items()
+                     if isinstance(k, str) and isinstance(v, str)}
+            if isinstance(jid, str) and jid and isinstance(text, str) and text.strip():
+                out[jid] = Draft(text, mentions, names)
+        return out
+    except Exception:
+        return {}
+
+
 class MessageDrafts:
     def __init__(self):
         self._drafts = {}
 
     def __len__(self):
         return len(self._drafts)
+
+    def snapshot(self) -> dict:
+        """A copy of the kept drafts, {jid: Draft}."""
+        return dict(self._drafts)
+
+    def load(self, drafts: dict) -> None:
+        """Add drafts read from disk; one typed in this run is never replaced."""
+        for jid, draft in drafts.items():
+            self._drafts.setdefault(jid, draft)
 
     def stash(self, jid, text, mentions=(), mention_names=None) -> None:
         """Keep *text* as *jid*'s draft; a blank one forgets it (it was sent or

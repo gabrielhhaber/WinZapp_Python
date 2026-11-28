@@ -21302,6 +21302,12 @@ msgstr "Počet zpráv pro skok dopředu/dozadu klávesami Page Up a Page Down:"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
+msgctxt "ui_persist_message_drafts"
+msgid "Keep unsent te&xt as encrypted drafts after restarting WinZapp"
+msgstr "&Uchovat neodeslaný text jako šifrované koncepty po restartu WinZappu"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_preserve_typed_text_as_caption"
 msgid "Preserve typed message &as caption when attaching"
 msgstr "Při připoj&ení přílohy ponechat napsanou zprávu jako popisek"
