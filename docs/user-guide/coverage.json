@@ -4,6 +4,10 @@
   "commit": "4b8a5c6a",
   "data": "14/10/2026",
   "itens": {
+    "a5969b3d711a": "Perfis de leitura das mensagens: em Configurações > Interface do usuário > Mensa",
+    "d4c11b7cde67": "Salto por tipo de mensagem: Alt+F5 / Alt+Shift+F5 vão para a próxima / anterior ",
+    "b35448290810": "Pesquisar em todas as conversas: Ctrl+Shift+G, ou \"Pesquisar em todas as convers",
+    "56059d6c1c17": "Baixa visão: em Configurações > Interface > Tamanho da fonte, o texto das listas",
     "65c11f8757f6": "Rascunhos: o que você digitou e não enviou agora sobrevive ao fechamento do WinZ",
     "abec24586f74": "Transcrição local de gravações longas (mais de 2 minutos): a janela do resultado",
     "123b6a6aa75e": "Vocabulário da transcrição local: em Configurações, Transcrição local, Opções av",

@@ -330,6 +330,14 @@ class DatabaseBridge(EventWritesMixin):
         return self._call(self._db.get_starred_messages(limit, remote_jids),
                           timeout=_BULK_CALL_TIMEOUT)
 
+    def get_message_rows_page(self, before_rowid, limit: int) -> list:
+        return self._call(self._db.get_message_rows_page(before_rowid, limit))
+
+    def decrypt_message_json(self, token: str):
+        """One stored row's message, decrypted on the calling thread (Fernet
+        is stateless; no event-loop round trip per row of a history scan)."""
+        return self._db._decrypt_json(token)
+
     def get_message_count(self, remote_jid: str) -> int:
         return self._call(self._db.get_message_count(remote_jid))
 

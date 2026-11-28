@@ -35,6 +35,8 @@ Where to look (and where new code goes):
     message_actions          star, pin, delete, cancel, edit, resend
     message_stars            sequential star jobs, explicit old-star migration
     message_accels           accelerator handlers for messages
+    semantic_jump            next/previous unplayed voice, media, document, poll or link
+    row_reading              configurable reading order and concise repeats for message rows
     dictation                dictating into the message field with the local Whisper (ACC-03)
     bulk_messages            bulk actions on selected messages
     bulk_copy_files          copying the selected files (and text) to the clipboard as files

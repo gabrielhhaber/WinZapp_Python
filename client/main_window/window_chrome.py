@@ -76,6 +76,7 @@ class WindowChromeMixin:
     def _build_menubar(self):
         """Create the menu bar with Arquivo, Sincronização and Ajuda menus."""
         self._ID_MARK_ALL_READ = wx.NewIdRef()
+        self._ID_HISTORY_SEARCH = wx.NewIdRef()
         self._ID_SETTINGS      = wx.NewIdRef()
         self._ID_WA_SETTINGS   = wx.NewIdRef()
         self._ID_EXPORT_SETTINGS = wx.NewIdRef()
@@ -104,6 +105,11 @@ class WindowChromeMixin:
         file_menu.Append(
             self._ID_MARK_ALL_READ,
             f"{self.i18n.t('menu_mark_all_read')}\tCtrl+Shift+Alt+M",
+        )
+        # Every conversation's text at once (ui/dialogs/history_search.py).
+        file_menu.Append(
+            self._ID_HISTORY_SEARCH,
+            f"{self.i18n.t('menu_history_search')}\tCtrl+Shift+G",
         )
         file_menu.AppendSeparator()
         file_menu.Append(
@@ -266,6 +272,7 @@ class WindowChromeMixin:
         from ui.shortcut_bindings import refresh_menu_shortcuts
         refresh_menu_shortcuts(self)
         self.Bind(wx.EVT_MENU, self._on_mark_all_read, id=self._ID_MARK_ALL_READ)
+        self.Bind(wx.EVT_MENU, self._on_menu_history_search, id=self._ID_HISTORY_SEARCH)
         self.Bind(wx.EVT_MENU, self.on_ctrl_comma,     id=self._ID_SETTINGS)
         self.Bind(wx.EVT_MENU, self.open_whatsapp_settings, id=self._ID_WA_SETTINGS)
         self.Bind(wx.EVT_MENU, self._on_export_settings, id=self._ID_EXPORT_SETTINGS)
@@ -954,6 +961,9 @@ class WindowChromeMixin:
         file_menu.FindItemById(self._ID_MARK_ALL_READ).SetItemLabel(
             f"{self.i18n.t('menu_mark_all_read')}\tCtrl+Shift+Alt+M"
         )
+        file_menu.FindItemById(self._ID_HISTORY_SEARCH).SetItemLabel(
+            f"{self.i18n.t('menu_history_search')}\tCtrl+Shift+G"
+        )
         file_menu.FindItemById(self._ID_SETTINGS).SetItemLabel(
             f"{self.i18n.t('menu_settings')}\tCtrl+,"
         )
@@ -1182,6 +1192,11 @@ class WindowChromeMixin:
         except Exception:
             pass
         self.connect.show_connection_dial()
+
+    def _on_menu_history_search(self, event=None):
+        """File > Search all conversations (Ctrl+Shift+G)."""
+        from ui.dialogs.history_search import show_history_search
+        show_history_search(self, self)
 
     def _on_mark_all_read(self, event=None):
         """Mark every conversation with unread messages as read — after asking.

@@ -1264,7 +1264,8 @@ class ConversationDataDialog(ConversationStarredTabMixin, CommonGroupsTabMixin, 
             total = len(self._media_messages)
             for idx, msg in enumerate(self._media_messages):
                 if panel is not None and hasattr(panel, "_render_message_line"):
-                    line = panel._render_message_line(msg, index=idx, total=total)
+                    line = panel._render_message_line(
+                        msg, index=idx, total=total, standalone=True)
                 else:
                     line = msg.get("messageType", "")
                 self._media_list.Append((line,))

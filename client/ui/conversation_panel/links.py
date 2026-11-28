@@ -44,7 +44,8 @@ class LinksMixin:
         two-or-more links list. Both belong to the quoted message's own row.
         """
         return self._extract_links(
-            self._render_message_line(msg, include_quoted_preview=False)
+            self._render_message_line(
+                msg, include_quoted_preview=False, standalone=True)
         )
 
     def _update_links_panel(self, links: list):

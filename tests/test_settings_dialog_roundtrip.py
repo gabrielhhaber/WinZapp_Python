@@ -53,6 +53,18 @@ SCENARIOS = {
         set=lambda d, t: d._open_position_radio.SetSelection(1),
         shows=lambda d, t: d._open_position_radio.GetSelection() == 1,
     ),
+    # Settings > Interface (ui/dialogs/font_scale_options.py).
+    "font_scale_percent": dict(
+        saves={("user_interface", "font_scale_percent"): 150},
+        set=lambda d, t: d._font_scale_choice.SetSelection(3),
+        shows=lambda d, t: d._font_scale_choice.GetSelection() == 3,
+    ),
+    # Settings > Messages (ui/dialogs/message_reading_options.py).
+    "message_reading_profile": dict(
+        saves={("user_interface", "message_reading_profile"): "content_first"},
+        set=lambda d, t: d._reading_profile_radio.SetSelection(1),
+        shows=lambda d, t: d._reading_profile_radio.GetSelection() == 1,
+    ),
     "remove_bookmarks_after_use": dict(
         saves={("user_interface", "remove_bookmarks_after_use"): True},
         set=lambda d, t: d._remove_bookmarks_after_use_cb.SetValue(True),

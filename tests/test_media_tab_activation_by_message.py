@@ -96,7 +96,7 @@ class _Panel:
     def _show_message_text_popup(self, msg):
         self.popups.append(msg)
 
-    def _render_message_line(self, msg, index=None, total=None, include_quoted_preview=True):
+    def _render_message_line(self, msg, index=None, total=None, include_quoted_preview=True, **_kw):
         return (msg.get("message") or {}).get("conversation", "")
 
 

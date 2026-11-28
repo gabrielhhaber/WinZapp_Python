@@ -56,6 +56,8 @@ from ui.dialogs.noise_reducer_dialog import NoiseReducerButtonMixin
 from ui.dialogs.neteq_component_dialog import NetEqComponentButtonMixin
 from ui.dialogs.voice_recording_options import VoiceRecordingOptionsMixin
 from ui.dialogs.reading_position_options import ReadingPositionOptionsMixin
+from ui.dialogs.font_scale_options import FontScaleOptionsMixin
+from ui.dialogs.message_reading_options import MessageReadingOptionsMixin
 from ui.dialogs.transcription_result_field import TranscriptionResultFieldMixin
 from ui.dialogs.transcription_precision import TranscriptionPrecisionMixin
 from ui.dialogs.shortcuts_tab import ShortcutsTabMixin
@@ -249,7 +251,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
                      TranscriptionOptionsMixin, TranscriptionReuseMixin,
                      TranscriptionWindowsMixin, AdvancedTabMixin, NoiseReducerButtonMixin,
                      NetEqComponentButtonMixin,
-                     VoiceRecordingOptionsMixin, ReadingPositionOptionsMixin,
+                     VoiceRecordingOptionsMixin, ReadingPositionOptionsMixin, FontScaleOptionsMixin,
+                     MessageReadingOptionsMixin,
                      wx.Dialog):
     """Settings dialog with a General, Connection, and Audio playback tab."""
 
@@ -765,6 +768,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         # scrollIntoView: Tab brings the focused option on screen.
         self._ui_page.SetupScrolling(scroll_x=False, rate_y=15, scrollIntoView=True)
         self._ui_sizer = ui_sizer
+
+        # First on the page: a person who cannot read it needs it before the rest.
+        self._build_font_scale_options(self._ui_page, ui_sizer)
 
         self._messages_btn = wx.Button(self._ui_page, label=i18n.t("ui_messages_button"))
         self._ui_sizer.Add(self._messages_btn, 0, wx.ALL, 8)
@@ -1796,6 +1802,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
         messages_sizer.Add(
             self._starred_prefix_cb, 0, wx.LEFT | wx.TOP | wx.RIGHT | wx.BOTTOM, 8
         )
+        self._build_message_reading_options(self._messages_page, messages_sizer)
 
         # How the box of the delete confirmations starts; the confirmation
         # itself still lets each delete decide.
@@ -2690,6 +2697,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._load_open_position_options()
             self._load_bookmark_removal_options()
 
+        if wanted(unit, "interface"):
+            self._load_font_scale_options()
+
         voice_record_focus = self.main_window.settings.get("user_interface", {}).get(
             "voice_record_focus", "send"
         )
@@ -2961,6 +2971,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             "hide_own_sender_in_message_list", False
         )
         if wanted(unit, "messages"):
+            self._load_message_reading_options()
             self._hide_own_sender_cb.SetValue(bool(hide_own_sender))
             self._hide_unnamed_sender_numbers_cb.SetValue(
                 self.main_window.settings.get("user_interface", {}).get(
@@ -4317,6 +4328,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._save_open_position_options()
             self._save_bookmark_removal_options()
 
+        if ready(self, "interface"):
+            self._save_font_scale_options()
+
         if ready(self, "audio"):
             # UI: focus when recording a voice message
             voice_record_focus = (
@@ -4530,6 +4544,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window.settings.setdefault("user_interface", {})[
                 "hide_unnamed_sender_numbers"
             ] = self._hide_unnamed_sender_numbers_cb.GetValue()
+            # The open conversation's rows are written again, like for a
+            # changed unnamed-sender setting.
+            sender_numbers_changed = self._save_message_reading_options() or sender_numbers_changed
         if ready(self, "chats"):
             self.main_window.settings.setdefault("user_interface", {})[
                 "mark_unsaved_contacts"
@@ -4909,6 +4926,9 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self.main_window._chats_ui_fp = None
             self.main_window.add_chats_to_ui()
 
+        if ready(self, "interface"):
+            self._apply_font_scale_live()
+
         return True
 
     @staticmethod
@@ -5176,6 +5196,8 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._focus_unread_or_last_rb.SetLabel(i18n.t("ui_focus_unread_or_last"))
             self._relabel_open_position_options()
             self._relabel_bookmark_removal_options()
+        if ready(self, "interface"):
+            self._relabel_font_scale_options()
         if ready(self, "audio"):
             self._voice_focus_box.SetLabel(i18n.t("ui_voice_record_focus_label"))
             self._voice_focus_send_rb.SetLabel(i18n.t("ui_voice_record_focus_send"))
@@ -5193,6 +5215,7 @@ class SettingsDialog(LazyUnitsMixin, ShortcutsTabMixin, TranscriptionTabMixin, E
             self._self_ref_voce_rb.SetLabel(i18n.t("ui_self_reference_voce_option"))
             self._self_ref_other_rb.SetLabel(i18n.t("ui_self_reference_other"))
             self._self_ref_custom_label.SetLabel(i18n.t("ui_self_reference_custom_label"))
+            self._relabel_message_reading_options()
             self._hide_own_sender_cb.SetLabel(i18n.t("ui_hide_own_sender_in_message_list"))
         if ready(self, "chats"):
             self._mark_unsaved_contacts_cb.SetLabel(i18n.t("ui_mark_unsaved_contacts"))

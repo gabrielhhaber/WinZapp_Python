@@ -241,7 +241,7 @@ class Panel:
     def _resident_message_index(self, msg):
         return self._find_index_by_msg_id(msg["key"]["id"])
 
-    def _render_message_line(self, msg, pin_marker=True):
+    def _render_message_line(self, msg, pin_marker=True, standalone=False):
         marker = "📌 " if pin_marker else ""
         selected = " selected" if msg["key"]["id"] in self.selected_messages else ""
         return marker + msg["message"]["conversation"] + selected

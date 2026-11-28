@@ -5484,6 +5484,7 @@ msgstr "Limpar conversas selecionadas"
 #: client/ui/dialogs/call_participants.py
 #: client/ui/dialogs/channel_insights_dialog.py
 #: client/ui/dialogs/community_comments.py client/ui/dialogs/error_details.py
+#: client/ui/dialogs/history_search.py
 #: client/ui/dialogs/media_cleanup_dialog.py
 #: client/ui/dialogs/neteq_component_dialog.py
 #: client/ui/dialogs/new_conversation.py
@@ -8268,6 +8269,12 @@ msgctxt "filters_cleared"
 msgid "Filters cleared"
 msgstr "Filtros limpos"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po client/main_window/font_scale.py
+#, python-brace-format
+msgctxt "font_scale_announce"
+msgid "Font {percent}%"
+msgstr "Tipo de letra {percent}%"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/updater.py
 #, python-brace-format
 msgctxt "force_reinstall_confirm_msg"
@@ -9305,6 +9312,89 @@ msgid "The usage guide could not be opened."
 msgstr "Não foi possível abrir o guia de utilização."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_button"
+msgid "Searc&h"
+msgstr "Pro&curar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_empty_query"
+msgid "Type what to search for."
+msgstr "Escreva o que procurar."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_failed"
+msgid "The search could not be completed."
+msgstr "Não foi possível concluir a procura."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_found"
+msgid "Results: {count}"
+msgstr "Resultados: {count}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_found_limit"
+msgid "Results: {count}. This is the limit; narrow the search to see others."
+msgstr ""
+"Resultados: {count}. Este é o limite; refine a procura para ver outros."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_label"
+msgid "&Search text"
+msgstr "&Texto a procurar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_none"
+msgid "No messages found."
+msgstr "Nenhuma mensagem encontrada."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_results"
+msgid "&Results"
+msgstr "&Resultados"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_row"
+msgid "{chat} — {sender} — {date} — {text}"
+msgstr "{chat} — {sender} — {date} — {text}"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_searching"
+msgid "Searching..."
+msgstr "A procurar..."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_stop"
+msgid "Sto&p"
+msgstr "&Parar"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+#, python-brace-format
+msgctxt "history_search_stopped"
+msgid "Search stopped. Results so far: {count}."
+msgstr "Procura interrompida. Resultados até agora: {count}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/history_search.py
+msgctxt "history_search_title"
+msgid "Search all conversations"
+msgstr "Procurar em todas as conversas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "history_transfer_done"
 msgid "The phone has finished sending the message history."
 msgstr "O telemóvel terminou de enviar o histórico de mensagens."
@@ -10330,6 +10420,12 @@ msgstr "&Ajuda"
 msgctxt "menu_help_guide"
 msgid "Usage guide"
 msgstr "Guia de utilização"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/main_window/window_chrome.py
+msgctxt "menu_history_search"
+msgid "Search all conversations"
+msgstr "Procurar em todas as conversas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/main_window/window_chrome.py
@@ -13687,6 +13783,57 @@ msgctxt "self_chat_name"
 msgid "Me (messages to myself)"
 msgstr "Eu (envie mensagens para si próprio)"
 
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/semantic_jump.py
+#, python-brace-format
+msgctxt "semantic_jump_found"
+msgid "{kind}: {position} of {total}."
+msgstr "{kind}: {position} de {total}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "semantic_jump_no_next"
+msgid "No more after this one: {kind}."
+msgstr "Não há mais nenhum depois deste: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#, python-brace-format
+msgctxt "semantic_jump_no_previous"
+msgid "None before this one: {kind}."
+msgstr "Não há nenhum antes deste: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/conversation_panel/semantic_jump.py
+#, python-brace-format
+msgctxt "semantic_jump_none"
+msgid "Nothing found in this conversation: {kind}."
+msgstr "Nada encontrado nesta conversa: {kind}."
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_audio"
+msgid "Unplayed voice message"
+msgstr "Mensagem de voz por reproduzir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_document"
+msgid "Document"
+msgstr "Documento"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_link"
+msgid "Link"
+msgstr "Ligação"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_media"
+msgid "Photo, video or sticker"
+msgstr "Foto, vídeo ou sticker"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "semantic_kind_poll"
+msgid "Poll"
+msgstr "Sondagem"
+
 #: translations/en-US/LC_MESSAGES/winzapp.po client/ui/conversations.py
 #: client/ui/dialogs/attach_contact_dialog.py
 #: client/ui/dialogs/new_poll_dialog.py
@@ -14735,9 +14882,90 @@ msgid "Alt+Shift+U: show unread chats"
 msgstr "Alt+Shift+U: mostrar as conversas não lidas"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_bigger_label"
+msgid "Ctrl+=: increase the font size"
+msgstr "Ctrl+=: aumentar o tamanho do tipo de letra"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_reset_label"
+msgid "Ctrl+Shift+Z: restore the default font size"
+msgstr "Ctrl+Shift+Z: repor o tamanho predefinido do tipo de letra"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "shortcut_font_smaller_label"
+msgid "Ctrl+-: decrease the font size"
+msgstr "Ctrl+-: diminuir o tamanho do tipo de letra"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_history_search_label"
+msgid "Ctrl+Shift+G: search all conversations"
+msgstr "Ctrl+Shift+G: procurar em todas as conversas"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_insert_mention"
 msgid "Insert the selected mention"
 msgstr "Inserir a menção selecionada"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_audio_next_label"
+msgid "Alt+F5: jump to the next message: unplayed voice"
+msgstr "Alt+F5: ir para a mensagem seguinte: voz por reproduzir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_audio_prev_label"
+msgid "Alt+Shift+F5: jump to the previous message: unplayed voice"
+msgstr "Alt+Shift+F5: ir para a mensagem anterior: voz por reproduzir"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_document_next_label"
+msgid "Alt+F7: jump to the next message: document"
+msgstr "Alt+F7: ir para a mensagem seguinte: documento"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_document_prev_label"
+msgid "Alt+Shift+F7: jump to the previous message: document"
+msgstr "Alt+Shift+F7: ir para a mensagem anterior: documento"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_link_next_label"
+msgid "Alt+F9: jump to the next message: link"
+msgstr "Alt+F9: ir para a mensagem seguinte: ligação"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_link_prev_label"
+msgid "Alt+Shift+F9: jump to the previous message: link"
+msgstr "Alt+Shift+F9: ir para a mensagem anterior: ligação"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_media_next_label"
+msgid "Alt+F6: jump to the next message: photo, video or sticker"
+msgstr "Alt+F6: ir para a mensagem seguinte: foto, vídeo ou sticker"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_media_prev_label"
+msgid "Alt+Shift+F6: jump to the previous message: photo, video or sticker"
+msgstr "Alt+Shift+F6: ir para a mensagem anterior: foto, vídeo ou sticker"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_poll_next_label"
+msgid "Alt+F8: jump to the next message: poll"
+msgstr "Alt+F8: ir para a mensagem seguinte: sondagem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/shortcuts_dialog.py
+msgctxt "shortcut_jump_poll_prev_label"
+msgid "Alt+Shift+F8: jump to the previous message: poll"
+msgstr "Alt+Shift+F8: ir para a mensagem anterior: sondagem"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 msgctxt "shortcut_key_alt"
@@ -15955,6 +16183,7 @@ msgid "No starred message matches the search."
 msgstr "Nenhuma mensagem marcada com estrela corresponde à pesquisa."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po client/core/starred_list.py
+#: client/ui/dialogs/history_search.py
 msgctxt "starred_no_text"
 msgid "(no text)"
 msgstr "(sem texto)"
@@ -15966,7 +16195,7 @@ msgstr "Nenhuma mensagem marcada com estrela."
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/conversation_starred_tab.py
-#: client/ui/dialogs/starred_messages.py
+#: client/ui/dialogs/history_search.py client/ui/dialogs/starred_messages.py
 msgctxt "starred_open"
 msgid "&Open in the conversation"
 msgstr "&Abrir na conversa"
@@ -21686,6 +21915,18 @@ msgid "Unread &message indicator or last message"
 msgstr "&Indicador de mensagem não lida ou última mensagem"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/font_scale_options.py
+msgctxt "ui_font_scale_default"
+msgid "Default"
+msgstr "Predefinido"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/font_scale_options.py
+msgctxt "ui_font_scale_label"
+msgid "Font si&ze:"
+msgstr "Tamanho do tipo de &letra:"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py
 msgctxt "ui_forward_keep_link_preview_label"
 msgid "Keep link pre&views by default when forwarding messages"
@@ -21840,6 +22081,30 @@ msgstr ""
 msgctxt "ui_message_list_open_position_unread_or_last"
 msgid "Unread separator or last message"
 msgstr "Separador de não lidas ou última mensagem"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_concise"
+msgid ""
+"Concise: leave out the sender and the time when they repeat the previous "
+"message's"
+msgstr ""
+"Conciso: omitir o remetente e a hora quando repetem os da mensagem anterior"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_content_first"
+msgid "Content first: the message, then sender, time and status"
+msgstr "Conteúdo primeiro: a mensagem, depois remetente, hora e estado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+msgctxt "ui_message_reading_profile_default"
+msgid "Default: sender, message, time and status"
+msgstr "Predefinido: remetente, mensagem, hora e estado"
+
+#: translations/en-US/LC_MESSAGES/winzapp.po
+#: client/ui/dialogs/message_reading_options.py
+msgctxt "ui_message_reading_profile_label"
+msgid "Customi&ze how each message row is read"
+msgstr "Perfil de leitura de cada mensagem (ordem e redu&ção)"
 
 #: translations/en-US/LC_MESSAGES/winzapp.po
 #: client/ui/dialogs/settings_dialog.py

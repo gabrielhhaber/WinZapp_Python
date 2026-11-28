@@ -82,9 +82,11 @@ ROUNDTRIP_EXEMPT = {
 #: no longer loads or saves.
 SPLIT_HALVES = {
     "_load_values": ("_load_install_wide_values", "_load_switch_behavior", "_load_voice_recording_options",
-                     "_load_open_position_options", "_load_bookmark_removal_options"),
+                     "_load_open_position_options", "_load_bookmark_removal_options",
+                     "_load_message_reading_options", "_load_font_scale_options"),
     "_apply_values": ("_apply_install_wide_values", "_apply_switch_behavior", "_save_voice_recording_options",
-                      "_save_open_position_options", "_save_bookmark_removal_options"),
+                      "_save_open_position_options", "_save_bookmark_removal_options",
+                      "_save_message_reading_options", "_save_font_scale_options"),
 }
 
 
@@ -97,6 +99,12 @@ def _class():
     reading = ast.parse(SETTINGS_DIALOG.with_name("reading_position_options.py").read_text(encoding="utf-8"))
     cls.body += next(n.body for n in reading.body
                      if isinstance(n, ast.ClassDef) and n.name == "ReadingPositionOptionsMixin")
+    message_reading = ast.parse(SETTINGS_DIALOG.with_name("message_reading_options.py").read_text(encoding="utf-8"))
+    cls.body += next(n.body for n in message_reading.body
+                     if isinstance(n, ast.ClassDef) and n.name == "MessageReadingOptionsMixin")
+    font_scale = ast.parse(SETTINGS_DIALOG.with_name("font_scale_options.py").read_text(encoding="utf-8"))
+    cls.body += next(n.body for n in font_scale.body
+                     if isinstance(n, ast.ClassDef) and n.name == "FontScaleOptionsMixin")
     return cls
 
 
