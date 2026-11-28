@@ -99,8 +99,10 @@ class TranscriptionJob:
                  backend=None, backend_id=None, prepared=None,
                  on_phase=None, on_progress=None, on_finished=None,
                  probe=None, external_references=(),
-                 compute_type_preference=precision.AUTO):
+                 compute_type_preference=precision.AUTO, initial_prompt=""):
         self._audio_path = audio_path
+        # The user's vocabulary (vocabulary.py): handed to the backend, never logged.
+        self._initial_prompt = initial_prompt or ""
         self._ffmpeg = ffmpeg
         self._models_root = models_root
         self._model_id = model_id
@@ -309,6 +311,7 @@ class TranscriptionJob:
             duration_seconds=prepared.duration_seconds,
             external_references=self._external_references,
             compute_capability=probe.compute_capability,
+            initial_prompt=self._initial_prompt,
         )
 
         # Announced only now, and deliberately not before the probe: part 6

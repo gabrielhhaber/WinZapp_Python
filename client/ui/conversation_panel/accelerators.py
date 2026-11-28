@@ -254,6 +254,8 @@ class AcceleratorsMixin:
         self.ID_ALT_SHIFT_DELETE = wx.NewIdRef()
         self.ID_BULK_DELETE_TRANSCRIPTIONS = wx.NewIdRef()
         self.ID_BULK_DELETE     = wx.NewIdRef()  # delete selected         (Ctrl+Shift+Delete)
+        # Dictate into the message field (dictation.py), start and stop (Ctrl+Shift+J).
+        self.ID_DICTATE = wx.NewIdRef()
         # ── Audio speed ──────────────────────────────────────────────────────
         self.ID_ALT_COMMA       = wx.NewIdRef()  # decrease audio speed    (Alt+,)
         self.ID_ALT_PERIOD      = wx.NewIdRef()  # increase audio speed    (Alt+.)
@@ -361,6 +363,7 @@ class AcceleratorsMixin:
             (CAS,              ord("N"),           self.ID_BULK_TRANSCRIBE_INLINE),
             (CAS,              wx.WXK_DELETE,      self.ID_BULK_DELETE_TRANSCRIPTIONS),
             (CS,               wx.WXK_DELETE,      self.ID_BULK_DELETE),
+            (CS,               ord("J"),          self.ID_DICTATE),
         ] + [
             # No default key (mod 0, key 0): the entry only ties the command to
             # its catalogue row; the user's own binding is what registers.
@@ -452,6 +455,7 @@ class AcceleratorsMixin:
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete_transcriptions,
                   id=self.ID_BULK_DELETE_TRANSCRIPTIONS)
         self.Bind(wx.EVT_MENU, self._on_accel_bulk_delete,          id=self.ID_BULK_DELETE)
+        self.Bind(wx.EVT_MENU, self._on_dictation_shortcut,         id=self.ID_DICTATE)
         for _d in range(10):
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_review_message(d), id=self.ID_REVIEW[_d])
             self.Bind(wx.EVT_MENU, lambda e, d=_d: self._on_accel_quick_reaction(d), id=self.ID_QUICK_REACTION[_d])
